@@ -21,7 +21,7 @@ using UnityEngine.Jobs;
 
 namespace MisterGames.Common.Audio {
     
-    [DefaultExecutionOrder(-999)]
+    [DefaultExecutionOrder(-10_000)]
     public sealed class AudioPool : MonoBehaviour, IAudioPool, IUpdate {
 
         [Header("Audio Element")]
@@ -77,6 +77,8 @@ namespace MisterGames.Common.Audio {
         [SerializeField] private bool _logFocusEvents;
         
         public static IAudioPool Main { get; private set; }
+
+        public event Action<AudioHandle, AudioMixerGroup> OnSoundStarted = delegate { };
 
         public int ActiveSoundsCount => _elements.Count;
         public int ReleasingSoundsCount => _releaseElementsMap.Count;
@@ -205,6 +207,7 @@ namespace MisterGames.Common.Audio {
             _includeMixerGroupsForVolumesSet.Clear();
             
             Main = null;
+            OnSoundStarted = delegate { };
             
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
         }
@@ -400,7 +403,10 @@ namespace MisterGames.Common.Audio {
             // After the source restart, so that computed pitch is not overwritten by the raw one.
             ProcessSoundImmediate(audioElement);
 
-            return new AudioHandle(this, id);
+            var handle = new AudioHandle(this, id);
+            OnSoundStarted.Invoke(handle, mixerGroup);
+            
+            return handle;
         }
 
         public AudioHandle Play(
@@ -498,7 +504,10 @@ namespace MisterGames.Common.Audio {
             // After the source restart, so that computed pitch is not overwritten by the raw one.
             ProcessSoundImmediate(audioElement);
 
-            return new AudioHandle(this, id);
+            var handle = new AudioHandle(this, id);
+            OnSoundStarted.Invoke(handle, mixerGroup);
+            
+            return handle;
         }
         
         private void AddAudioElement(int id, IAudioElement e) {
@@ -561,6 +570,7 @@ namespace MisterGames.Common.Audio {
 
             audioElement.IsPaused = false;
             audioElement.IsPausedByFocus = false;
+            audioElement.IsPausedExplicitly = false;
             audioElement.AudioOptions = options;
             audioElement.PitchMul = pitch;
             audioElement.AttenuationMul = attenuationMul;
@@ -1288,12 +1298,6 @@ namespace MisterGames.Common.Audio {
             _immediateListenerOcclusion = math.lerp(1f, occlusionMul, math.clamp(weightSum, 0f, 1f));
         }
 
-        /// <summary>
-        /// Run In Background is off, so the audio engine is suspended while the app has no focus.
-        /// Sources are not paused here on purpose: a source paused across an engine suspend does not
-        /// come back on its own. They are only marked, so that the pool knows their silence
-        /// after the return is not the end of a sound.
-        /// </summary>
         private void SuspendSoundsOnFocusLost() {
             // The dsp clock stops with the engine and keeps this value until the engine runs again.
             _dspTimeOnFocusLost = AudioSettings.dspTime;
@@ -1398,6 +1402,9 @@ namespace MisterGames.Common.Audio {
         }
 
         private static void CheckPause(IAudioElement e, float timescale) {
+            // A sound paused from the outside stays paused until it is resumed from the outside.
+            if (e.IsPausedExplicitly) return;
+            
             if (timescale <= 0f && e.Source.isPlaying) {
                 e.IsPaused = true;
                 e.Source.Pause();
@@ -1496,7 +1503,8 @@ namespace MisterGames.Common.Audio {
             if ((options & AudioOptions.Loop) != 0) return false;
 
             e.ClipTime = math.max(e.ClipTime, e.Source.time);
-            return !e.IsPaused && !e.IsPausedByFocus && !e.Source.isPlaying || e.ClipTime >= e.ClipLength;
+            return !e.IsPaused && !e.IsPausedByFocus && !e.IsPausedExplicitly && !e.Source.isPlaying ||
+                   e.ClipTime >= e.ClipLength;
         }
 
         private JobHandle ScheduleAudioVolumes(

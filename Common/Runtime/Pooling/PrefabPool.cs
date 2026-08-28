@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 
 namespace MisterGames.Common.Pooling {
     
-    [DefaultExecutionOrder(-1000)]
+    [DefaultExecutionOrder(-100_000)]
     public sealed class PrefabPool : MonoBehaviour, IPrefabPool {
         
         [SerializeField] private bool _isMainPool = true;

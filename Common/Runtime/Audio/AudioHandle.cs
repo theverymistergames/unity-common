@@ -61,14 +61,29 @@ namespace MisterGames.Common.Audio {
             _id = id;
         }
 
+        /// <summary>
+        /// True while the sound is paused by <see cref="Pause"/>, and not by the pool itself.
+        /// </summary>
+        public bool IsPaused => IsValid(out var e) && e.IsPausedExplicitly;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Play() {
-            if (IsValid(out var e)) e.Source.Play();
+            if (!IsValid(out var e)) return;
+            
+            e.IsPausedExplicitly = false;
+            e.Source.UnPause();
+            
+            // The source was stopped instead of being paused, or has not been started yet.
+            if (!e.Source.isPlaying) e.Source.Play();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Pause() {
-            if (IsValid(out var e)) e.Source.Pause();
+            if (!IsValid(out var e)) return;
+            
+            // Pool checks the flag to keep the sound paused and to tell its silence from the end of a clip.
+            e.IsPausedExplicitly = true;
+            e.Source.Pause();
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

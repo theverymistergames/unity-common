@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -6,6 +7,8 @@ using UnityEngine.Audio;
 namespace MisterGames.Common.Audio {
     
     public interface IAudioPool {
+
+        event Action<AudioHandle, AudioMixerGroup> OnSoundStarted;
 
         int ActiveSoundsCount { get; }
         int ReleasingSoundsCount { get; }
