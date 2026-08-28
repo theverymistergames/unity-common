@@ -1384,8 +1384,12 @@ namespace MisterGames.Common.Audio {
             // A paused sound keeps a state of its own and is not the engine to bring back.
             if (e.Source == null || e.IsPaused || e.IsPausedExplicitly) return;
 
-            // Clip time of a looping sound is not tracked per frame, so it is written here.
-            if (e.Source.isPlaying) e.ClipTime = math.max(e.ClipTime, e.Source.time);
+            // A source that is still playing carries a fresher position than the last frame tracked.
+            if (e.Source.isPlaying) {
+                e.ClipTime = (e.AudioOptions & AudioOptions.Loop) != 0
+                    ? e.Source.time
+                    : math.max(e.ClipTime, e.Source.time);
+            }
 
             // A silent source proves nothing: the engine can be down before it reports the suspend, and
             // then every sound reads as finished. Waiting for the engine is what every sound that is not
@@ -1588,7 +1592,13 @@ namespace MisterGames.Common.Audio {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool IsSoundFinished(IAudioElement e, AudioOptions options) {
-            if ((options & AudioOptions.Loop) != 0) return false;
+            // Clip time is where a sound is resumed from when the engine comes back, so a looping sound
+            // tracks it as well. Its source time wraps, so the position replaces what was tracked instead
+            // of extending it, and a silent source is suspended or paused and holds nothing to read.
+            if ((options & AudioOptions.Loop) != 0) {
+                if (e.Source.isPlaying) e.ClipTime = e.Source.time;
+                return false;
+            }
 
             e.ClipTime = math.max(e.ClipTime, e.Source.time);
 
