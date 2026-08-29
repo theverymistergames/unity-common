@@ -64,9 +64,14 @@ namespace MisterGames.Common.Tick {
         private static int _editorUpdatesFrameCount;
         private static float _editorUpdatesTime;
         private static byte _editorUpdatesId;
+        private static float _lastEditorCheckTime;
+        private const float _editorUsageTimeout = 1f;
 
         private static async UniTaskVoid CheckEditorUpdatesAreStarted() {
-            if (_editorTimeSource != null) return;
+            if (_editorTimeSource != null) {
+                _lastEditorCheckTime = Time.realtimeSinceStartup;
+                return;
+            }
             
             byte id = _editorUpdatesId.IncrementUncheckedRef();
             
@@ -75,18 +80,18 @@ namespace MisterGames.Common.Tick {
             _editorTimeSource = new TimeSource();
             
             while (id == _editorUpdatesId) {
-                float dt = Time.realtimeSinceStartup - _editorUpdatesTime;
-                _editorUpdatesTime = Time.realtimeSinceStartup;
+                float time = Time.realtimeSinceStartup;
+                float dt = time - _editorUpdatesTime;
                 
+                _editorUpdatesTime = time;
                 _editorTimeSource.TickUpdate(dt, dt);
                 _editorTimeSource.TickLateUpdate(dt, dt);
                 _editorTimeSource.TickFixedUpdate(dt, dt);
 
                 await UniTask.Yield();
-
                 _editorUpdatesFrameCount++;
-
-                if (_editorTimeSource.SubscribersCount <= 0) break;
+                
+                if (time > _lastEditorCheckTime + _editorUsageTimeout) break;
             }
 
             if (id != _editorUpdatesId) return;

@@ -167,7 +167,7 @@ namespace MisterGames.Tweens {
             
             while (!cancellationToken.IsCancellationRequested && id == _trackProgressId) {
                 float dt = TimeSources.deltaTime;
-
+                
                 float oldProgress = _progress;
                 _progress = Mathf.Clamp01(_progress + dt * speed / duration);
 

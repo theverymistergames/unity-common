@@ -10,9 +10,9 @@ using UnityEngine;
 
 namespace MisterGames.Logic.Interactives {
 
-    [RequireComponent(typeof(Interactive))]
     public sealed class ActionOnInteract : MonoBehaviour {
-        
+
+        [SerializeField] private Interactive _interactive;
         [SerializeField] private CancelMode _cancelOnNextAction;
         [SerializeReference] [SubclassSelector] private IActorAction _startAction;
         [SerializeReference] [SubclassSelector] private IActorAction _stopAction;
@@ -24,12 +24,11 @@ namespace MisterGames.Logic.Interactives {
             CancelOnlyOnStop,
         }
         
-        private Interactive _interactive;
         private CancellationTokenSource _enableCts;
         private CancellationTokenSource _actionCts;
         
         private void Awake() {
-            _interactive = GetComponent<Interactive>();
+            if (_interactive == null) _interactive = GetComponent<Interactive>();
         }
 
         private void OnEnable() {
@@ -78,6 +77,12 @@ namespace MisterGames.Logic.Interactives {
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
+
+#if UNITY_EDITOR
+        private void Reset() {
+            _interactive = GetComponent<Interactive>();
+        }
+#endif
     }
 
 }
