@@ -54,8 +54,14 @@ namespace MisterGames.Dbg.Console.Core {
                 int cmdLength = cmd.Length;
                 if (inputLength < cmdLength) continue;
 
+                // Commands are registered lower case, so the input is matched ignoring the case:
+                // otherwise a command with a capital letter in its name can never be called.
                 string possibleCommand = input[..cmdLength];
-                if (cmd != possibleCommand || inputLength > cmdLength && input[cmdLength] != ' ') continue;
+                if (!string.Equals(cmd, possibleCommand, StringComparison.OrdinalIgnoreCase) ||
+                    inputLength > cmdLength && input[cmdLength] != ' ')
+                {
+                    continue;
+                }
 
                 string[] argStrings = GetArgs(c, input);
                 int argsLength = argStrings.Length;
