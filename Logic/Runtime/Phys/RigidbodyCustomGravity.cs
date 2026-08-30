@@ -94,7 +94,10 @@ namespace MisterGames.Logic.Phys {
                 
                 case Mode.CustomGlobal:
                     _rigidbody.useGravity = false;
-                    return CustomGravity.Main.GetGlobalGravity(position) * _gravityScale;
+                    // No gravity sources at all means the physics gravity and not the zero one:
+                    // otherwise disabling the last source leaves the rigidbody in a zero gravity
+                    // with the last gravity direction kept forever.
+                    return CustomGravity.Main.GetGlobalGravity(position, Physics.gravity) * _gravityScale;
                 
                 case Mode.CustomLocal:
                     _rigidbody.useGravity = false;

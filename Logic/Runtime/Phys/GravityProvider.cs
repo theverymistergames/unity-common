@@ -39,7 +39,7 @@ namespace MisterGames.Logic.Phys {
             return _gravityMode switch {
                 RigidbodyCustomGravity.Mode.Physics => Physics.gravity,
                 RigidbodyCustomGravity.Mode.CustomGlobalOrPhysics => CustomGravity.Main.TryGetGlobalGravity(position, out var g) ? g : Physics.gravity,
-                RigidbodyCustomGravity.Mode.CustomGlobal => CustomGravity.Main.GetGlobalGravity(position),
+                RigidbodyCustomGravity.Mode.CustomGlobal => CustomGravity.Main.GetGlobalGravity(position, Physics.gravity),
                 RigidbodyCustomGravity.Mode.CustomLocal => _localGravitySource.GetGravity(position, out _),
                 _ => throw new ArgumentOutOfRangeException()
             };

@@ -11,6 +11,7 @@ namespace MisterGames.Common.Tick {
         
         public static float deltaTime => GetTimeSource().DeltaTime;
         public static float unscaledDeltaTime => GetTimeSource().UnscaledDeltaTime;
+        public static float unscaledPositiveDeltaTime => GetTimeSource().UnscaledPositiveDeltaTime;
         public static float fixedDeltaTime => GetTimeSource().FixedDeltaTime;
         public static float fixedUnscaledDeltaTime => GetTimeSource().FixedUnscaledDeltaTime;
         public static float scaledTime => GetTimeSource().ScaledTime;

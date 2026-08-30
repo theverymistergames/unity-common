@@ -192,7 +192,7 @@ namespace MisterGames.Logic.Phys {
                 
                 case RigidbodyCustomGravity.Mode.CustomGlobal:
                     useGravity = false;
-                    return CustomGravity.Main.GetGlobalGravity(position) * _gravityScale;
+                    return CustomGravity.Main.GetGlobalGravity(position, Physics.gravity) * _gravityScale;
                 
                 case RigidbodyCustomGravity.Mode.CustomLocal:
                     useGravity = false;

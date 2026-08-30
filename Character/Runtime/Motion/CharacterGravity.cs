@@ -49,6 +49,10 @@ namespace MisterGames.Character.Motion {
 
         private void OnDisable() {
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
+
+            // Blocks are set by the outer systems: a disabled character must not keep them,
+            // otherwise the gravity align never returns after the character is enabled again.
+            _gravityAlignBlock.Clear();
         }
         
         public void BlockGravityAlign(object source, bool block, CancellationToken cancellationToken = default) {

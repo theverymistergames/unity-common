@@ -8,6 +8,7 @@ namespace MisterGames.Common.Tick {
 
         public float DeltaTime { get; private set; }
         public float UnscaledDeltaTime { get; private set; }
+        public float UnscaledPositiveDeltaTime { get; private set; }
         public float FixedDeltaTime { get; private set; }
         public float FixedUnscaledDeltaTime { get; private set; }
         public float ScaledTime { get; private set; }
@@ -74,6 +75,7 @@ namespace MisterGames.Common.Tick {
 
         public void TickUpdate(float dtScaled, float dtUnscaled) {
             UnscaledDeltaTime = IsAppPaused || !IsAppFocused || _discardNextFrameDt ? 0f : dtUnscaled;
+            UnscaledPositiveDeltaTime = Time.timeScale > 0f ? UnscaledDeltaTime : 0f;
             DeltaTime = dtScaled;
 
             UnscaledTime += UnscaledDeltaTime;

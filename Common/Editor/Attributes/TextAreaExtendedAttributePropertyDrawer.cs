@@ -9,7 +9,7 @@ namespace MisterGames.Common.Editor.Attributes {
     public class TextAreaExtendedAttributePropertyDrawer : PropertyDrawer {
 
         private const int MinLines = 3;
-        private const int MaxLines = 14;
+        private const int MaxLines = 20;
 
         private const float FallbackWidthOffset = 40f;
         private const float ScrollBarWidth = 16f;
@@ -132,8 +132,19 @@ namespace MisterGames.Common.Editor.Attributes {
             return new Rect(position.x, areaY, position.width, areaHeight);
         }
 
+        /// <summary>
+        /// Height of the text with the word wrap taken into account. CalcHeight of a style built by hand does not
+        /// always wrap the lines and then returns the height of the raw lines only, so the height of a built in
+        /// style that is known to wrap is used as the lower bound.
+        /// </summary>
         private static float GetContentHeight(string text, float width) {
-            return TextAreaStyle.CalcHeight(new GUIContent(text), Mathf.Max(width, 1f));
+            var content = new GUIContent(text);
+            float contentWidth = Mathf.Max(width, 1f);
+
+            return Mathf.Max(
+                TextAreaStyle.CalcHeight(content, contentWidth),
+                EditorStyles.wordWrappedLabel.CalcHeight(content, contentWidth)
+            );
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
