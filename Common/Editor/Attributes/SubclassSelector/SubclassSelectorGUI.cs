@@ -56,7 +56,8 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
             SerializedProperty property,
             Type baseType,
             GUIContent label,
-            bool includeChildren = false
+            bool includeChildren = false,
+            bool includeEditor = false
         ) {
             if (property.propertyType != SerializedPropertyType.ManagedReference) {
                 EditorGUI.LabelField(position, label, IsNotManagedReferenceLabel);
@@ -68,7 +69,7 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
                 return;
             }
 
-            if (!IsSupportedBaseType(baseType)) {
+            if (!IsSupportedBaseType(baseType, includeEditor)) {
                 EditorGUI.LabelField(position, label, PropertyTypeUnsupportedLabel);
                 return;
             }
@@ -85,7 +86,7 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
                 var popupPosition = new Rect(position.x + position.width - popupWidth + offsetX, position.y, popupWidth - offsetX, EditorGUIUtility.singleLineHeight);
                 
                 if (EditorGUI.DropdownButton(popupPosition, typeLabel, FocusType.Keyboard)) {
-                    CreateTypeDropdown(baseType, property).Show(popupPosition);
+                    CreateTypeDropdown(baseType, property, includeEditor).Show(popupPosition);
                 }
 
                 CreateContextMenu(popupPosition, property, baseType, type);
@@ -150,11 +151,11 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
             menu.ShowAsContext();
         }
 
-        private static AdvancedDropdown<Type> CreateTypeDropdown(Type baseType, SerializedProperty property) {
+        private static AdvancedDropdown<Type> CreateTypeDropdown(Type baseType, SerializedProperty property, bool includeEditor) {
             var types = TypeCache
                 .GetTypesDerivedFrom(baseType)
                 .Append(baseType)
-                .Where(IsSupportedType)
+                .Where(t => IsSupportedType(t, includeEditor))
                 .Append(null);
 
             property = property.Copy();
@@ -182,17 +183,21 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
             property.serializedObject.Update();
         }
 
-        private static bool IsSupportedType(Type t) {
+        private static bool IsSupportedType(Type t, bool includeEditor) {
             return (t.IsPublic || t.IsNestedPublic) && !t.IsAbstract && !t.IsGenericType && !t.IsValueType &&
                    t.GetCustomAttribute<SubclassSelectorIgnoreAttribute>(inherit: false) is null &&
-                   t.FullName is not null && !t.FullName.Contains(EDITOR, StringComparison.OrdinalIgnoreCase) &&
+                   t.FullName is not null && (includeEditor || !IsEditorType(t)) &&
                    !UnityObjectType.IsAssignableFrom(t) && Attribute.IsDefined(t, typeof(SerializableAttribute));
         }
 
-        private static bool IsSupportedBaseType(Type t) {
+        private static bool IsSupportedBaseType(Type t, bool includeEditor) {
             return (t.IsPublic || t.IsNestedPublic) && !t.IsGenericType && !t.IsValueType &&
-                   t.FullName is not null && !t.FullName.Contains(EDITOR, StringComparison.OrdinalIgnoreCase) &&
+                   t.FullName is not null && (includeEditor || !IsEditorType(t)) &&
                    !UnityObjectType.IsAssignableFrom(t) && (t.IsInterface || t.IsAbstract || Attribute.IsDefined(t, typeof(SerializableAttribute)));
+        }
+
+        private static bool IsEditorType(Type t) {
+            return t.FullName!.Contains(EDITOR, StringComparison.OrdinalIgnoreCase);
         }
 
         private static Type GetManagedReferenceValueType(SerializedProperty property) {

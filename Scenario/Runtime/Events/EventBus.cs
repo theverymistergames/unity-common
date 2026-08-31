@@ -16,6 +16,8 @@ namespace MisterGames.Scenario.Events {
         public static readonly IEventBus Main = new EventBus();
         private static readonly EventReference GlobalEvent = new(eventDomain: null, eventId: int.MinValue);
 
+        public event Action<EventReference> OnAnyEventRaised = delegate { };
+
         public Dictionary<EventReference, int> RaisedEvents { get; } = new();
         
         private readonly HashSet<EventReference> _subIdEventSet = new();
@@ -23,6 +25,7 @@ namespace MisterGames.Scenario.Events {
         private readonly MultiValueDictionary<Type, object> _streamMap = new();
 
         public void Dispose() {
+            OnAnyEventRaised = null;
             _listenerTree.Clear();
             _subIdEventSet.Clear();
             RaisedEvents.Clear();
@@ -161,6 +164,8 @@ namespace MisterGames.Scenario.Events {
         private void NotifyEventRaised(EventReference e) {
             if (EnableLogs) Log($"raised [{e}] (no data)");
 
+            OnAnyEventRaised.Invoke(e);
+
             int count = _listenerTree.GetCount(e);
             
             for (int i = 0; i < count; i++) {
@@ -178,6 +183,9 @@ namespace MisterGames.Scenario.Events {
         
         private void NotifyEventRaised<T>(EventReference e, T data) {
             if (EnableLogs) Log($"raised [{e}] with data [{data}]");
+
+            OnAnyEventRaised.Invoke(e);
+
             int count = _listenerTree.GetCount(e);
             
             for (int i = 0; i < count; i++) {

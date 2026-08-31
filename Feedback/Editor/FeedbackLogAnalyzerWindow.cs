@@ -25,13 +25,11 @@ namespace MisterGames.Feedback.Editor {
         private const string UnknownPlatform = "unknown";
 
         private const float PlayerListWidth = 260f;
-        private const float StackLineHeight = 13f;
-        private const int MaxStackLines = 24;
 
         private FeedbackServiceConfig _config;
 
         [Tooltip("Custom views of the logs, drawn above the log tree in the order they are set.")]
-        [SerializeReference] [SubclassSelector] private IFeedbackViewProvider[] _views;
+        [SerializeReference] [SubclassSelector(includeEditor: true)] private IFeedbackViewProvider[] _views;
 
         private SerializedObject _serializedObject;
         private SerializedProperty _viewsProperty;
@@ -348,12 +346,12 @@ namespace MisterGames.Feedback.Editor {
                            (player.errorCount > 0 ? $"  ·  {player.errorCount} errors" : string.Empty) +
                            (string.IsNullOrEmpty(player.device) ? string.Empty : $"  ·  {player.device}");
 
-            if (!DrawFoldout(key, title, EditorStyles.boldLabel)) return;
+            if (!DrawFoldout(key, title, FeedbackViewGui.BoldFoldout)) return;
 
             EditorGUI.indentLevel++;
 
             for (int i = 0; i < player.sessions.Count; i++) {
-                DrawSession(player, player.sessions[i], number: player.sessions.Count - i);
+                DrawSession(player, player.sessions[i], number: i + 1);
             }
 
             EditorGUI.indentLevel--;
@@ -370,7 +368,7 @@ namespace MisterGames.Feedback.Editor {
                            (string.IsNullOrEmpty(session.build) ? string.Empty : $"  ·  {session.build}") +
                            (string.IsNullOrEmpty(session.platform) ? string.Empty : $"  ·  {session.platform}");
 
-            if (!DrawFoldout(key, title, EditorStyles.label)) return;
+            if (!DrawFoldout(key, title, EditorStyles.foldout)) return;
 
             EditorGUI.indentLevel++;
 
@@ -385,35 +383,49 @@ namespace MisterGames.Feedback.Editor {
             var color = GUI.contentColor;
             if (entry.IsError) GUI.contentColor = new Color(1f, 0.5f, 0.5f);
 
-            string title = $"{entry.time.ToLocalTime():HH:mm:ss}  {entry.message}";
-            bool hasStack = !string.IsNullOrWhiteSpace(entry.stack);
+            // A row is one line, so a message of several lines is folded: the first line names it,
+            // the rest is shown when it is unfolded, together with the stack.
+            string firstLine = GetFirstLine(entry.message);
+            bool hasMore = !string.IsNullOrWhiteSpace(entry.stack) || firstLine.Length != entry.message?.Length;
 
-            if (hasStack) {
-                if (DrawFoldout($"{sessionKey}/{index}", title, EditorStyles.label)) {
+            string title = $"{entry.time.ToLocalTime():HH:mm:ss}  {firstLine}";
+
+            if (hasMore) {
+                if (DrawFoldout($"{sessionKey}/{index}", title, EditorStyles.foldout)) {
                     GUI.contentColor = color;
 
                     EditorGUI.indentLevel++;
-                    DrawStack(entry);
+                    DrawEntryBody(entry);
                     EditorGUI.indentLevel--;
                 }
             }
             else {
-                EditorGUILayout.LabelField(title, EditorStyles.label);
+                FeedbackViewGui.DrawRow(title);
             }
 
             GUI.contentColor = color;
         }
 
-        private static void DrawStack(FeedbackLogEntry entry) {
-            int lines = Mathf.Clamp(entry.stack.Split('\n').Length, 1, MaxStackLines);
+        private static void DrawEntryBody(FeedbackLogEntry entry) {
+            string text = string.IsNullOrWhiteSpace(entry.stack)
+                ? entry.message
+                : $"{entry.message}\n{entry.stack}";
 
-            var rect = EditorGUILayout.GetControlRect(false, lines * StackLineHeight);
-            EditorGUI.SelectableLabel(EditorGUI.IndentedRect(rect), entry.stack, EditorStyles.miniLabel);
+            FeedbackViewGui.DrawText(text);
 
             if (GUILayout.Button("Copy", EditorStyles.miniButton, GUILayout.Width(50f))) {
-                EditorGUIUtility.systemCopyBuffer = $"{entry.message}\n{entry.stack}";
+                EditorGUIUtility.systemCopyBuffer = text;
             }
         }
+
+        private static string GetFirstLine(string message) {
+            if (string.IsNullOrEmpty(message)) return string.Empty;
+
+            int index = message.IndexOfAny(new[] { '\n', '\r' });
+            return index < 0 ? message : message[..index];
+        }
+
+
 
         private bool DrawFoldout(string key, string title, GUIStyle style) {
             bool expanded = _expanded.Contains(key);

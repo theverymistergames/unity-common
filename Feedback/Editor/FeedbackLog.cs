@@ -36,10 +36,13 @@ namespace MisterGames.Feedback.Editor {
         private static DateTime? ParseTime(string value) {
             if (string.IsNullOrWhiteSpace(value)) return null;
 
-            return DateTime.TryParse(value, CultureInfo.InvariantCulture,
-                DateTimeStyles.AdjustToUniversal | DateTimeStyles.AllowWhiteSpaces, out var result)
-                ? result
-                : null;
+            const DateTimeStyles styles = DateTimeStyles.AdjustToUniversal | DateTimeStyles.AllowWhiteSpaces;
+
+            if (DateTime.TryParse(value, CultureInfo.InvariantCulture, styles, out var result)) return result;
+
+            // A cell that Sheets keeps as a date comes back formatted by the culture of the machine,
+            // so an entry written before the loader started to normalize such cells is still readable.
+            return DateTime.TryParse(value, CultureInfo.CurrentCulture, styles, out result) ? result : null;
         }
     }
 
@@ -60,7 +63,7 @@ namespace MisterGames.Feedback.Editor {
     }
 
     /// <summary>
-    /// Sessions of one install of the game, newest first.
+    /// Sessions of one install of the game, oldest first.
     /// </summary>
     public sealed class FeedbackLogPlayer {
 

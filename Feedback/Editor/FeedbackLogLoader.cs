@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Google.Apis.Auth.OAuth2;
@@ -42,6 +44,7 @@ namespace MisterGames.Feedback.Editor {
         private const string CacheFolder = "Library/MisterGames";
         private const string CacheFile = "FeedbackLogs.json";
         private const string Range = "!A1:Z100000";
+        private const string TimeFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
 
         /// <summary>
         /// Columns of the table, in the order the Apps Script writes them.
@@ -68,22 +71,33 @@ namespace MisterGames.Feedback.Editor {
             if (string.IsNullOrWhiteSpace(spreadsheetId)) return Result.Error("spreadsheet id is not set");
             if (string.IsNullOrWhiteSpace(sheetName)) return Result.Error("sheet name is not set");
 
+            // A pasted url and stray spaces are the usual way an id goes wrong, and Google answers
+            // such an id with a plain "not found", so they are cleaned up before the request.
+            spreadsheetId = NormalizeSpreadsheetId(spreadsheetId);
+            sheetName = sheetName.Trim();
+
             IList<IList<object>> values;
+            SheetsService service;
 
             try {
-                var service = new SheetsService(new BaseClientService.Initializer {
+                service = new SheetsService(new BaseClientService.Initializer {
                     HttpClientInitializer = GoogleCredential
                         .FromJson(credentialsJson)
                         .CreateScoped(SheetsService.Scope.SpreadsheetsReadonly),
                 });
+            }
+            catch (Exception e) {
+                return Result.Error($"credentials are not valid: {e.Message}");
+            }
 
+            try {
                 var request = service.Spreadsheets.Values.Get(spreadsheetId, sheetName + Range);
                 var response = await request.ExecuteAsync(cancellationToken);
 
                 values = response?.Values;
             }
             catch (Exception e) {
-                return Result.Error(e.Message);
+                return Result.Error(await Explain(service, spreadsheetId, sheetName, credentialsJson, e));
             }
 
             await UniTask.SwitchToMainThread();
@@ -94,6 +108,67 @@ namespace MisterGames.Feedback.Editor {
             WriteCache(entries);
 
             return Result.Success(entries);
+        }
+
+        /// <summary>
+        /// Turns the error of a failed request into something that says what to do about it:
+        /// the spreadsheet is asked about itself, and whether that works tells the id and the access
+        /// apart from a wrong sheet name.
+        /// </summary>
+        private static async UniTask<string> Explain(
+            SheetsService service,
+            string spreadsheetId,
+            string sheetName,
+            string credentialsJson,
+            Exception error)
+        {
+            string account = GetServiceAccountEmail(credentialsJson);
+
+            try {
+                var spreadsheet = await service.Spreadsheets.Get(spreadsheetId).ExecuteAsync();
+
+                // The spreadsheet is readable, so it is the sheet name that does not fit.
+                var titles = new List<string>();
+
+                for (int i = 0; i < spreadsheet?.Sheets?.Count; i++) {
+                    string title = spreadsheet.Sheets[i]?.Properties?.Title;
+                    if (!string.IsNullOrEmpty(title)) titles.Add(title);
+                }
+
+                return titles.Contains(sheetName)
+                    ? error.Message
+                    : $"sheet [{sheetName}] is not found in [{spreadsheet?.Properties?.Title}]. " +
+                      $"Sheets of the spreadsheet: {string.Join(", ", titles)}";
+            }
+            catch (Exception) {
+                return $"spreadsheet [{spreadsheetId}] is not available: {error.Message}. " +
+                       $"Check that the id is complete, it is {spreadsheetId.Length} characters long, " +
+                       $"and that the spreadsheet is shared with {account}.";
+            }
+        }
+
+        /// <summary>
+        /// Id of the spreadsheet from what is set in the config: an id as it is, or the part
+        /// of a pasted url between /d/ and the next slash.
+        /// </summary>
+        private static string NormalizeSpreadsheetId(string value) {
+            value = value.Trim();
+
+            const string marker = "/d/";
+            int start = value.IndexOf(marker, StringComparison.Ordinal);
+
+            if (start < 0) return value;
+
+            start += marker.Length;
+
+            int end = value.IndexOfAny(new[] { '/', '?', '#' }, start);
+
+            return end < 0 ? value[start..] : value[start..end];
+        }
+
+        private static string GetServiceAccountEmail(string credentialsJson) {
+            var match = Regex.Match(credentialsJson, "\"client_email\"\\s*:\\s*\"([^\"]+)\"");
+            return match.Success ? match.Groups[1].Value : "the service account";
         }
 
         public static FeedbackLogEntry[] ReadCache(out string downloadedAt) {
@@ -160,7 +235,7 @@ namespace MisterGames.Feedback.Editor {
                 bool isEmpty = true;
 
                 for (int c = 0; c < row.Count && c < columns.Length; c++) {
-                    string value = row[c]?.ToString();
+                    string value = ConvertCell(row[c]);
                     if (string.IsNullOrEmpty(value)) continue;
 
                     isEmpty = false;
@@ -174,6 +249,23 @@ namespace MisterGames.Feedback.Editor {
             }
 
             return entries.ToArray();
+        }
+
+        /// <summary>
+        /// Text of a cell. The json of the answer is read into objects, and a value that looks like a date
+        /// arrives already turned into a DateTime, whose default text is written in the culture of the machine.
+        /// Such a value is written back as the invariant time the rest of the analyzer reads.
+        /// </summary>
+        private static string ConvertCell(object value) {
+            return value switch {
+                null => null,
+                // Time without a kind is the utc the game wrote, not a local time of the reading machine.
+                DateTime { Kind: DateTimeKind.Unspecified } time =>
+                    time.ToString(TimeFormat, CultureInfo.InvariantCulture),
+                DateTime time => time.ToUniversalTime().ToString(TimeFormat, CultureInfo.InvariantCulture),
+                IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
+                _ => value.ToString(),
+            };
         }
 
         /// <summary>

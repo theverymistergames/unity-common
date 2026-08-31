@@ -10,8 +10,10 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
 	public class SubclassSelectorPropertyDrawer : PropertyDrawer {
 
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
+			bool includeEditor = attribute is SubclassSelectorAttribute { includeEditor: true };
+
 			EditorGUI.BeginProperty(position, label, property);
-			SubclassSelectorGUI.PropertyField(position, property, GetFieldType(property), label, includeChildren: true);
+			SubclassSelectorGUI.PropertyField(position, property, GetFieldType(property), label, includeChildren: true, includeEditor);
 			EditorGUI.EndProperty();
 		}
 

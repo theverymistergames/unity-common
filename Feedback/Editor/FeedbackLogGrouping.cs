@@ -3,9 +3,9 @@ using System.Collections.Generic;
 namespace MisterGames.Feedback.Editor {
 
     /// <summary>
-    /// Turns the flat table into players with their sessions: players are sorted by the last activity,
-    /// sessions of a player by their start time, both newest first, and entries inside a session
-    /// keep the order they were written in.
+    /// Turns the flat table into players with their sessions: players are sorted by their last activity,
+    /// newest first, and sessions of a player by their start time, oldest first, so a player is read
+    /// from the first session to the last one. Entries inside a session keep the order they were written in.
     /// </summary>
     public static class FeedbackLogGrouping {
 
@@ -64,7 +64,7 @@ namespace MisterGames.Feedback.Editor {
             for (int i = 0; i < players.Count; i++) {
                 var player = players[i];
 
-                player.sessions.Sort((a, b) => b.startTime.CompareTo(a.startTime));
+                player.sessions.Sort((a, b) => a.startTime.CompareTo(b.startTime));
 
                 for (int j = 0; j < player.sessions.Count; j++) {
                     player.sessions[j].entries.Sort((a, b) => a.time.CompareTo(b.time));

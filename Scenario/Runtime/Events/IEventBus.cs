@@ -5,6 +5,8 @@ namespace MisterGames.Scenario.Events {
 
     public interface IEventBus : IDisposable {
 
+        event Action<EventReference> OnAnyEventRaised;
+
         Dictionary<EventReference, int> RaisedEvents { get; }
         
         bool IsRaisedAtLeastOnce(EventReference e);

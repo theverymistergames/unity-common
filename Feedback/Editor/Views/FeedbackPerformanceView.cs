@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
-namespace MisterGames.Feedback.Editor.Perf {
+namespace MisterGames.Feedback.Editor {
 
     /// <summary>
     /// Performance of the build, built of the entries written by the performance log service:
@@ -243,7 +243,9 @@ namespace MisterGames.Feedback.Editor.Perf {
         /// the block written on start fills the hardware of the player.
         /// </summary>
         private static void Collect(FeedbackLogPlayer player, List<Sample> samples, Hardware hardware) {
-            for (int i = player.sessions.Count - 1; i >= 0; i--) {
+            // Sessions go from the oldest to the newest one, and the hardware of the newest one
+            // is the one that describes the player now.
+            for (int i = 0; i < player.sessions.Count; i++) {
                 var session = player.sessions[i];
 
                 for (int j = 0; j < session.entries.Count; j++) {
