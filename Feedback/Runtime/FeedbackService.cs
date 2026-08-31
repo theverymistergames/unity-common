@@ -30,12 +30,12 @@ namespace MisterGames.Feedback {
     ///
     /// {
     ///   "token": "...",                              // shared secret, must match the one in Apps Script
-    ///   "batchId": "...", "sessionId": "...",        // batchId is unique, can be used for deduplication
-    ///   "app": "...", "version": "...",
-    ///   "platform": "...", "device": "...",
-    ///   "createdAt": "2026-08-31T12:00:00.000Z",
+    ///   "playerId": "...",                            // stable id of the install, kept in player prefs
+    ///   "sessionId": "...", "build": "...", "platform": "...",
+    ///   "batchId": "...",                            // unique, can be used for deduplication
+    ///   "device": "...", "createdAt": "2026-08-31T12:00:00.000Z",
     ///   "dropped": 0,                                // entries lost on queue overflow since the previous batch
-    ///   "entries": [ { "time": "2026-08-31T12:00:00.000Z", "message": "..." } ]
+    ///   "logs": [ { "timeUtc": "...", "type": "Log", "message": "...", "stack": "" } ]
     /// }
     ///
     /// Expected answer: { "ok": true } or { "ok": false, "error": "..." }.
@@ -47,18 +47,23 @@ namespace MisterGames.Feedback {
         private const string BatchFileTimeFormat = "yyyyMMdd_HHmmss_fff";
         private const string TimeFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
         private const string ContentType = "text/plain;charset=utf-8";
+        private const string LocationHeader = "Location";
+        private const string EntryType = "Log";
+        private const string PlayerIdKey = "MisterGames.Feedback.PlayerId";
+        private const int MaxAnswerLogLength = 300;
         private const int FileBufferSize = 4096;
 
         private readonly ConcurrentQueue<Entry> _entryQueue = new();
         private readonly object _fileLock = new();
+        private readonly object _forwardLock = new();
         private readonly string _logPrefix = nameof(FeedbackService).FormatColorOnlyForEditor(Color.white);
 
         private FeedbackServiceConfig _config;
         private CancellationTokenSource _cts;
         private string _outboxPath;
+        private string _playerId;
         private string _sessionId;
-        private string _app;
-        private string _version;
+        private string _build;
         private string _platform;
         private string _device;
         private DateTime _lastFlushTimeUtc;
@@ -73,26 +78,31 @@ namespace MisterGames.Feedback {
         private int _maxEntriesInQueue;
         private int _maxMessageLength;
 
+        private int _lastForwardedHash;
+        private int _sameMessageCount;
+
         private bool EnableLogs => _config == null || _config.EnableLogs;
 
         [Serializable]
         private sealed class Batch {
             public string token;
-            public string batchId;
+            public string playerId;
             public string sessionId;
-            public string app;
-            public string version;
+            public string build;
             public string platform;
+            public string batchId;
             public string device;
             public string createdAt;
             public int dropped;
-            public Entry[] entries;
+            public Entry[] logs;
         }
 
         [Serializable]
         private sealed class Entry {
-            public string time;
+            public string timeUtc;
+            public string type;
             public string message;
+            public string stack;
         }
 
         [Serializable]
@@ -129,9 +139,9 @@ namespace MisterGames.Feedback {
             _maxMessageLength = config.MaxMessageLength;
 
             _outboxPath = Path.Combine(Application.persistentDataPath, OutboxFolder);
+            _playerId = GetPlayerId();
             _sessionId = Guid.NewGuid().ToString("N");
-            _app = Application.productName;
-            _version = Application.version;
+            _build = $"{Application.productName} {Application.version}";
             _platform = Application.platform.ToString();
             _device = $"{SystemInfo.deviceModel} | {SystemInfo.operatingSystem} | {SystemInfo.processorType} | {SystemInfo.graphicsDeviceName}";
 
@@ -141,12 +151,20 @@ namespace MisterGames.Feedback {
             _isOutboxReady = false;
             _droppedCount = 0;
 
+            if (config.ForwardUnityLogs) Application.logMessageReceivedThreaded += OnLogMessageReceivedThreaded;
+
+            Application.quitting -= OnApplicationQuitting;
+            Application.quitting += OnApplicationQuitting;
+
             AsyncExt.RecreateCts(ref _cts);
 
             Run(_cts.Token).Forget();
         }
 
         public void Dispose() {
+            Application.logMessageReceivedThreaded -= OnLogMessageReceivedThreaded;
+            Application.quitting -= OnApplicationQuitting;
+
             AsyncExt.DisposeCts(ref _cts);
 
             if (!_isEnabled) return;
@@ -158,19 +176,93 @@ namespace MisterGames.Feedback {
         }
 
         public void AppendLog(string message) {
+            AppendLog(message, EntryType, stack: null);
+        }
+
+        private void AppendLog(string message, string type, string stack) {
             if (!_isEnabled || _isLoggingInternal || string.IsNullOrEmpty(message)) return;
 
             if (message.Length > _maxMessageLength) message = message[.._maxMessageLength];
+            if (stack is { Length: > 0 } && stack.Length > _maxMessageLength) stack = stack[.._maxMessageLength];
 
             _entryQueue.Enqueue(new Entry {
-                time = DateTime.UtcNow.ToString(TimeFormat, CultureInfo.InvariantCulture),
+                timeUtc = DateTime.UtcNow.ToString(TimeFormat, CultureInfo.InvariantCulture),
+                type = type,
                 message = message,
+                stack = stack ?? string.Empty,
             });
 
             // Sending can be slower than logging: drop the oldest entries to keep memory bounded.
             while (_entryQueue.Count > _maxEntriesInQueue && _entryQueue.TryDequeue(out _)) {
                 Interlocked.Increment(ref _droppedCount);
             }
+        }
+
+        /// <summary>
+        /// Unity calls it from any thread, so nothing but the queue can be touched here.
+        /// </summary>
+        private void OnLogMessageReceivedThreaded(string condition, string stackTrace, LogType type) {
+            if (!_isEnabled || _isLoggingInternal || !IsForwardedType(type)) return;
+
+            int count;
+
+            lock (_forwardLock) {
+                int hash = condition?.GetHashCode() ?? 0;
+
+                if (hash != _lastForwardedHash) {
+                    _lastForwardedHash = hash;
+                    _sameMessageCount = 0;
+                }
+
+                count = ++_sameMessageCount;
+            }
+
+            int maxInRow = _config.MaxSameMessagesInRow;
+
+            if (count <= maxInRow) {
+                AppendLog(condition, type.ToString(), stackTrace);
+                return;
+            }
+
+            // An error printed every frame would fill the whole queue: report the flood once and skip the rest.
+            if (count == maxInRow + 1) {
+                AppendLog($"the same message is repeated more than {maxInRow} times in a row, the rest is skipped",
+                    type.ToString(), stack: null);
+            }
+        }
+
+        private bool IsForwardedType(LogType type) {
+            return type switch {
+                LogType.Error => _config.ForwardErrors,
+                LogType.Assert => _config.ForwardAsserts,
+                LogType.Exception => _config.ForwardExceptions,
+                _ => false,
+            };
+        }
+
+        /// <summary>
+        /// Quit is not guaranteed to happen: a crash or a process kill leaves the session without such an entry,
+        /// and a session with no quit entry at all is a session that ended in one of those ways.
+        /// </summary>
+        private void OnApplicationQuitting() {
+            AppendLog($"Application: quit after {Time.realtimeSinceStartup:0} s of session");
+        }
+
+        /// <summary>
+        /// Id of the install, so sessions of the same player can be grouped together.
+        /// It says nothing about the machine and is lost together with the player prefs.
+        /// </summary>
+        private static string GetPlayerId() {
+            string playerId = PlayerPrefs.GetString(PlayerIdKey, defaultValue: null);
+
+            if (!string.IsNullOrEmpty(playerId)) return playerId;
+
+            playerId = Guid.NewGuid().ToString("N");
+
+            PlayerPrefs.SetString(PlayerIdKey, playerId);
+            PlayerPrefs.Save();
+
+            return playerId;
         }
 
         private async UniTaskVoid Run(CancellationToken cancellationToken) {
@@ -220,7 +312,7 @@ namespace MisterGames.Feedback {
                 var result = await JsonExtensions.WriteJsonIntoFile(batch, path, FileBufferSize, _fileLock);
 
                 if (result.status != JsonExtensions.Status.Success) {
-                    Interlocked.Add(ref _droppedCount, batch.entries.Length);
+                    Interlocked.Add(ref _droppedCount, batch.logs.Length);
                     LogWarning($"can not write batch into file {path}: {result.message}.");
                 }
             }
@@ -263,7 +355,7 @@ namespace MisterGames.Feedback {
                 string path = files[i];
                 var readResult = await JsonExtensions.ReadJsonFromFile<Batch>(path, FileBufferSize, _fileLock);
 
-                if (readResult.status != JsonExtensions.Status.Success || readResult.value?.entries == null) {
+                if (readResult.status != JsonExtensions.Status.Success || readResult.value?.logs == null) {
                     LogWarning($"removing invalid batch file {path}: {readResult.message}.");
                     JsonExtensions.DeleteFile(path, _fileLock);
                     continue;
@@ -290,6 +382,7 @@ namespace MisterGames.Feedback {
 
         private async UniTask<bool> SendBatch(Batch batch, CancellationToken cancellationToken) {
             byte[] body = Encoding.UTF8.GetBytes(JsonExtensions.SerializeJson(batch));
+            float startTime = Time.realtimeSinceStartup;
 
             using var request = new UnityWebRequest(_config.WebAppUrl, UnityWebRequest.kHttpVerbPOST);
 
@@ -297,6 +390,53 @@ namespace MisterGames.Feedback {
             request.downloadHandler = new DownloadHandlerBuffer();
             request.timeout = _config.RequestTimeoutSec;
 
+            // Apps Script answers a post with a redirect to script.googleusercontent.com, where the answer
+            // body is served. Unity follows redirects with the original method, and that address answers
+            // to a get only, so the redirect is followed manually below instead.
+            request.redirectLimit = 0;
+
+            if (!await SendRequest(request, batch, body.Length, startTime, cancellationToken)) return false;
+
+            string answer = request.downloadHandler?.text;
+
+            if (IsRedirect(request.responseCode)) {
+                string location = request.GetResponseHeader(LocationHeader);
+
+                if (string.IsNullOrEmpty(location)) {
+                    LogWarning($"batch {batch.batchId} is not sent, redirect without location header. " +
+                               $"{GetRequestInfo(request, body.Length, startTime)}");
+                    return false;
+                }
+
+                using var redirect = UnityWebRequest.Get(location);
+                redirect.timeout = _config.RequestTimeoutSec;
+
+                if (!await SendRequest(redirect, batch, bodySize: 0, startTime, cancellationToken)) return false;
+
+                answer = redirect.downloadHandler?.text;
+
+                if (!IsOkResponse(answer)) {
+                    LogWarning($"batch {batch.batchId} is not accepted. {GetRequestInfo(redirect, 0, startTime)}");
+                    return false;
+                }
+            }
+            else if (!IsOkResponse(answer)) {
+                LogWarning($"batch {batch.batchId} is not accepted. {GetRequestInfo(request, body.Length, startTime)}");
+                return false;
+            }
+
+            LogInfo($"batch {batch.batchId} with {batch.logs.Length} entries is sent " +
+                    $"in {Time.realtimeSinceStartup - startTime:0.00} s.");
+            return true;
+        }
+
+        private async UniTask<bool> SendRequest(
+            UnityWebRequest request,
+            Batch batch,
+            int bodySize,
+            float startTime,
+            CancellationToken cancellationToken)
+        {
             try {
                 await request.SendWebRequest().WithCancellation(cancellationToken);
             }
@@ -304,24 +444,31 @@ namespace MisterGames.Feedback {
                 return false;
             }
             catch (Exception e) {
-                LogWarning($"batch {batch.batchId} is not sent: {e.Message}.");
+                // A not followed redirect can be reported as an error, depending on the platform.
+                if (IsRedirect(request.responseCode)) return true;
+
+                LogWarning($"batch {batch.batchId} is not sent: {e.Message}. {GetRequestInfo(request, bodySize, startTime)}");
                 return false;
             }
 
-            if (request.result != UnityWebRequest.Result.Success) {
-                LogWarning($"batch {batch.batchId} is not sent: {request.result}, {request.error}.");
-                return false;
-            }
+            if (request.result == UnityWebRequest.Result.Success || IsRedirect(request.responseCode)) return true;
 
-            string text = request.downloadHandler?.text;
+            LogWarning($"batch {batch.batchId} is not sent. {GetRequestInfo(request, bodySize, startTime)}");
+            return false;
+        }
 
-            if (!IsOkResponse(text)) {
-                LogWarning($"batch {batch.batchId} is not accepted, answer: {text}.");
-                return false;
-            }
+        private static bool IsRedirect(long responseCode) {
+            return responseCode is >= 300 and < 400;
+        }
 
-            LogInfo($"batch {batch.batchId} with {batch.entries.Length} entries is sent.");
-            return true;
+        private static string GetRequestInfo(UnityWebRequest request, int bodySize, float startTime) {
+            string answer = request.downloadHandler?.text;
+            if (answer is { Length: > MaxAnswerLogLength }) answer = answer[..MaxAnswerLogLength];
+
+            return $"[result {request.result}, http code {request.responseCode}, error {request.error}, " +
+                   $"url {request.uri?.Host}{request.uri?.AbsolutePath}, " +
+                   $"sent {bodySize} bytes in {Time.realtimeSinceStartup - startTime:0.00} s, " +
+                   $"answer: {answer}]";
         }
 
         private static bool IsOkResponse(string text) {
@@ -338,15 +485,15 @@ namespace MisterGames.Feedback {
 
         private Batch CreateBatch(Entry[] entries) {
             return new Batch {
-                batchId = Guid.NewGuid().ToString("N"),
+                playerId = _playerId,
                 sessionId = _sessionId,
-                app = _app,
-                version = _version,
+                build = _build,
                 platform = _platform,
+                batchId = Guid.NewGuid().ToString("N"),
                 device = _device,
                 createdAt = DateTime.UtcNow.ToString(TimeFormat, CultureInfo.InvariantCulture),
                 dropped = Interlocked.Exchange(ref _droppedCount, 0),
-                entries = entries,
+                logs = entries,
             };
         }
 
