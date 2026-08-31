@@ -25,7 +25,6 @@ namespace MisterGames.Scenario.Events {
         private readonly MultiValueDictionary<Type, object> _streamMap = new();
 
         public void Dispose() {
-            OnAnyEventRaised = null;
             _listenerTree.Clear();
             _subIdEventSet.Clear();
             RaisedEvents.Clear();
