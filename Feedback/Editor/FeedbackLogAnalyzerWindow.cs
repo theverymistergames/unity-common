@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
+using MisterGames.Common.Attributes;
 using UnityEditor;
 using UnityEngine;
 
@@ -20,6 +21,8 @@ namespace MisterGames.Feedback.Editor {
         private const string WindowTitle = "Feedback Logs";
 
         private const string ConfigKey = "MisterGames.Feedback.Analyzer.Config";
+        private const string DisabledPlatformsKey = "MisterGames.Feedback.Analyzer.DisabledPlatforms";
+        private const string UnknownPlatform = "unknown";
 
         private const float PlayerListWidth = 260f;
         private const float StackLineHeight = 13f;
@@ -27,10 +30,22 @@ namespace MisterGames.Feedback.Editor {
 
         private FeedbackServiceConfig _config;
 
+        [Tooltip("Custom views of the logs, drawn above the log tree in the order they are set.")]
+        [SerializeReference] [SubclassSelector] private IFeedbackViewProvider[] _views;
+
+        private SerializedObject _serializedObject;
+        private SerializedProperty _viewsProperty;
+
         private FeedbackLogEntry[] _entries = Array.Empty<FeedbackLogEntry>();
         private List<FeedbackLogPlayer> _players = new();
 
         private readonly HashSet<string> _expanded = new();
+        private readonly List<FeedbackLogPlayer> _selectedPlayers = new(1);
+        private readonly List<string> _platforms = new();
+        private readonly Dictionary<string, int> _platformCounts = new();
+        private readonly HashSet<string> _disabledPlatforms = new();
+
+        private int _visibleEntryCount;
         private CancellationTokenSource _cts;
 
         private string _selectedPlayerId;
@@ -49,10 +64,12 @@ namespace MisterGames.Feedback.Editor {
         }
 
         private void OnEnable() {
+            _serializedObject = new SerializedObject(this);
+            _viewsProperty = _serializedObject.FindProperty(nameof(_views));
+
             ReadPrefs();
 
-            _entries = FeedbackLogLoader.ReadCache(out string downloadedAt);
-            _players = FeedbackLogGrouping.Build(_entries);
+            SetEntries(FeedbackLogLoader.ReadCache(out string downloadedAt));
 
             _status = _entries.Length > 0
                 ? $"{_entries.Length} entries from the cache, downloaded {downloadedAt}"
@@ -140,6 +157,12 @@ namespace MisterGames.Feedback.Editor {
                         EditorGUIUtility.PingObject(_config);
                     }
                 }
+
+                EditorGUILayout.Space(4f);
+
+                _serializedObject.Update();
+                EditorGUILayout.PropertyField(_viewsProperty, new GUIContent("Views"), includeChildren: true);
+                _serializedObject.ApplyModifiedProperties();
             }
             EditorGUILayout.EndVertical();
         }
@@ -158,7 +181,7 @@ namespace MisterGames.Feedback.Editor {
             {
                 _playersScroll = EditorGUILayout.BeginScrollView(_playersScroll, EditorStyles.helpBox);
                 {
-                    DrawPlayerRow(null, $"All players ({_players.Count})", _entries.Length, CountErrors());
+                    DrawPlayerRow(null, $"All players ({_players.Count})", _visibleEntryCount, CountErrors());
 
                     for (int i = 0; i < _players.Count; i++) {
                         var player = _players[i];
@@ -169,6 +192,52 @@ namespace MisterGames.Feedback.Editor {
                     }
                 }
                 EditorGUILayout.EndScrollView();
+
+                DrawPlatforms();
+            }
+            EditorGUILayout.EndVertical();
+        }
+
+        private void DrawPlatforms() {
+            if (_platforms.Count == 0) return;
+
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            {
+                EditorGUILayout.LabelField("Platforms", EditorStyles.boldLabel);
+
+                for (int i = 0; i < _platforms.Count; i++) {
+                    string platform = _platforms[i];
+                    bool isEnabled = !_disabledPlatforms.Contains(platform);
+
+                    bool result = EditorGUILayout.ToggleLeft(
+                        $"{platform}  ({_platformCounts.GetValueOrDefault(platform)})", isEnabled);
+
+                    if (result == isEnabled) continue;
+
+                    if (result) _disabledPlatforms.Remove(platform);
+                    else _disabledPlatforms.Add(platform);
+
+                    RebuildPlayers();
+                }
+
+                EditorGUILayout.BeginHorizontal();
+                {
+                    if (GUILayout.Button("All", EditorStyles.miniButtonLeft)) {
+                        _disabledPlatforms.Clear();
+                        RebuildPlayers();
+                    }
+
+                    if (GUILayout.Button("None", EditorStyles.miniButtonRight)) {
+                        _disabledPlatforms.Clear();
+
+                        for (int i = 0; i < _platforms.Count; i++) {
+                            _disabledPlatforms.Add(_platforms[i]);
+                        }
+
+                        RebuildPlayers();
+                    }
+                }
+                EditorGUILayout.EndHorizontal();
             }
             EditorGUILayout.EndVertical();
         }
@@ -200,6 +269,8 @@ namespace MisterGames.Feedback.Editor {
             {
                 _logsScroll = EditorGUILayout.BeginScrollView(_logsScroll);
                 {
+                    DrawViews();
+
                     for (int i = 0; i < _players.Count; i++) {
                         var player = _players[i];
 
@@ -218,6 +289,57 @@ namespace MisterGames.Feedback.Editor {
                 EditorGUILayout.EndScrollView();
             }
             EditorGUILayout.EndVertical();
+        }
+
+        private void DrawViews() {
+            int count = _views?.Length ?? 0;
+            if (count == 0) return;
+
+            var context = new FeedbackViewContext(GetSelectedPlayers(), GetSelectedPlayer(), _search, _errorsOnly);
+
+            for (int i = 0; i < count; i++) {
+                var view = _views![i];
+                if (view == null) continue;
+
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+                {
+                    FeedbackViewGui.DrawHeader(view.Title);
+
+                    // A broken view must not take the whole window down with it.
+                    try {
+                        view.OnGUI(context);
+                    }
+                    catch (ExitGUIException) {
+                        throw;
+                    }
+                    catch (Exception e) {
+                        EditorGUILayout.HelpBox($"{view.GetType().Name} failed: {e.Message}", MessageType.Error);
+                    }
+                }
+                EditorGUILayout.EndVertical();
+            }
+
+            EditorGUILayout.Space(4f);
+        }
+
+        private FeedbackLogPlayer GetSelectedPlayer() {
+            if (_selectedPlayerId == null) return null;
+
+            for (int i = 0; i < _players.Count; i++) {
+                if (_players[i].playerId == _selectedPlayerId) return _players[i];
+            }
+
+            return null;
+        }
+
+        private IReadOnlyList<FeedbackLogPlayer> GetSelectedPlayers() {
+            var player = GetSelectedPlayer();
+            if (player == null) return _players;
+
+            _selectedPlayers.Clear();
+            _selectedPlayers.Add(player);
+
+            return _selectedPlayers;
         }
 
         private void DrawPlayer(FeedbackLogPlayer player) {
@@ -339,6 +461,52 @@ namespace MisterGames.Feedback.Editor {
             return count;
         }
 
+        /// <summary>
+        /// Keeps the entries as they were downloaded and rebuilds everything that depends on the filters.
+        /// </summary>
+        private void SetEntries(FeedbackLogEntry[] entries) {
+            _entries = entries ?? Array.Empty<FeedbackLogEntry>();
+
+            _platforms.Clear();
+            _platformCounts.Clear();
+
+            for (int i = 0; i < _entries.Length; i++) {
+                string platform = GetPlatform(_entries[i]);
+
+                if (!_platformCounts.ContainsKey(platform)) _platforms.Add(platform);
+
+                _platformCounts[platform] = _platformCounts.GetValueOrDefault(platform) + 1;
+            }
+
+            _platforms.Sort(StringComparer.Ordinal);
+            _disabledPlatforms.RemoveWhere(platform => !_platformCounts.ContainsKey(platform));
+
+            RebuildPlayers();
+        }
+
+        private void RebuildPlayers() {
+            var entries = new List<FeedbackLogEntry>(_entries.Length);
+
+            for (int i = 0; i < _entries.Length; i++) {
+                var entry = _entries[i];
+                if (_disabledPlatforms.Contains(GetPlatform(entry))) continue;
+
+                entries.Add(entry);
+            }
+
+            _visibleEntryCount = entries.Count;
+            _players = FeedbackLogGrouping.Build(entries);
+
+            // The selected player can be filtered out by the platforms.
+            if (_selectedPlayerId != null && GetSelectedPlayer() == null) _selectedPlayerId = null;
+
+            Repaint();
+        }
+
+        private static string GetPlatform(FeedbackLogEntry entry) {
+            return string.IsNullOrWhiteSpace(entry.platform) ? UnknownPlatform : entry.platform;
+        }
+
         private void DrawStatus() {
             EditorGUILayout.LabelField(_isDownloading ? "downloading..." : _status, EditorStyles.miniLabel);
         }
@@ -370,8 +538,7 @@ namespace MisterGames.Feedback.Editor {
                 return;
             }
 
-            _entries = result.entries;
-            _players = FeedbackLogGrouping.Build(_entries);
+            SetEntries(result.entries);
 
             _status = $"{_entries.Length} entries, {_players.Count} players, downloaded {DateTime.Now:HH:mm:ss}";
 
@@ -398,6 +565,14 @@ namespace MisterGames.Feedback.Editor {
                 .FindAssets($"a:assets t:{nameof(FeedbackServiceConfig)}")
                 .Select(guid => AssetDatabase.LoadAssetAtPath<FeedbackServiceConfig>(AssetDatabase.GUIDToAssetPath(guid)))
                 .FirstOrDefault();
+
+            _disabledPlatforms.Clear();
+
+            foreach (string platform in EditorPrefs.GetString(DisabledPlatformsKey, string.Empty)
+                         .Split('|', StringSplitOptions.RemoveEmptyEntries))
+            {
+                _disabledPlatforms.Add(platform);
+            }
         }
 
         private void WritePrefs() {
@@ -406,6 +581,7 @@ namespace MisterGames.Feedback.Editor {
                 : AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(_config));
 
             EditorPrefs.SetString(ConfigKey, guid);
+            EditorPrefs.SetString(DisabledPlatformsKey, string.Join('|', _disabledPlatforms));
         }
     }
 

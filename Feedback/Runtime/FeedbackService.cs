@@ -43,6 +43,16 @@ namespace MisterGames.Feedback {
     public sealed class FeedbackService : IFeedbackService, IDisposable {
 
         private const string OutboxFolder = "outbox";
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// Editor writes its outbox next to the one of the player, so a build and the editor running
+        /// on the same machine never pick up the batches of each other.
+        /// </summary>
+        private const string PersistentDataPathSuffix = "_editor";
+#else
+        private const string PersistentDataPathSuffix = "";
+#endif
         private const string BatchFileExtension = ".json";
         private const string BatchFileTimeFormat = "yyyyMMdd_HHmmss_fff";
         private const string TimeFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
@@ -138,7 +148,7 @@ namespace MisterGames.Feedback {
             _maxEntriesInQueue = config.MaxEntriesInQueue;
             _maxMessageLength = config.MaxMessageLength;
 
-            _outboxPath = Path.Combine(Application.persistentDataPath, OutboxFolder);
+            _outboxPath = Path.Combine(Application.persistentDataPath + PersistentDataPathSuffix, OutboxFolder);
             _playerId = GetPlayerId();
             _sessionId = Guid.NewGuid().ToString("N");
             _build = $"{Application.productName} {Application.version}";
