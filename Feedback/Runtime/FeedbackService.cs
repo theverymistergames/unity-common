@@ -137,7 +137,7 @@ namespace MisterGames.Feedback {
                 return;
             }
 
-            if (Application.isEditor && !config.EnableInEditor) return;
+            if (!IsEnabledForPlayer(config)) return;
 
             if (string.IsNullOrWhiteSpace(config.WebAppUrl) || string.IsNullOrWhiteSpace(config.Token)) {
                 LogWarning($"web app url or token is not set in config [{config.name}], feedback is not sent.");
@@ -169,6 +169,16 @@ namespace MisterGames.Feedback {
             AsyncExt.RecreateCts(ref _cts);
 
             Run(_cts.Token).Forget();
+        }
+
+        /// <summary>
+        /// The editor and a development build are the two places where the logs are already at hand,
+        /// so neither of them sends anything unless it is asked to. A release build always sends.
+        /// </summary>
+        private static bool IsEnabledForPlayer(FeedbackServiceConfig config) {
+            if (Application.isEditor) return config.EnableInEditor;
+
+            return !Debug.isDebugBuild || config.EnableInDevelopmentBuild;
         }
 
         public void Dispose() {

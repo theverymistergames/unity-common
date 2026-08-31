@@ -58,6 +58,9 @@ namespace MisterGames.Feedback {
         [SerializeField] private bool _enableLogs = true;
         [Tooltip("Send feedback while playing in the editor.")]
         [SerializeField] private bool _enableInEditor = true;
+        [Tooltip("Send feedback from a development build. It is off by default: such a build is usually " +
+                 "played by the team, and its logs would mix into the ones of the testers.")]
+        [SerializeField] private bool _enableInDevelopmentBuild;
 
         public string WebAppUrl => _webAppUrl;
         public string Token => _token;
@@ -81,6 +84,7 @@ namespace MisterGames.Feedback {
 
         public bool EnableLogs => _enableLogs;
         public bool EnableInEditor => _enableInEditor;
+        public bool EnableInDevelopmentBuild => _enableInDevelopmentBuild;
 
 #if UNITY_EDITOR
         // Settings of the feedback log analyzer window. They are editor only on purpose: the credentials
