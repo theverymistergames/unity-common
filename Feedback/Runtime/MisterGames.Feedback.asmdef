@@ -1,0 +1,17 @@
+{
+    "name": "MisterGames.Feedback",
+    "rootNamespace": "MisterGames.Feedback",
+    "references": [
+        "GUID:0175294ec022c624cbe537915e3c9e71",
+        "GUID:f51ebe6a0ceec4240a699833d6309b23"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
