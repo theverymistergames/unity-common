@@ -100,7 +100,7 @@ namespace MisterGames.SettingsLib.Descs {
                 Mode.VSyncHalf => 2,
                 _ => throw new ArgumentOutOfRangeException()
             };
-            Debug.Log($"VsyncSetting.NotifyMode: f {Time.frameCount}, {QualitySettings.vSyncCount}");
+            
             foreach (var listener in _listeners) {
                 listener.Invoke(id, index);
             }

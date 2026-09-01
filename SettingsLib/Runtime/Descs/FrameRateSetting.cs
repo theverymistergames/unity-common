@@ -65,8 +65,6 @@ namespace MisterGames.SettingsLib.Descs {
         }
 
         public string GetValue(int index) {
-            // Vsync decides the frame rate instead of the setting: the display is presented
-            // once per vSyncCount refreshes, so half vsync on a 60 Hz display means 30 fps.
             if (QualitySettings.vSyncCount != 0) {
                 float refreshRate = (float) Screen.currentResolution.refreshRateRatio.value;
                 return string.Format(numberFps.GetValue(), Mathf.RoundToInt(refreshRate / QualitySettings.vSyncCount));
@@ -107,8 +105,6 @@ namespace MisterGames.SettingsLib.Descs {
             int fps = fpsNumbers[index];
             Application.targetFrameRate = fps < 0 ? -1 : fps;
 
-            Debug.Log($"FrameRateSetting.NotifyMode: f {Time.frameCount}, fps {Application.targetFrameRate}");
-            
             foreach (var listener in _listeners) {
                 listener.Invoke(id, index);
             }
