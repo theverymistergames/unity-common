@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.UI.Data;
 using TMPro;
 using UnityEngine;
 #if UNITY_EDITOR
@@ -8,7 +9,7 @@ using UnityEditor;
 
 namespace MisterGames.UI.Components {
     
-    public sealed class UiList : MonoBehaviour {
+    public sealed class UiList : MonoBehaviour, IUiElementAnimated {
 
         [Header("UI Components")]
         [SerializeField] private TMP_Text _elementTextField;
@@ -21,7 +22,9 @@ namespace MisterGames.UI.Components {
         [SerializeField] private List<string> _elements = new();
 
         public event Action<int> OnSelectedIndexChanged = delegate { };
-        
+
+        private readonly HashSet<int> _blocks = new();
+        private IUiElementAnimator _uiElementAnimator;
         private int _currentTextHash;
 
         private void OnEnable() {
@@ -29,6 +32,7 @@ namespace MisterGames.UI.Components {
             _buttonDecrement.OnClicked += DecrementSelectedIndex;
             
             SetSelectedIndex(_selectedIndex, force: true, notify: false);
+            CheckBlockState();
         }
 
         private void OnDisable() {
@@ -97,6 +101,22 @@ namespace MisterGames.UI.Components {
             SetSelectedIndex(index);
         }
 
+        public void Block(object source, bool block) {
+            if (block) _blocks.Add(source.GetHashCode());
+            else _blocks.Remove(source.GetHashCode());
+            
+            CheckBlockState();
+        }
+        
+        void IUiElementAnimated.BindAnimator(IUiElementAnimator animator) {
+            _uiElementAnimator = animator;
+        }
+        
+        private void CheckBlockState() {
+            _uiElementAnimator?.SetBlockedState(_blocks.Count > 0);
+            UpdateButtons();
+        }
+        
         private void IncrementSelectedIndex(UiButton button) {
             int count = _elements?.Count ?? 0;
             int next = _loop && _selectedIndex >= count ? 0 : _selectedIndex + 1;
@@ -161,8 +181,8 @@ namespace MisterGames.UI.Components {
 #endif
 
             int count = _elements?.Count ?? 0;
-            bool canShowDecrement = count > 1 && (_loop || _selectedIndex > 0);
-            bool canShowIncrement = count > 1 && (_loop || _selectedIndex < count - 1);
+            bool canShowDecrement = _blocks.Count == 0 && count > 1 && (_loop || _selectedIndex > 0);
+            bool canShowIncrement = _blocks.Count == 0 && count > 1 && (_loop || _selectedIndex < count - 1);
 
             _buttonIncrement.Block(this, !canShowIncrement);
             _buttonDecrement.Block(this, !canShowDecrement);
