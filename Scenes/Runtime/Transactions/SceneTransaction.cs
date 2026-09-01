@@ -27,17 +27,21 @@ namespace MisterGames.Scenes.Transactions {
             if (operationsCount <= 0) return;
 
             var tasks = ArrayPool<UniTask>.Shared.Rent(operationsCount);
-
-            for (int i = 0; i < operationsCount; i++) {
-                tasks[i] = i < loadLength
-                    ? SceneLoader.LoadSceneAsync(_load[i].scene, false)
-                    : SceneLoader.UnloadSceneAsync(_unload[i - loadLength].scene);
-            }
-
-            await UniTask.WhenAll(tasks);
-
             tasks.ResetArrayElements();
-            ArrayPool<UniTask>.Shared.Return(tasks);
+
+            try {
+                for (int i = 0; i < operationsCount; i++) {
+                    tasks[i] = i < loadLength
+                        ? SceneLoader.LoadSceneAsync(_load[i].scene, false)
+                        : SceneLoader.UnloadSceneAsync(_unload[i - loadLength].scene);
+                }
+
+                await UniTask.WhenAll(tasks);
+            }
+            finally {
+                tasks.ResetArrayElements();
+                ArrayPool<UniTask>.Shared.Return(tasks);
+            }
             
             if (cancellationToken.IsCancellationRequested) return;
             

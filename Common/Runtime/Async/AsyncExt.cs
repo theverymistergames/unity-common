@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -25,15 +24,8 @@ namespace MisterGames.Common.Async {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static async UniTask WhenAll(UniTask t0, UniTask t1) {
-            var tasks = ArrayPool<UniTask>.Shared.Rent(2);
-            
-            tasks[0] = t0;
-            tasks[1] = t1;
-            
-            await UniTask.WhenAll(tasks);
-            
-            ArrayPool<UniTask>.Shared.Return(tasks, clearArray: true);
+        public static UniTask WhenAll(UniTask t0, UniTask t1) {
+            return UniTask.WhenAll(t0, t1);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

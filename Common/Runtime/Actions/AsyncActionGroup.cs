@@ -42,13 +42,17 @@ namespace MisterGames.Common.Actions {
                     var tasks = ArrayPool<UniTask>.Shared.Rent(count);
                     tasks.ResetArrayElements();
 
-                    for (int i = 0; i < count; i++) {
-                        tasks[i] = actions[i] is {} action ? action.Apply(context, cancellationToken) : UniTask.CompletedTask;
-                    }
+                    try {
+                        for (int i = 0; i < count; i++) {
+                            tasks[i] = actions[i] is {} action ? action.Apply(context, cancellationToken) : UniTask.CompletedTask;
+                        }
 
-                    await UniTask.WhenAll(tasks);
-                    
-                    ArrayPool<UniTask>.Shared.Return(tasks);
+                        await UniTask.WhenAll(tasks);
+                    }
+                    finally {
+                        tasks.ResetArrayElements();
+                        ArrayPool<UniTask>.Shared.Return(tasks);
+                    }
                     break;
 
                 default:

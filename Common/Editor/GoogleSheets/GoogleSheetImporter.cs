@@ -88,20 +88,22 @@ namespace MisterGames.Common.Editor.GoogleSheets {
             }
             
             var tasks = ArrayPool<UniTask<GoogleSheetLoader.Result<SheetMeta>>>.Shared.Rent(sheetIds.Count);
-            
-            for (int i = 0; i < sheetIds.Count; i++) {
-                string id = sheetIds[i];
-                if (string.IsNullOrWhiteSpace(id)) continue;
-
-                tasks[i] = loader.DownloadMeta(id);
-            }
-
-            var results = await UniTask.WhenAll(tasks);
-            
             tasks.ResetArrayElements();
-            ArrayPool<UniTask<GoogleSheetLoader.Result<SheetMeta>>>.Shared.Return(tasks);
             
-            return results;
+            try {
+                for (int i = 0; i < sheetIds.Count; i++) {
+                    string id = sheetIds[i];
+                    if (string.IsNullOrWhiteSpace(id)) continue;
+
+                    tasks[i] = loader.DownloadMeta(id);
+                }
+
+                return await UniTask.WhenAll(tasks);
+            }
+            finally {
+                tasks.ResetArrayElements();
+                ArrayPool<UniTask<GoogleSheetLoader.Result<SheetMeta>>>.Shared.Return(tasks);
+            }
         }
         
         private static async UniTask<GoogleSheetLoader.Result<SheetTable>[][]> DownloadAllTables(
@@ -114,27 +116,29 @@ namespace MisterGames.Common.Editor.GoogleSheets {
             }
             
             var tasks = ArrayPool<UniTask<GoogleSheetLoader.Result<SheetTable>[]>>.Shared.Rent(sheetIds.Count);
-            
-            for (int i = 0; i < sheetIds.Count; i++) {
-                var result = metaResults[i];
-                string sheetId = sheetIds[i];
-                
-                switch (result.status) {
-                    case GoogleSheetLoader.Status.Success:
-                        tasks[i] = DownloadTables(loader, sheetId, result.data.sheetTitle, result.data.tables);
-                        break;
-
-                    case GoogleSheetLoader.Status.Error:
-                        break;
-                }
-            }
-
-            var results = await UniTask.WhenAll(tasks);
-            
             tasks.ResetArrayElements();
-            ArrayPool<UniTask<GoogleSheetLoader.Result<SheetTable>[]>>.Shared.Return(tasks);
             
-            return results;
+            try {
+                for (int i = 0; i < sheetIds.Count; i++) {
+                    var result = metaResults[i];
+                    string sheetId = sheetIds[i];
+
+                    switch (result.status) {
+                        case GoogleSheetLoader.Status.Success:
+                            tasks[i] = DownloadTables(loader, sheetId, result.data.sheetTitle, result.data.tables);
+                            break;
+
+                        case GoogleSheetLoader.Status.Error:
+                            break;
+                    }
+                }
+
+                return await UniTask.WhenAll(tasks);
+            }
+            finally {
+                tasks.ResetArrayElements();
+                ArrayPool<UniTask<GoogleSheetLoader.Result<SheetTable>[]>>.Shared.Return(tasks);
+            }
         }
         
         private static async UniTask<GoogleSheetLoader.Result<SheetTable>[]> DownloadTables(
@@ -148,20 +152,22 @@ namespace MisterGames.Common.Editor.GoogleSheets {
             }
             
             var tasks = ArrayPool<UniTask<GoogleSheetLoader.Result<SheetTable>>>.Shared.Rent(tables.Count);
-            
-            for (int i = 0; i < tables.Count; i++) {
-                string title = tables[i];
-                if (string.IsNullOrWhiteSpace(title)) continue;
-
-                tasks[i] = loader.DownloadTable(sheetId, sheetTitle, title);
-            }
-
-            var results = await UniTask.WhenAll(tasks);
-            
             tasks.ResetArrayElements();
-            ArrayPool<UniTask<GoogleSheetLoader.Result<SheetTable>>>.Shared.Return(tasks, clearArray: true);
             
-            return results;
+            try {
+                for (int i = 0; i < tables.Count; i++) {
+                    string title = tables[i];
+                    if (string.IsNullOrWhiteSpace(title)) continue;
+
+                    tasks[i] = loader.DownloadTable(sheetId, sheetTitle, title);
+                }
+
+                return await UniTask.WhenAll(tasks);
+            }
+            finally {
+                tasks.ResetArrayElements();
+                ArrayPool<UniTask<GoogleSheetLoader.Result<SheetTable>>>.Shared.Return(tasks);
+            }
         }
 
         private static GoogleSheetLoader.Status PrintMetaDownloadResults(

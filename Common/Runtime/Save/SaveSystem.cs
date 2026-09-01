@@ -196,15 +196,18 @@ namespace MisterGames.Common.Save {
             var tasks = ArrayPool<UniTask>.Shared.Rent(count);
             tasks.ResetArrayElements();
 
-            int index = 0;
-            foreach ((string storageId, var storage) in _saveStorageMap) {
-                tasks[index++] = SaveStorageAsync(storageId, storage);
+            try {
+                int index = 0;
+                foreach ((string storageId, var storage) in _saveStorageMap) {
+                    tasks[index++] = SaveStorageAsync(storageId, storage);
+                }
+
+                await UniTask.WhenAll(tasks);
             }
-
-            await UniTask.WhenAll(tasks);
-
-            tasks.ResetArrayElements();
-            ArrayPool<UniTask>.Shared.Return(tasks);
+            finally {
+                tasks.ResetArrayElements();
+                ArrayPool<UniTask>.Shared.Return(tasks);
+            }
         }
         
         private UniTask SaveStorageAsync(string storageId, ISaveStorage source) {
@@ -254,19 +257,22 @@ namespace MisterGames.Common.Save {
             var tasks = ArrayPool<UniTask>.Shared.Rent(count);
             tasks.ResetArrayElements();
 
-            for (int i = 0; i < count; i++) {
-                string storageId = storageFiles[i].storageId;
+            try {
+                for (int i = 0; i < count; i++) {
+                    string storageId = storageFiles[i].storageId;
 
-                var storage = GetOrCreateStorage(storageId);
-                storage.Clear();
+                    var storage = GetOrCreateStorage(storageId);
+                    storage.Clear();
 
-                tasks[i] = LoadStorageAsync(storageId, storage);
+                    tasks[i] = LoadStorageAsync(storageId, storage);
+                }
+
+                await UniTask.WhenAll(tasks);
             }
-
-            await UniTask.WhenAll(tasks);
-
-            tasks.ResetArrayElements();
-            ArrayPool<UniTask>.Shared.Return(tasks);
+            finally {
+                tasks.ResetArrayElements();
+                ArrayPool<UniTask>.Shared.Return(tasks);
+            }
         }
 
         private UniTask LoadStorageAsync(string storageId, ISaveStorage storage) {

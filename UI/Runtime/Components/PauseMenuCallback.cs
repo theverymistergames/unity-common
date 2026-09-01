@@ -142,45 +142,49 @@ namespace MisterGames.UI.Components {
             var order = GetActionsOrder(onOpen: true, out int actionsCount);
             var tasks = ArrayPool<UniTask>.Shared.Rent(actionsCount);
             tasks.ResetArrayElements();
-            
-            for (int i = 0; i < order.Count && !cancellationToken.IsCancellationRequested; i++) {
-                int index = order[i];
 
-                int parallelCount = 0;
-                
-                if (index == _openWindowOrder) {
-                    _windowService.SetWindowState(window, UiWindowState.Opened);
-                }
+            try {
+                for (int i = 0; i < order.Count && !cancellationToken.IsCancellationRequested; i++) {
+                    int index = order[i];
 
-                if (index == _changeTimescaleOrderOnOpen) {
-                    tasks[parallelCount++] = _timescaleSystem.ChangeTimescale(
-                        source: this,
-                        TimescalePriority.Menu,
-                        _timeScale,
-                        _timeScaleDurationOnOpen,
-                        removeOnFinish: false,
-                        _timeScaleCurve,
-                        cancellationToken
-                    );
-                }
+                    int parallelCount = 0;
 
-                for (int j = 0; j < _actionsOnOpenMenu.Length; j++) {
-                    var action = _actionsOnOpenMenu[j];
-                    if (action.order != index || action.action == null) continue;
-                    
-                    tasks[parallelCount++] = action.action.Apply(_actor, cancellationToken);
-                }
-
-                if (parallelCount > 0) {
-                    for (int j = parallelCount; j < actionsCount; j++) {
-                        tasks[j] = UniTask.CompletedTask;
+                    if (index == _openWindowOrder) {
+                        _windowService.SetWindowState(window, UiWindowState.Opened);
                     }
-                    
-                    await UniTask.WhenAll(tasks);
+
+                    if (index == _changeTimescaleOrderOnOpen) {
+                        tasks[parallelCount++] = _timescaleSystem.ChangeTimescale(
+                            source: this,
+                            TimescalePriority.Menu,
+                            _timeScale,
+                            _timeScaleDurationOnOpen,
+                            removeOnFinish: false,
+                            _timeScaleCurve,
+                            cancellationToken
+                        );
+                    }
+
+                    for (int j = 0; j < _actionsOnOpenMenu.Length; j++) {
+                        var action = _actionsOnOpenMenu[j];
+                        if (action.order != index || action.action == null) continue;
+
+                        tasks[parallelCount++] = action.action.Apply(_actor, cancellationToken);
+                    }
+
+                    if (parallelCount > 0) {
+                        for (int j = parallelCount; j < actionsCount; j++) {
+                            tasks[j] = UniTask.CompletedTask;
+                        }
+
+                        await UniTask.WhenAll(tasks);
+                    }
                 }
             }
-            
-            ArrayPool<UniTask>.Shared.Return(tasks);
+            finally {
+                tasks.ResetArrayElements();
+                ArrayPool<UniTask>.Shared.Return(tasks);
+            }
         }
         
         private async UniTask OnCloseMenu(CancellationToken cancellationToken) {
@@ -189,41 +193,45 @@ namespace MisterGames.UI.Components {
             var order = GetActionsOrder(onOpen: false, out int actionsCount);
             var tasks = ArrayPool<UniTask>.Shared.Rent(actionsCount);
             tasks.ResetArrayElements();
-            
-            for (int i = 0; i < order.Count && !cancellationToken.IsCancellationRequested; i++) {
-                int index = order[i];
 
-                int parallelCount = 0;
-                
-                if (i == _changeTimescaleOrderOnClose) {
-                    tasks[parallelCount++] = _timescaleSystem.ChangeTimescale(
-                        source: this,
-                        TimescalePriority.Menu,
-                        1f,
-                        _timeScaleDurationOnClose,
-                        removeOnFinish: true,
-                        _timeScaleCurve,
-                        cancellationToken
-                    );
-                }
+            try {
+                for (int i = 0; i < order.Count && !cancellationToken.IsCancellationRequested; i++) {
+                    int index = order[i];
 
-                for (int j = 0; j < _actionsOnCloseMenu.Length; j++) {
-                    var action = _actionsOnCloseMenu[j];
-                    if (action.order != index || action.action == null) continue;
-                    
-                    tasks[parallelCount++] = action.action.Apply(_actor, cancellationToken);
-                }
+                    int parallelCount = 0;
 
-                if (parallelCount > 0) {
-                    for (int j = parallelCount; j < actionsCount; j++) {
-                        tasks[j] = UniTask.CompletedTask;
+                    if (i == _changeTimescaleOrderOnClose) {
+                        tasks[parallelCount++] = _timescaleSystem.ChangeTimescale(
+                            source: this,
+                            TimescalePriority.Menu,
+                            1f,
+                            _timeScaleDurationOnClose,
+                            removeOnFinish: true,
+                            _timeScaleCurve,
+                            cancellationToken
+                        );
                     }
-                    
-                    await UniTask.WhenAll(tasks);
+
+                    for (int j = 0; j < _actionsOnCloseMenu.Length; j++) {
+                        var action = _actionsOnCloseMenu[j];
+                        if (action.order != index || action.action == null) continue;
+
+                        tasks[parallelCount++] = action.action.Apply(_actor, cancellationToken);
+                    }
+
+                    if (parallelCount > 0) {
+                        for (int j = parallelCount; j < actionsCount; j++) {
+                            tasks[j] = UniTask.CompletedTask;
+                        }
+
+                        await UniTask.WhenAll(tasks);
+                    }
                 }
             }
-            
-            ArrayPool<UniTask>.Shared.Return(tasks);
+            finally {
+                tasks.ResetArrayElements();
+                ArrayPool<UniTask>.Shared.Return(tasks);
+            }
         }
 
         private void BlockInputs(CancellationToken cancellationToken = default) {

@@ -143,28 +143,36 @@ namespace MisterGames.Scenes.Core {
             var tasks = ArrayPool<UniTask>.Shared.Rent(count);
             tasks.ResetArrayElements();
 
-            for (int i = 0; i < count; i++) {
-                string sceneName = sceneNames[i];
-                tasks[i] = LoadSceneAsync(sceneName, makeActive: sceneName == activeScene);
+            try {
+                for (int i = 0; i < count; i++) {
+                    string sceneName = sceneNames[i];
+                    tasks[i] = LoadSceneAsync(sceneName, makeActive: sceneName == activeScene);
+                }
+
+                await UniTask.WhenAll(tasks);
             }
-
-            await UniTask.WhenAll(tasks);
-
-            ArrayPool<UniTask>.Shared.Return(tasks);
+            finally {
+                tasks.ResetArrayElements();
+                ArrayPool<UniTask>.Shared.Return(tasks);
+            }
         }
 
         public static async UniTask UnloadScenesAsync(IReadOnlyList<string> sceneNames) {
             int count = sceneNames.Count;
             var tasks = ArrayPool<UniTask>.Shared.Rent(count);
-
-            for (int i = 0; i < count; i++) {
-                tasks[i] = UnloadSceneAsync(sceneNames[i]);
-            }
-
-            await UniTask.WhenAll(tasks);
-
             tasks.ResetArrayElements();
-            ArrayPool<UniTask>.Shared.Return(tasks);
+
+            try {
+                for (int i = 0; i < count; i++) {
+                    tasks[i] = UnloadSceneAsync(sceneNames[i]);
+                }
+
+                await UniTask.WhenAll(tasks);
+            }
+            finally {
+                tasks.ResetArrayElements();
+                ArrayPool<UniTask>.Shared.Return(tasks);
+            }
         }
         
         public static void AddSceneLoadHook(ISceneLoadHook hook) {
@@ -344,17 +352,20 @@ namespace MisterGames.Scenes.Core {
             
             var tasks = ArrayPool<UniTask>.Shared.Rent(count);
             tasks.ResetArrayElements();
-            
-            int index = 0;
-            
-            foreach (var hook in _sceneLoadHooks) {
-                tasks[index++] = hook.OnSceneLoadRequest(sceneName, cancellationToken);
+
+            try {
+                int index = 0;
+
+                foreach (var hook in _sceneLoadHooks) {
+                    tasks[index++] = hook.OnSceneLoadRequest(sceneName, cancellationToken);
+                }
+
+                await UniTask.WhenAll(tasks);
             }
-            
-            await UniTask.WhenAll(tasks);
-            
-            tasks.ResetArrayElements();
-            ArrayPool<UniTask>.Shared.Return(tasks);
+            finally {
+                tasks.ResetArrayElements();
+                ArrayPool<UniTask>.Shared.Return(tasks);
+            }
         }
         
         private static async UniTask ProcessSceneHooksUnloadRequest(string sceneName, CancellationToken cancellationToken) {
@@ -362,15 +373,20 @@ namespace MisterGames.Scenes.Core {
             
             var tasks = ArrayPool<UniTask>.Shared.Rent(count);
             tasks.ResetArrayElements();
-            int index = 0;
-            
-            foreach (var hook in _sceneLoadHooks) {
-                tasks[index++] = hook.OnSceneUnloadRequest(sceneName, cancellationToken);
+
+            try {
+                int index = 0;
+
+                foreach (var hook in _sceneLoadHooks) {
+                    tasks[index++] = hook.OnSceneUnloadRequest(sceneName, cancellationToken);
+                }
+
+                await UniTask.WhenAll(tasks);
             }
-            
-            await UniTask.WhenAll(tasks);
-            
-            ArrayPool<UniTask>.Shared.Return(tasks);
+            finally {
+                tasks.ResetArrayElements();
+                ArrayPool<UniTask>.Shared.Return(tasks);
+            }
         }
 
         private static bool CanUnloadScene(string sceneName) {

@@ -299,38 +299,42 @@ namespace MisterGames.Tweens {
             var tasks = ArrayPool<UniTask>.Shared.Rent(count);
             tasks.ResetArrayElements();
 
-            for (int i = 0; i < count; i++) {
-                var tween = tweens[i];
-                float localDuration = Mathf.Max(tween?.Duration ?? 0f, 0f);
+            try {
+                for (int i = 0; i < count; i++) {
+                    var tween = tweens[i];
+                    float localDuration = Mathf.Max(tween?.Duration ?? 0f, 0f);
 
-                // Process tweens which should be delayed or skipped,
-                // if local duration is less than start time.
-                if (startTime > localDuration) {
-                    // Skip if playing forward.
-                    if (speed > 0f) {
-                        tasks[i] = UniTask.CompletedTask;
+                    // Process tweens which should be delayed or skipped,
+                    // if local duration is less than start time.
+                    if (startTime > localDuration) {
+                        // Skip if playing forward.
+                        if (speed > 0f) {
+                            tasks[i] = UniTask.CompletedTask;
+                            continue;
+                        }
+
+                        // Delay start if playing backwards.
+                        if (speed < 0f) {
+                            float delay = Mathf.Max(startTime - localDuration, 0f);
+                            tasks[i] = PlayDelayed(context, tween, delay, localDuration, startProgress: 1f, speed, cancellationToken); 
+                            continue;
+                        }
+
+                        // Speed is 0: notify tween with progress 1.
+                        tasks[i] = tween?.Play(context, localDuration, startProgress: 1f, speed, cancellationToken) ?? UniTask.CompletedTask;    
                         continue;
                     }
 
-                    // Delay start if playing backwards.
-                    if (speed < 0f) {
-                        float delay = Mathf.Max(startTime - localDuration, 0f);
-                        tasks[i] = PlayDelayed(context, tween, delay, localDuration, startProgress: 1f, speed, cancellationToken); 
-                        continue;
-                    }
-                    
-                    // Speed is 0: notify tween with progress 1.
-                    tasks[i] = tween?.Play(context, localDuration, startProgress: 1f, speed, cancellationToken) ?? UniTask.CompletedTask;    
-                    continue;
+                    float localProgress = localDuration > 0f ? Mathf.Clamp01(startTime / localDuration) : targetProgress;
+                    tasks[i] = tween?.Play(context, localDuration, localProgress, speed, cancellationToken) ?? UniTask.CompletedTask;
                 }
 
-                float localProgress = localDuration > 0f ? Mathf.Clamp01(startTime / localDuration) : targetProgress;
-                tasks[i] = tween?.Play(context, localDuration, localProgress, speed, cancellationToken) ?? UniTask.CompletedTask;
+                await UniTask.WhenAll(tasks);
             }
-
-            await UniTask.WhenAll(tasks);
-            
-            ArrayPool<UniTask>.Shared.Return(tasks);
+            finally {
+                tasks.ResetArrayElements();
+                ArrayPool<UniTask>.Shared.Return(tasks);
+            }
         }
 
         private static async UniTask PlayDelayed<T>(
