@@ -40,7 +40,7 @@ namespace MisterGames.Collisions.Rigidbodies {
         void IUpdate.OnUpdate(float dt) {
             int count = _colliderSet.Count;
 
-            var exitArray = new NativeArray<int>(count, Allocator.TempJob);
+            var exitArray = new NativeArray<int>(count, Allocator.Temp);
             int exitCount = 0;
             
             foreach ((int hash, var collider) in _hashToColliderMap) {
