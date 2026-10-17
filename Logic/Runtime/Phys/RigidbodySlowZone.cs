@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Buffers;
+using System.Collections.Generic;
 using MisterGames.Collisions.Rigidbodies;
 using MisterGames.Common.Labels;
 using MisterGames.Common.Tick;
@@ -31,6 +32,10 @@ namespace MisterGames.Logic.Phys {
             _triggerListenerForRigidbody.TriggerExit += TriggerExit;
             
             PlayerLoopStage.FixedUpdate.Subscribe(this);
+
+            foreach (var rb in _triggerListenerForRigidbody.EnteredRigidbodies) {
+                if (rb != null) TriggerEnter(rb);
+            }
         }
 
         private void OnDisable() {
@@ -38,6 +43,18 @@ namespace MisterGames.Logic.Phys {
             _triggerListenerForRigidbody.TriggerExit -= TriggerExit;
 
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
+            
+            int count = _rigidbodies.Count;
+            if (count == 0) return;
+            
+            var rigidbodies = ArrayPool<Rigidbody>.Shared.Rent(count);
+            _rigidbodies.Keys.CopyTo(rigidbodies, 0);
+
+            for (int i = 0; i < count; i++) {
+                TriggerExit(rigidbodies[i]);
+            }
+            
+            ArrayPool<Rigidbody>.Shared.Return(rigidbodies);
         }
 
         private void OnDestroy() {
@@ -45,7 +62,7 @@ namespace MisterGames.Logic.Phys {
         }
 
         private void TriggerEnter(Rigidbody rigidbody) {
-            _rigidbodies.Add(rigidbody, new RigidbodyData(rigidbody.useGravity));
+            if (!_rigidbodies.TryAdd(rigidbody, new RigidbodyData(rigidbody.useGravity))) return;
             
             bool useGravity = !_disableGravity && rigidbody.useGravity;
             
@@ -58,8 +75,7 @@ namespace MisterGames.Logic.Phys {
         }
         
         private void TriggerExit(Rigidbody rigidbody) {
-            _rigidbodies.Remove(rigidbody, out var data);
-            if (rigidbody == null) return;
+            if (!_rigidbodies.Remove(rigidbody, out var data) || rigidbody == null) return;
             
             if (rigidbody.TryGetComponent(out RigidbodyPriorityData priorityData)) {
                 priorityData.RemoveUseGravity(this);

@@ -365,9 +365,17 @@ namespace MisterGames.Character.View {
         }
 
         private void ProcessGravityAlign(float dt) {
+            if (!IsValidRotation(_gravityRotation)) _gravityRotation = Quaternion.identity;
+
             if (!_hasGravity || _characterGravity.IsGravityAlignBlocked) return;
 
             _gravityRotation = _gravityRotation.SlerpNonZero(GetGravityAlignTarget(), _gravityDirSmoothing, dt);
+        }
+
+        private static bool IsValidRotation(Quaternion q) {
+            const float sqrNormTolerance = 1e-3f;
+            float sqrNorm = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
+            return float.IsFinite(sqrNorm) && Mathf.Abs(sqrNorm - 1f) <= sqrNormTolerance;
         }
         
         private Quaternion GetGravityAlignTarget() {

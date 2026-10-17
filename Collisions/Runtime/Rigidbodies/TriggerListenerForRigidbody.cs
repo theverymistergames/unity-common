@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using MisterGames.Collisions.Core;
 using UnityEngine;
@@ -52,11 +53,30 @@ namespace MisterGames.Collisions.Rigidbodies {
         private void OnEnable() {
             _triggerEmitter.TriggerEnter += TriggerEntered;
             _triggerEmitter.TriggerExit += TriggerExited;
+
+            foreach (var collider in _triggerEmitter.EnteredColliders) {
+                if (collider != null) TriggerEntered(collider);
+            }
         }
 
         private void OnDisable() {
             _triggerEmitter.TriggerEnter -= TriggerEntered;
             _triggerEmitter.TriggerExit -= TriggerExited;
+
+            int count = _rigidbodyColliderCountMap.Count;
+            if (count == 0) return;
+            
+            var rigidbodies = ArrayPool<Rigidbody>.Shared.Rent(count);
+            _rigidbodyColliderCountMap.Keys.CopyTo(rigidbodies, 0);
+
+            _colliderToRigidbodyMap.Clear();
+            _rigidbodyColliderCountMap.Clear();
+
+            for (int i = 0; i < count; i++) {
+                TriggerExit.Invoke(rigidbodies[i]);
+            }
+            
+            ArrayPool<Rigidbody>.Shared.Return(rigidbodies);
         }
 
         private void TriggerEntered(Collider collider) {
