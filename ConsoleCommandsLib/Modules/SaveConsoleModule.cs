@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Common.Save;
 using MisterGames.Dbg.Console.Attributes;
@@ -7,10 +8,17 @@ using MisterGames.Dbg.Console.Core;
 namespace MisterGames.ConsoleCommandsLib.Modules {
 
     [Serializable]
-    public class SaveConsoleModule : IConsoleModule {
+    public class SaveConsoleModule : IConsoleModule, IConsoleSuggestionProvider {
 
         public ConsoleRunner ConsoleRunner { get; set; }
         
+        public void CollectSuggestions(string cmd, IReadOnlyList<string> args, ICollection<string> suggestions) {
+            if (args.Count != 1) return;
+            if (cmd is not ("saves/load" or "saves/save" or "saves/delete")) return;
+
+            suggestions.AddMatches(SaveSystem.Main.GetStorageFiles().Select(s => s.storageId).ToArray(), args[0]);
+        }
+
         [ConsoleCommand("saves/print")]
         [ConsoleCommandHelp("print all saves")]
         public void PrintSaves() {

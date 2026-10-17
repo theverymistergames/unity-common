@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MisterGames.Actors;
 using MisterGames.Character.Core;
 using MisterGames.Character.Motion;
@@ -13,7 +14,7 @@ using Object = UnityEngine.Object;
 namespace MisterGames.ConsoleCommandsLib.Modules {
 
     [Serializable]
-    public class HeroConsoleModule : IConsoleModule {
+    public class HeroConsoleModule : IConsoleModule, IConsoleSuggestionProvider {
 
         [SerializeField] private GameObject _heroPrefab;
 
@@ -136,6 +137,19 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
 
         [ConsoleHotkey("hero/spawni 9", KeyBinding.Digit9, ShortcutModifiers.Shift)]
         public void SpawnAtPointByIndex9() { }
+
+        public void CollectSuggestions(string cmd, IReadOnlyList<string> args, ICollection<string> suggestions) {
+            if (cmd != "hero/spawn" || args.Count != 1) return;
+
+            var spawnPoints = GetSpawnPoints();
+            string[] names = new string[spawnPoints.Length];
+
+            for (int i = 0; i < spawnPoints.Length; i++) {
+                names[i] = spawnPoints[i].name;
+            }
+
+            suggestions.AddMatches(names, args[0]);
+        }
 
         private CharacterSpawnPoint[] GetSpawnPoints() {
             var spawnPoints = Object.FindObjectsByType<CharacterSpawnPoint>(FindObjectsInactive.Exclude);

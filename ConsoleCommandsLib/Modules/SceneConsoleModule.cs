@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using MisterGames.Common.Lists;
 using MisterGames.Dbg.Console.Attributes;
@@ -9,7 +10,7 @@ using MisterGames.Scenes.Utils;
 namespace MisterGames.ConsoleCommandsLib.Modules {
 
     [Serializable]
-    public class SceneConsoleModule : IConsoleModule {
+    public class SceneConsoleModule : IConsoleModule, IConsoleSuggestionProvider {
 
         public ConsoleRunner ConsoleRunner { get; set; }
         
@@ -70,6 +71,20 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
 
             for (int i = 0; i < sceneNames.Length; i++) {
                 ConsoleRunner.AppendLine($" - [{i}] {sceneNames[i]}");
+            }
+        }
+
+        public void CollectSuggestions(string cmd, IReadOnlyList<string> args, ICollection<string> suggestions) {
+            if (args.Count != 1) return;
+
+            switch (cmd) {
+                case "scenes/load":
+                    suggestions.AddMatches(SceneLoaderSettings.GetAllSceneNames(), args[0]);
+                    break;
+
+                case "scenes/unload":
+                    suggestions.AddMatches(SceneUtils.GetOpenedScenes().Select(s => s.name).ToArray(), args[0]);
+                    break;
             }
         }
 

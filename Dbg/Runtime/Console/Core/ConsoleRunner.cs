@@ -28,6 +28,9 @@ namespace MisterGames.Dbg.Console.Core {
 
         [Header("Inputs")]
         [SerializeField] private KeyBinding _activationInput = KeyBinding.Backquote;
+        [Tooltip("Closes console on release, so actions bound to the same key and blocked while console is opened " +
+                 "are not triggered by the initial state check when console is closed and they are unblocked.")]
+        [SerializeField] private KeyBinding _closeInput = KeyBinding.Escape;
         [SerializeReference] [SubclassSelector] private IConsoleModule[] _consoleModules;
 
         private const string Editor = "editor";  
@@ -96,7 +99,10 @@ namespace MisterGames.Dbg.Console.Core {
             ResetTextInputField();
             AppendLine($"<color=yellow>> {input}</color>");
 
-            _console.Run(input);
+            if (input.Length > 0 && !_console.Run(input)) {
+                AppendLine($"Command {input} is not found or has invalid arguments. " +
+                           $"Arguments with spaces must be in quotes: {ConsoleArgs.Quote}some argument{ConsoleArgs.Quote}. Type help to see list of all commands.");
+            }
         }
 
         public void AppendLine(string text) {
@@ -107,7 +113,7 @@ namespace MisterGames.Dbg.Console.Core {
 
         public void TypeIn(string input) {
             _textInputField.text = input;
-            _textInputField.caretPosition = input.Length;
+            _textInputField.caretPosition = input?.Length ?? 0;
         }
 
         public void SetTextFieldFontSize(float size) {
@@ -184,6 +190,9 @@ namespace MisterGames.Dbg.Console.Core {
             _textInputField.onSubmit.RemoveListener(RunCommand);
             _textInputField.onSubmit.AddListener(RunCommand);
 
+            _closeInput.RemoveReleaseCallback(HideConsole);
+            _closeInput.AddReleaseCallback(HideConsole);
+
             OnShowConsole.Invoke();
         }
         
@@ -191,6 +200,7 @@ namespace MisterGames.Dbg.Console.Core {
             _canvas.SetActive(false);
             
             _textInputField.onSubmit.RemoveListener(RunCommand);
+            _closeInput.RemoveReleaseCallback(HideConsole);
 
             Cursor.visible = _lastCursorVisibility;
             Cursor.lockState = _lastCursorLockMode;

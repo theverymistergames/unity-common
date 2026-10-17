@@ -18,11 +18,12 @@ namespace MisterGames.Dbg.Console.Core {
             _commands.Clear();
         }
 
-        public void Run(string input) {
-            if (string.IsNullOrEmpty(input)) return;
-            if (!TryGetCommand(input, out var command, out object[] args)) return;
+        public bool Run(string input) {
+            if (string.IsNullOrEmpty(input)) return false;
+            if (!TryGetCommand(input, out var command, out object[] args)) return false;
 
             command.method.Invoke(command.module, args);
+            return true;
         }
 
         private void CollectModuleCommands(IConsoleModule module) {
@@ -63,8 +64,8 @@ namespace MisterGames.Dbg.Console.Core {
                     continue;
                 }
 
-                string[] argStrings = GetArgs(c, input);
-                int argsLength = argStrings.Length;
+                var argStrings = GetArgs(c, input);
+                int argsLength = argStrings.Count;
 
                 var parameters = c.method.GetParameters();
                 if (parameters.Length != argsLength) continue;
@@ -97,17 +98,10 @@ namespace MisterGames.Dbg.Console.Core {
             return true;
         }
 
-        private static string[] GetArgs(Command command, string input) {
-            string cmd = command.cmd;
-
-            int cmdLength = cmd.Length;
-            int inputLength = input.Length;
-
-            if (inputLength <= cmdLength) return Array.Empty<string>();
-
-            return input
-                .Substring(cmdLength, inputLength - cmdLength)
-                .Split(" ", StringSplitOptions.RemoveEmptyEntries);
+        private static List<string> GetArgs(Command command, string input) {
+            var args = new List<string>();
+            ConsoleArgs.Parse(input, command.cmd.Length, args);
+            return args;
         }
 
         private static bool TryConvertArg(string arg, Type targetType, out object result) {

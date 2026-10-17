@@ -62,6 +62,8 @@ namespace MisterGames.Dbg.Console.Plugins {
         }
 
         private void OnBeforeRunCommand(string input) {
+            if (string.IsNullOrWhiteSpace(input)) return;
+            
             _commandHistory.Add(input);
             ValidateHistorySize();
             _historyPointer = _commandHistory.Count;
@@ -88,6 +90,7 @@ namespace MisterGames.Dbg.Console.Plugins {
             _dto.history = _commandHistory;
             
             PlayerPrefs.SetString(_playerPrefsId, JsonUtility.ToJson(_dto));
+            PlayerPrefs.Save();
         }
 
         private void RestoreHistoryFromPlayerPrefs() {

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -8,7 +9,7 @@ using MisterGames.Dbg.Console.Core;
 namespace MisterGames.Dbg.Console.Modules {
 
     [Serializable]
-    public class HelpConsoleModule : IConsoleModule {
+    public class HelpConsoleModule : IConsoleModule, IConsoleSuggestionProvider {
 
         public ConsoleRunner ConsoleRunner { get; set; }
 
@@ -51,6 +52,12 @@ namespace MisterGames.Dbg.Console.Modules {
             }
             
             ConsoleRunner.AppendLine(sb.ToString());
+        }
+
+        public void CollectSuggestions(string cmd, IReadOnlyList<string> args, ICollection<string> suggestions) {
+            if (cmd != "help" || args.Count != 1) return;
+
+            suggestions.AddMatches(ConsoleRunner.Commands.Select(c => c.cmd).Distinct().ToArray(), args[0]);
         }
 
         private static void AppendHelpText(StringBuilder sb, Command command) {
