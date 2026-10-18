@@ -52,33 +52,38 @@ namespace MisterGames.Character.View {
             : 0f;
 
         public Vector3 EvaluatePosition(float t) {
-            t = Mathf.Clamp01(_speed > 0f ? t : _speed < 0f ? 1f - t : 0f); 
-            
             int count = _keyFrames.Count;
-            int i = Mathf.FloorToInt(t * count);
-
-            if (i < 0 || i > count - 1) return Vector3.zero;
+            if (count <= 0) return Vector3.zero;
             
-            return (i + 1 <= count - 1 
-                ? Vector3.Lerp(_keyFrames[i].position, _keyFrames[i + 1].position, (t - (float) i / count) * count) 
+            GetKeyFrameIndex(t, count, out int i, out float f);
+            
+            return (i + 1 < count 
+                ? Vector3.Lerp(_keyFrames[i].position, _keyFrames[i + 1].position, f) 
                 : _keyFrames[i].position) + _offset.position;
         }
         
         public Quaternion EvaluateRotation(float t) {
-            t = Mathf.Clamp01(_speed > 0f ? t : _speed < 0f ? 1f - t : 0f); 
-            
             int count = _keyFrames.Count;
-            int i = Mathf.FloorToInt(t * count);
-
-            if (i < 0) return _offset.rotation;
+            if (count <= 0) return Quaternion.identity;
             
-            if (i > count - 1) return (count > 0 
-                ? _keyFrames[count - 1].rotation 
-                : Quaternion.identity) * _offset.rotation;
+            GetKeyFrameIndex(t, count, out int i, out float f);
             
-            return (i + 1 <= count - 1
-                ? Quaternion.Slerp(_keyFrames[i].rotation, _keyFrames[i + 1].rotation, (t - (float) i / count) * count)
+            return (i + 1 < count
+                ? Quaternion.Slerp(_keyFrames[i].rotation, _keyFrames[i + 1].rotation, f)
                 : _keyFrames[i].rotation) * _offset.rotation;
+        }
+
+        /// <summary>
+        /// Key frames are placed from 0 to 1 with the step of 1 / (count - 1), so the last frame is exactly at t = 1
+        /// and the last segment is interpolated as well.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void GetKeyFrameIndex(float t, int count, out int index, out float fraction) {
+            t = Mathf.Clamp01(_speed > 0f ? t : _speed < 0f ? 1f - t : 0f);
+            
+            float position = t * (count - 1);
+            index = Mathf.Min(Mathf.FloorToInt(position), count - 1);
+            fraction = position - index;
         }
         
 #if UNITY_EDITOR

@@ -1,12 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Pooling;
 using MisterGames.Common.Service;
+using MisterGames.Input.Actions;
 using MisterGames.UI.Navigation;
 using MisterGames.UI.Windows;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace MisterGames.UI.Components {
     
@@ -15,7 +19,6 @@ namespace MisterGames.UI.Components {
         [SerializeField] private TMP_Text _title;
         [SerializeField] private TMP_Text _content;
         [SerializeField] private Transform _buttonsParent;
-        [SerializeField] private RectTransform _container;
         [SerializeField] private UiButton _buttonPrefab;
         [SerializeField] private UiWindow _window;
 
@@ -34,15 +37,28 @@ namespace MisterGames.UI.Components {
             }
         }
         
+        private readonly struct InputBinding {
+            
+            public readonly InputAction input;
+            public readonly int buttonIndex;
+            
+            public InputBinding(InputAction input, int buttonIndex) {
+                this.input = input;
+                this.buttonIndex = buttonIndex;
+            }
+        }
+        
         private ILocalizationService _localizationService;
         
         private readonly List<ButtonData> _buttons = new();
+        private readonly List<InputBinding> _inputBindings = new();
         private readonly Dictionary<(LocalizationKey, int), ILocalizationFormatter.Lambda> _formatMap = new();
 
         private LocalizationKey _titleKey;
         private LocalizationKey _contentKey;
         private bool _canCloseOnNavigateBack;
         private int _navigateBackCallIndex = -1;
+        private UniTaskCompletionSource _closeSource;
 
         private void OnEnable() {
             GetLocalizationService().OnLocaleChanged += OnLocaleChanged;
@@ -52,15 +68,22 @@ namespace MisterGames.UI.Components {
                 button.OnClicked -= OnClicked;
                 button.OnClicked += OnClicked;
             }
+            
+            SubscribeInputs();
         }
 
         private void OnDisable() {
+            // Dialog is disabled not by the close: complete the awaiters as well.
+            CompleteClose();
+            
             GetLocalizationService().OnLocaleChanged -= OnLocaleChanged;
             
             for (int i = 0; i < _buttons.Count; i++) {
                 var button = _buttons[i].button;
                 button.OnClicked -= OnClicked;
             }
+            
+            UnsubscribeInputs();
         }
 
         private void OnLocaleChanged(Locale locale) {
@@ -118,7 +141,30 @@ namespace MisterGames.UI.Components {
             return this;
         }
 
+        public IUiModalDialog BindButtonToInputs(int buttonIndex, IReadOnlyList<InputActionRef> inputs) {
+            if (buttonIndex < 0 || buttonIndex >= _buttons.Count) {
+                Debug.LogWarning($"{nameof(UiModalDialog)}: trying to bind inputs to button {buttonIndex}, " +
+                                 $"but there are only {_buttons.Count} buttons, skip.");
+                return this;
+            }
+            
+            for (int i = 0; i < inputs?.Count; i++) {
+                if (inputs[i].Get() is not { } input) continue;
+                
+                // Every input is subscribed once: an input bound to several buttons clicks the first one only.
+                if (!IsInputBound(input)) input.performed += OnPerformInput;
+                
+                _inputBindings.Add(new InputBinding(input, buttonIndex));
+            }
+            
+            return this;
+        }
+
         public void Show() {
+            // Show without the close: the awaiters of the previous show are completed.
+            CompleteClose();
+            _closeSource = new UniTaskCompletionSource();
+            
             gameObject.SetActive(true);
             
             Services.Get<IUiWindowService>()?.SetWindowState(_window, UiWindowState.Opened);
@@ -126,6 +172,12 @@ namespace MisterGames.UI.Components {
         }
 
         public void Close() {
+            // Awaiters are completed only after the dialog is released to the pool,
+            // so a continuation that shows a dialog again gets a clean one.
+            var closeSource = _closeSource;
+            _closeSource = null;
+            
+            ClearInputBindings();
             ClearButtons();
             
             _formatMap.Clear();
@@ -136,6 +188,21 @@ namespace MisterGames.UI.Components {
             Services.Get<IUiNavigationService>()?.RemoveTopLayerNavigationCallback(this);
             
             PrefabPool.Main.Release(gameObject);
+            
+            closeSource?.TrySetResult();
+        }
+
+        public async UniTask AwaitClose(CancellationToken cancellationToken = default) {
+            if (_closeSource == null) return;
+            
+            await _closeSource.Task.AttachExternalCancellation(cancellationToken).SuppressCancellationThrow();
+        }
+
+        private void CompleteClose() {
+            var closeSource = _closeSource;
+            _closeSource = null;
+            
+            closeSource?.TrySetResult();
         }
 
         public bool CanNavigateBack() {
@@ -162,6 +229,43 @@ namespace MisterGames.UI.Components {
             }
             
             return text;
+        }
+        
+        private bool IsInputBound(InputAction input) {
+            for (int i = 0; i < _inputBindings.Count; i++) {
+                if (_inputBindings[i].input == input) return true;
+            }
+            
+            return false;
+        }
+
+        private void SubscribeInputs() {
+            for (int i = 0; i < _inputBindings.Count; i++) {
+                var input = _inputBindings[i].input;
+                input.performed -= OnPerformInput;
+                input.performed += OnPerformInput;
+            }
+        }
+
+        private void UnsubscribeInputs() {
+            for (int i = 0; i < _inputBindings.Count; i++) {
+                _inputBindings[i].input.performed -= OnPerformInput;
+            }
+        }
+        
+        private void ClearInputBindings() {
+            UnsubscribeInputs();
+            _inputBindings.Clear();
+        }
+
+        private void OnPerformInput(InputAction.CallbackContext context) {
+            for (int i = 0; i < _inputBindings.Count; i++) {
+                var binding = _inputBindings[i];
+                if (binding.input != context.action) continue;
+
+                if (binding.buttonIndex < _buttons.Count) _buttons[binding.buttonIndex].button.ClickManual();
+                return;
+            }
         }
         
         private void ClearButtons() {

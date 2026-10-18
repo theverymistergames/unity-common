@@ -12,7 +12,7 @@ namespace MisterGames.Common.Tick {
         [SerializeField] private TimescalePriority _priority;
         [SerializeField] [Min(0f)] private float _timeScale;
         [SerializeField] [Min(0f)] private float _timeScaleDurationOnOpen;
-        [SerializeField] [Min(0f)] private float _timeScaleDurationOnClose;
+        [SerializeField] [Min(0f)] private float _timeScaleDurationOnClose = 1f;
         [SerializeField] private AnimationCurve _timeScaleCurve = EasingType.Linear.ToAnimationCurve();
 
         private CancellationTokenSource _enableCts;
