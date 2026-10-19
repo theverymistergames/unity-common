@@ -73,6 +73,8 @@ namespace MisterGames.Collisions.Rigidbodies {
             _rigidbodyColliderCountMap.Clear();
 
             for (int i = 0; i < count; i++) {
+                if (rigidbodies[i] == null) continue;
+                
                 TriggerExit.Invoke(rigidbodies[i]);
             }
             

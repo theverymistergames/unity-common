@@ -19,7 +19,7 @@ namespace MisterGames.ActionLib.Character {
             object source = this.source == null ? this : this.source;
             
             var pose = context.GetComponent<CharacterPoseGraphPipeline>();
-                
+            
             pose.SetBlock(source, blocked: !isEnabled, cancellationToken);
             if (forceStand) pose.ApplyStandPose();
             

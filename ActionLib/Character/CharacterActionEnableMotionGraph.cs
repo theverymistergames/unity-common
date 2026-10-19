@@ -18,7 +18,7 @@ namespace MisterGames.ActionLib.Character {
             object source = this.source == null ? this : this.source;
             
             context.GetComponent<CharacterMotionGraphPipeline>()
-                .SetBlock(source, blocked: !isEnabled, cancellationToken);
+                ?.SetBlock(source, blocked: !isEnabled, cancellationToken);
             
             return default;
         }
