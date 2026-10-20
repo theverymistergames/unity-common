@@ -7,9 +7,6 @@ namespace MisterGames.Character.View {
     
     public sealed class CharacterHeadJoint {
 
-        public event Action<float> OnAttach = delegate { };
-        public event Action OnDetach = delegate { };
-        
         public float AttachDistance { get; set; }
         public bool IsAttached => _mode != Mode.Free;
         
@@ -76,8 +73,6 @@ namespace MisterGames.Character.View {
             var lookaroundPoint = _targetPoint + 
                                   rotationOffset * Quaternion.Euler(orientation) * Vector3.back * AttachDistance;
             _attachOffset = point - lookaroundPoint;
-            
-            OnAttach.Invoke(AttachDistance);
         }
 
         public void AttachTo(Vector3 point, float smoothing) {
@@ -85,15 +80,11 @@ namespace MisterGames.Character.View {
             _smoothing = smoothing;
             _mode = Mode.Point;
             AttachDistance = 0f;
-            
-            OnAttach.Invoke(AttachDistance);
         }
 
         public void Detach() {
             _target = null;
             _mode = Mode.Free;
-            
-            OnDetach.Invoke();
         }
 
         public void AttachObject(Transform obj, Vector3 point, Vector3 position, Vector2 orientation, float smoothing = 0f) {
@@ -139,8 +130,14 @@ namespace MisterGames.Character.View {
             UpdatePosition(ref position, rotationOffset, orientation, dt);
         }
 
-        public void UpdateAttachedObjects(Vector3 position, Quaternion rotation, Vector2 delta, float dt) {
-            UpdateAttachedObjects(position, rotation, dt);
+        public void UpdateAttachedObjects(
+            Vector3 position,
+            Quaternion rotation,
+            Vector2 delta,
+            float dt,
+            IAttachedObjectObstacleChecker obstacleChecker = null
+        ) {
+            UpdateAttachedObjects(position, rotation, dt, obstacleChecker);
             UpdateRotationObjects(rotation, delta, dt);
         }
 
@@ -180,15 +177,23 @@ namespace MisterGames.Character.View {
             }
         }
 
-        private void UpdateAttachedObjects(Vector3 position, Quaternion orientation, float dt) {
+        private void UpdateAttachedObjects(
+            Vector3 position,
+            Quaternion orientation,
+            float dt,
+            IAttachedObjectObstacleChecker obstacleChecker
+        ) {
             foreach (var (obj, data) in _attachedObjectsMap) {
                 var rot = orientation * Quaternion.Inverse(data.orientation);
                 var targetPos = position + rot * data.offset;
-                
-                obj.position = data.smoothing > 0f 
+                var smoothPos = data.smoothing > 0f 
                     ? Vector3.Lerp(obj.position, targetPos, data.smoothing * dt)
                     : targetPos;
-
+                
+                if (obstacleChecker != null) smoothPos = obstacleChecker.AdjustObjectPosition(obj, smoothPos);
+                
+                obj.position = smoothPos;
+                
                 if (_rotationObjects.Contains(obj)) continue;
                 
                 var targetRot = rot * data.rotation;

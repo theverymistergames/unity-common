@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
+using MisterGames.Collisions.Utils;
 using MisterGames.Common.Async;
 using MisterGames.Common.Inputs;
 using MisterGames.Common.Maths;
@@ -14,7 +15,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.View {
 
-    public sealed class CharacterViewPipeline : MonoBehaviour, IActorComponent {
+    public sealed class CharacterViewPipeline : MonoBehaviour, IActorComponent, IAttachedObjectObstacleChecker {
 
         [Header("Transforms")]
         [SerializeField] private Transform _head;
@@ -31,7 +32,13 @@ namespace MisterGames.Character.View {
         [SerializeField] private float _returnFreeHeadRotationSmoothingMax = 20f;
         [SerializeField] private ViewClampProcessor _viewClamp;
         [SerializeField] [Min(0f)] private float _gravityDirSmoothing = 6f;
-        
+
+        [Header("Attached Objects")]
+        [SerializeField] private LayerMask _layerMask;
+        [SerializeField] [Min(0f)] private float _raycastMargin = 0.02f;
+        [SerializeField] [Min(1)] private int _maxHits = 6;
+        [SerializeField] [Min(0f)] private float _objectObstacleOffset = 0.05f;
+
         public bool IsAttached => _headJoint.IsAttached;
 
         public Vector3 HeadPosition {
@@ -101,7 +108,11 @@ namespace MisterGames.Character.View {
         private Quaternion _bodyRotation = Quaternion.identity;
         private Vector2 _inputResidual;
 
+        private RaycastHit[] _hits;
+
         void IActorComponent.OnAwake(IActor actor) {
+            _hits = new RaycastHit[_maxHits];
+
             _cameraContainer = actor.GetComponent<CameraContainer>();
             _inputPipeline = actor.GetComponent<CharacterInputPipeline>();
             _hasGravity = actor.TryGetComponent(out _characterGravity);
@@ -307,9 +318,11 @@ namespace MisterGames.Character.View {
             ApplyAttach(ref position, targetOrientation, dt);
             ApplyClamp(position, ref currentOrientation, ref targetOrientation, dt: 0f);
             
+            // Position is applied before the attached objects:
+            // their obstacle check casts from the head position of the current frame.
+            ApplyPosition(position);
             ApplyAttachedObjects(position, targetOrientation, delta, dt);
             ApplyRotation(targetOrientation, dt);
-            ApplyPosition(position);
             ApplyCameraState();
             
             CleanupProcessors();
@@ -333,9 +346,60 @@ namespace MisterGames.Character.View {
         }
         
         private void ApplyAttachedObjects(Vector3 position, Vector2 orientation, Vector2 delta, float dt) {
-            _headJoint.UpdateAttachedObjects(position, _gravityRotation * Quaternion.Euler(orientation), delta, dt);
+            _headJoint.UpdateAttachedObjects(position, _gravityRotation * Quaternion.Euler(orientation), delta, dt, this);
         }
-        
+
+        Vector3 IAttachedObjectObstacleChecker.AdjustObjectPosition(Transform root, Vector3 position) {
+            if (!RaycastFromCamera(position, root, out var hit)) return position;
+
+            var origin = _head.position;
+            var dir = (position - origin).normalized;
+
+            // Hit is projected on the line from the camera to the object,
+            // so the object is moved strictly along this line.
+            float hitDistance = Vector3.Dot(hit.point - origin, dir);
+            float maxDistance = Mathf.Max(0f, hitDistance - _objectObstacleOffset);
+
+            return Vector3.Dot(position - origin, dir) > maxDistance
+                ? origin + dir * maxDistance
+                : position;
+        }
+
+        private bool RaycastFromCamera(Vector3 toPoint, Transform ignoreRoot, out RaycastHit hit) {
+            hit = default;
+
+            var origin = _head.position;
+            var vector = toPoint - origin;
+            float distance = vector.magnitude;
+
+            if (distance <= 0f) return false;
+
+            int hitCount = Physics.RaycastNonAlloc(
+                origin,
+                vector / distance,
+                _hits,
+                distance + _raycastMargin,
+                _layerMask,
+                QueryTriggerInteraction.Ignore
+            );
+
+            _hits
+                .RemoveInvalidHits(ref hitCount)
+                .Filter(ref hitCount, ignoreRoot, (root, h) => root == null || !h.collider.transform.IsChildOf(root));
+
+            float minDistance = float.MaxValue;
+
+            for (int i = 0; i < hitCount; i++) {
+                var h = _hits[i];
+                if (h.distance >= minDistance) continue;
+
+                minDistance = h.distance;
+                hit = h;
+            }
+
+            return hitCount > 0;
+        }
+
         private void ApplyClamp(Vector3 position, ref Vector2 current, ref Vector2 target, float dt) {
             _viewClamp.Process(position, _gravityRotation, ref current, ref target, dt);
         }
