@@ -1036,7 +1036,7 @@ namespace MisterGames.Common.Audio {
 
                 var resultData = resultSoundArray[i];
 
-                if (_checkPause && !e.IgnoreZeroTimescale) {
+                if (_checkPause && GetTimeSource(e) < 2) {
                     CheckPause(e, timescale);
                 }
 
