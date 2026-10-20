@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace MisterGames.SettingsLib.Base {
     
     public interface ISettingsService {
         
         bool HasUnsavedChanges { get; }
+        event Action<string> OnDataChanged;
         
         bool TryGet<T>(string key, int index, out T data);
         bool Set<T>(string key, int index, T setting);

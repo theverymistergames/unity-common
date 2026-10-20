@@ -14,7 +14,8 @@ namespace MisterGames.SettingsLib.Base {
     public sealed class SettingsService : ISettingsService, IDisposable, IUpdate {
 
         public bool HasUnsavedChanges => _dirtySet.Count > 0;
-
+        public event Action<string> OnDataChanged = delegate { };
+        
         private readonly Dictionary<string, ISettingDesc> _settingMap = new();
         private readonly HashSet<int> _dirtySet = new();
         private readonly ISaveStorage<SaveKey> _saveStorage = new SaveStorage<SaveKey>();
@@ -80,13 +81,17 @@ namespace MisterGames.SettingsLib.Base {
         }
         
         public bool Set<T>(string key, int index, T setting) {
-            NotifyDirty(key);
-            return _saveStorage.GetOrCreateTable<T>()?.SetData(new SaveKey(key, index), setting) ?? false;
+            bool result = _saveStorage.GetOrCreateTable<T>()?.SetData(new SaveKey(key, index), setting) ?? false;
+            if (result) NotifyDirty(key);
+
+            return result;
         }
 
         public bool Remove<T>(string key, int index) {
-            NotifyDirty(key);
-            return _saveStorage.GetTable<T>()?.RemoveData(new SaveKey(key, index)) ?? false;
+            bool result = _saveStorage.GetTable<T>()?.RemoveData(new SaveKey(key, index)) ?? false;
+            if (result) NotifyDirty(key);
+
+            return result;
         }
 
         public void SaveSettings() {
@@ -179,6 +184,7 @@ namespace MisterGames.SettingsLib.Base {
         private void NotifyDirty(string key) {
             _lastDirtyTime = Time.realtimeSinceStartup;
             _dirtySet.Add(Animator.StringToHash(key));
+            OnDataChanged.Invoke(key);
         }
 
         private void ResetDirty(string key) {
