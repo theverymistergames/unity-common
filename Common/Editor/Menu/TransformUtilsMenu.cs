@@ -28,6 +28,36 @@ namespace MisterGames.Common.Editor.Menu {
             EditorUtility.SetDirty(root);
         }
         
+        /// <summary>
+        /// Moves the parent to the position of the selected transform, so the selected transform
+        /// gets zero local position. World positions of all parent children are preserved.
+        /// </summary>
+        [MenuItem("CONTEXT/Transform/Move position to parent")]
+        public static void MovePositionToParent(MenuCommand command) {
+            if (command.context is not Transform transform || transform.parent is not { } parent) return;
+
+            int childCount = parent.childCount;
+            var worldPositions = new Vector3[childCount];
+
+            for (int i = 0; i < childCount; i++) {
+                worldPositions[i] = parent.GetChild(i).position;
+            }
+
+            Undo.RecordObject(parent, MovePositionKey);
+            parent.position = transform.position;
+            EditorUtility.SetDirty(parent);
+
+            for (int i = 0; i < childCount; i++) {
+                var child = parent.GetChild(i);
+
+                Undo.RecordObject(child, MovePositionKey);
+                child.position = worldPositions[i];
+                EditorUtility.SetDirty(child);
+            }
+
+            transform.localPosition = Vector3.zero;
+        }
+
         [MenuItem("CONTEXT/Transform/Move scale to children")]
         public static void MoveScale(MenuCommand command) {
             if (command.context is not Transform root) return;
