@@ -69,11 +69,11 @@ namespace MisterGames.Common.Tick {
         private const float _editorUsageTimeout = 1f;
 
         private static async UniTaskVoid CheckEditorUpdatesAreStarted() {
-            if (_editorTimeSource != null) {
-                _lastEditorCheckTime = Time.realtimeSinceStartup;
-                return;
-            }
-            
+            float now = Time.realtimeSinceStartup;
+            _lastEditorCheckTime = now;
+
+            if (_editorTimeSource != null && now <= _editorUpdatesTime + _editorUsageTimeout) return;
+
             byte id = _editorUpdatesId.IncrementUncheckedRef();
             
             _editorUpdatesFrameCount = Time.frameCount;
