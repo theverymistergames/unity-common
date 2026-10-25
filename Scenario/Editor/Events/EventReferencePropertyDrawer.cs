@@ -145,10 +145,10 @@ namespace MisterGames.Scenario.Editor.Events {
         }
 
         private static IEnumerable<Entry> GetDomainEntries(EventDomain eventDomain) {
-            if (eventDomain == null || eventDomain.EventGroups.Length <= 0) return Array.Empty<Entry>();
+            if (eventDomain == null || eventDomain.GetEventGroups().Length <= 0) return Array.Empty<Entry>();
 
             var list = new List<Entry>();
-            var eventGroups = eventDomain.EventGroups;
+            var eventGroups = eventDomain.GetEventGroups();
             
             for (int i = 0; i < eventGroups.Length; i++) {
                 var group = eventGroups[i];
@@ -181,11 +181,11 @@ namespace MisterGames.Scenario.Editor.Events {
                 return $"Event [{eventId}] {NotFound}";
             }
 
-            var eventGroups = eventDomain.EventGroups;
+            var eventGroups = eventDomain.GetEventGroups();
             ref var eventGroup = ref eventGroups[group];
             
             string groupName = string.IsNullOrWhiteSpace(eventGroup.name)
-                ? eventDomain.EventGroups.Length == 1
+                ? eventDomain.GetEventGroups().Length == 1
                     ? string.Empty
                     : $"Group [{group}]{Separator}"
                 : $"{eventGroup.name}{Separator}";

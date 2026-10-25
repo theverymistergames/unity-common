@@ -78,7 +78,7 @@ namespace MisterGames.Scenario.Editor.Events {
             int groupIndex = ParseArrayIndex(parentProp.propertyPath);
 
             menu.AddItem(new GUIContent("Search usages..."), false, () => {
-                var groups = eventDomain.EventGroups;
+                var groups = eventDomain.GetEventGroups();
                 if (groupIndex >= groups.Length) return;
 
                 var events = groups[groupIndex].events;
@@ -107,7 +107,7 @@ namespace MisterGames.Scenario.Editor.Events {
             int groupIndex = ParseArrayIndex(parentProp.propertyPath);
 
             menu.AddItem(new GUIContent("Search usages..."), false, () => {
-                var groups = eventDomain.EventGroups;
+                var groups = eventDomain.GetEventGroups();
                 if (groupIndex >= groups.Length) return;
 
                 var events = groups[groupIndex].events;

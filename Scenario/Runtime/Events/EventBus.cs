@@ -17,18 +17,19 @@ namespace MisterGames.Scenario.Events {
         private static readonly EventReference GlobalEvent = new(eventDomain: null, eventId: int.MinValue);
 
         public event Action<EventReference> OnAnyEventRaised = delegate { };
-
         public Dictionary<EventReference, int> RaisedEvents { get; } = new();
         
         private readonly HashSet<EventReference> _subIdEventSet = new();
         private readonly MultiValueDictionary<EventReference, object> _listenerTree = new();
         private readonly MultiValueDictionary<Type, object> _streamMap = new();
+        private readonly MultiValueDictionary<EventDomain, IEventDomainRunner> _domainRunnerMap = new();
 
         public void Dispose() {
             _listenerTree.Clear();
             _subIdEventSet.Clear();
             RaisedEvents.Clear();
             _streamMap.Clear();
+            _domainRunnerMap.Clear();
         }
 
         public bool IsRaisedAtLeastOnce(EventReference e) {
@@ -40,21 +41,29 @@ namespace MisterGames.Scenario.Events {
         }
 
         public void Raise(EventReference e, int add = 1) {
+            if (!IsAllowedEventDomain(e.EventDomain)) return;
+            
             SetEventCount(e, RaisedEvents.GetValueOrDefault(e, 0) + add);
             NotifyEventRaised(e);
         }
         
         public void SetCount(EventReference e, int count) {
+            if (!IsAllowedEventDomain(e.EventDomain)) return;
+            
             SetEventCount(e, count);
             NotifyEventRaised(e);
         }
 
         public void Raise<T>(EventReference e, T data, int add = 1) {
+            if (!IsAllowedEventDomain(e.EventDomain)) return;
+            
             SetEventCount(e, RaisedEvents.GetValueOrDefault(e, 0) + add);
             NotifyEventRaised(e, data);
         }
 
         public void SetCount<T>(EventReference e, T data, int count) {
+            if (!IsAllowedEventDomain(e.EventDomain)) return;
+            
             SetEventCount(e, count);
             NotifyEventRaised(e, data);
         }
@@ -113,7 +122,7 @@ namespace MisterGames.Scenario.Events {
                 ListPool<EventReference>.Release(buffer);
             }
             
-            var groups = eventDomain.EventGroups;
+            var groups = eventDomain.GetEventGroups();
             for (int i = 0; i < groups.Length; i++) {
                 ref var group = ref groups[i];
                 
@@ -152,7 +161,30 @@ namespace MisterGames.Scenario.Events {
             
             ArrayPool<EventReference>.Shared.Return(buffer);
         }
+
+        public void RegisterEventDomainRunner(IEventDomainRunner eventDomainRunner) {
+            var eventDomain = eventDomainRunner.GetEventDomain();
+
+            if (!_domainRunnerMap.ContainsValue(eventDomain, eventDomainRunner)) {
+                _domainRunnerMap.AddValue(eventDomain, eventDomainRunner);
+            }
+        }
         
+        public void UnregisterEventDomainRunner(IEventDomainRunner eventDomainRunner) {
+            var eventDomain = eventDomainRunner.GetEventDomain();
+            _domainRunnerMap.RemoveValue(eventDomain, eventDomainRunner);
+            
+            if (_domainRunnerMap.GetCount(eventDomain) > 0) return;
+            
+            ResetEventsOf(eventDomain, notify: false);
+        }
+
+        private bool IsAllowedEventDomain(EventDomain eventDomain) {
+            return eventDomain is null || 
+                   !eventDomain.IsExpectingEventDomainRunner() ||
+                   _domainRunnerMap.ContainsKey(eventDomain);
+        }
+
         private void SetEventCount(EventReference e, int count) {
             RaisedEvents[e] = count;
             if (e.SubId != 0) _subIdEventSet.Add(e);

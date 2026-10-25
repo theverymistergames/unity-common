@@ -9,29 +9,44 @@ namespace MisterGames.Scenario.Events {
     [CreateAssetMenu(fileName = nameof(EventDomain), menuName = "MisterGames/Events/" + nameof(EventDomain))]
     public sealed class EventDomain : ScriptableObject {
 
+        [Header("Events Mode")]
+        [SerializeField] private Mode _workingMode;
+        
+        [Header("Events")]
         [SerializeField] private EventGroup[] _eventGroups;
         [HideInInspector] [SerializeField] private int _nextId;
         
-        internal EventGroup[] EventGroups => _eventGroups ?? Array.Empty<EventGroup>();
-        
         private readonly Dictionary<int, (int, int)> _indexMap = new();
         private readonly Dictionary<int, (int, int)> _nameHashMap = new();
+
+        private enum Mode {
+            AlwaysEnabled,
+            ExpectEventDomainRunner,
+        }
         
         [Serializable]
-        internal struct EventGroup {
+        public struct EventGroup {
             public string name;
             [TextAreaExtended]
             public string description;
             public EventEntry[] events;
         }
-
+        
         [Serializable]
-        internal struct EventEntry {
+        public struct EventEntry {
             public string name;
             public int id;
             public int subId;
         }
 
+        public EventGroup[] GetEventGroups() {
+            return _eventGroups ?? Array.Empty<EventGroup>();
+        }
+
+        public bool IsExpectingEventDomainRunner() {
+            return _workingMode == Mode.ExpectEventDomainRunner;
+        }
+        
         public string GetEventName(int eventId) {
             if (!TryGetAddress(eventId, out int group, out int index)) return null;
 
@@ -50,7 +65,7 @@ namespace MisterGames.Scenario.Events {
             return new EventReference(this, e.id);
         }
 
-        internal bool TryGetAddress(int eventId, out int group, out int index) {
+        public bool TryGetAddress(int eventId, out int group, out int index) {
 #if UNITY_EDITOR
             if (_isEventPathMapInvalid) {
                 _isEventPathMapInvalid = false;
@@ -163,5 +178,4 @@ namespace MisterGames.Scenario.Events {
         }
 #endif
     }
-
 }

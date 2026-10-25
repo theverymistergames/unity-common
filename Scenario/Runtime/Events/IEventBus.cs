@@ -26,6 +26,9 @@ namespace MisterGames.Scenario.Events {
         
         void ResetEventsOf(EventDomain eventDomain, bool notify);
         void ResetAllEvents(bool notify);
+
+        void RegisterEventDomainRunner(IEventDomainRunner eventDomainRunner);
+        void UnregisterEventDomainRunner(IEventDomainRunner eventDomainRunner);
         
         void Subscribe(EventReference e, IEventListener listener);
         void Unsubscribe(EventReference e, IEventListener listener);
