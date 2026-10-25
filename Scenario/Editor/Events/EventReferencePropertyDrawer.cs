@@ -96,12 +96,10 @@ namespace MisterGames.Scenario.Editor.Events {
             rect.height = EditorGUIUtility.singleLineHeight;
             
             if (EditorGUI.DropdownButton(rect, new GUIContent(GetFullLabel(eventDomain, eventId)), FocusType.Keyboard)) {
-                bool hasCurrentDomain = eventDomain != null;
-                
                 var dropdown = new AdvancedDropdown<Entry>(
                     "Select event",
-                    hasCurrentDomain ? GetDomainEntries(eventDomain) : GetAllEntries(),
-                    e => GetEntryPath(e, includeDomain: !hasCurrentDomain),
+                    GetAllEntries(),
+                    e => GetEntryPath(e, includeDomain: true),
                     (e, _) => {
                         var p = property.Copy();
 
