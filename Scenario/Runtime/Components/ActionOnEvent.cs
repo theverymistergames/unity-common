@@ -43,7 +43,7 @@ namespace MisterGames.Scenario.Components {
         }
 
         private void OnEnable() {
-            if (_checkOnEnable) OnEventRaised(_eventReference);
+            if (_checkOnEnable && _compareEventRaiseCount) OnEventRaised(_eventReference);
         }
 
         public void OnEventRaised(EventReference e) {

@@ -83,18 +83,13 @@ namespace MisterGames.Common.Audio {
         public int ActiveSoundsCount => _elements.Count;
         public int ReleasingSoundsCount => _releaseElementsMap.Count;
 
-        private const float DistanceThreshold = 0.001f;
         private const int MinBatch = 16;
+        private const float DistanceThreshold = 0.001f;
         private const float HpCutoffLowerBound = 10f;
         private const float LpCutoffUpperBound = 22000f;
 
-        // Restarting a sound at the very end of its clip is the same as not restarting it.
         private const float ClipRestartOffset = 0.01f;
-
-        // The dsp clock moves in buffer sized steps, so standing still for a few frames is normal.
         private const float DspStallTimeout = 0.25f;
-
-        // A frame gap this long means the app itself was away, and the audio engine went down with it.
         private const float FrozenFrameTimeout = 0.5f;
         
         private const string ReverbParamRoom = "Room";
@@ -110,7 +105,8 @@ namespace MisterGames.Common.Audio {
         private const string ReverbParamLfReference = "LFReference";
         private const string ReverbParamDiffusion = "Diffusion";
         private const string ReverbParamDensity = "Density";
-        
+        private const float ReverbRoomNoVolumes = -10000f;
+
         private static readonly float3 Up = Vector3.up;
         private static readonly float3 Forward = Vector3.forward;
         private static readonly float3 Right = Vector3.right;
@@ -171,7 +167,8 @@ namespace MisterGames.Common.Audio {
             _lastDspTime = AudioSettings.dspTime;
             _lastDspProgressTime = _lastUpdateTime = Time.realtimeSinceStartup;
             _transformAccessArray = new TransformAccessArray(64);
-            
+            _smoothedReverbSettings.room = ReverbRoomNoVolumes;
+
             CreateReverbParamNames();
             FetchIncludeMixerGroupsFromVolumes();
             FetchIgnoreZeroTimescaleMixerGroups();
@@ -241,7 +238,7 @@ namespace MisterGames.Common.Audio {
             _reverbParamNames[9] = $"{_reverbParamPrefix}{ReverbParamHfReference}"; 
             _reverbParamNames[10] = $"{_reverbParamPrefix}{ReverbParamLfReference}"; 
             _reverbParamNames[11] = $"{_reverbParamPrefix}{ReverbParamDiffusion}"; 
-            _reverbParamNames[12] = $"{_reverbParamPrefix}{ReverbParamDensity}"; 
+            _reverbParamNames[12] = $"{_reverbParamPrefix}{ReverbParamDensity}";
         }
         
         private void FetchIncludeMixerGroupsFromVolumes() {
@@ -326,10 +323,18 @@ namespace MisterGames.Common.Audio {
 
         public void RegisterReverbVolume(IReverbVolume volume) {
             _reverbVolumes[volume.Id] = volume;
+
+#if UNITY_EDITOR
+            LogReverbVolumeRegistration(volume, registered: true);
+#endif
         }
 
         public void UnregisterReverbVolume(IReverbVolume volume) {
             _reverbVolumes.Remove(volume.Id);
+
+#if UNITY_EDITOR
+            LogReverbVolumeRegistration(volume, registered: false);
+#endif
         }
         
         public void SetGlobalOcclusionWeightNextFrame(float weight) {
@@ -1512,16 +1517,36 @@ namespace MisterGames.Common.Audio {
         private void ProcessReverb(float dt) {
             if (!_enableReverbVolumes || 
                 _audioListenersMap.Count == 0 || 
-                _reverbMixers is not { Length: > 0 }) 
+                _reverbMixers is not { Length: > 0 })
             {
+#if UNITY_EDITOR
+                LogReverbSkipped(skipped: true);
+#endif
                 return;
             }
-            
+
+#if UNITY_EDITOR
+            LogReverbSkipped(skipped: false);
+#endif
+
             var listenerPos = _listenerTransform.position;
-            var resultReverb = CalculateReverbVolumes(listenerPos);
-            
+            var resultReverb = CalculateReverbVolumes(listenerPos, out bool hasVolumes);
+
+            if (!hasVolumes) {
+                resultReverb = _smoothedReverbSettings;
+                resultReverb.room = ReverbRoomNoVolumes;
+            }
+
+#if UNITY_EDITOR
+            LogReverbTargetChanged(listenerPos, ref resultReverb);
+#endif
+
             if (UpdateSmoothedReverbSettings(ref _smoothedReverbSettings, ref resultReverb, dt)) {
-                ApplyReverbSettings(ref _smoothedReverbSettings);   
+                ApplyReverbSettings(ref _smoothedReverbSettings);
+
+#if UNITY_EDITOR
+                LogReverbApplied(ref _smoothedReverbSettings);
+#endif
             }
         }
 
@@ -1728,7 +1753,7 @@ namespace MisterGames.Common.Audio {
             return calculateVolumeResultJob.Schedule(soundCount, JobExt.BatchFor(soundCount, MinBatch), listenerJobHandle);
         }
         
-        private ReverbSettingsData CalculateReverbVolumes(float3 listenerPosition)
+        private ReverbSettingsData CalculateReverbVolumes(float3 listenerPosition, out bool hasVolumes)
         {
             int volumeCount = _reverbVolumes.Count;
             var volumeIdArray = new NativeArray<EntityId>(volumeCount, Allocator.Temp);
@@ -1743,7 +1768,9 @@ namespace MisterGames.Common.Audio {
                 volumeIdArray[i] = id;
                 volumeWeightDataArray[i] = new VolumeWeightData(volume.Priority, weightData.weight);
             }
-            
+
+            hasVolumes = volumeCount > 0;
+
             var reverbSettingsArray = new NativeArray<ReverbSettingsData>(volumeCount, Allocator.TempJob);
 
             for (int i = 0; i < volumeCount; i++) {
@@ -2610,6 +2637,7 @@ namespace MisterGames.Common.Audio {
         [SerializeField] private bool _showPlayReleaseLogs;
         [SerializeField] private bool _showVolumeInfo;
         [SerializeField] private bool _showOcclusionInfo;
+        [SerializeField] private bool _showReverbInfo;
         [SerializeField] private string[] _showSoundsNameFilters;
         [SerializeField] private string[] _showOcclusionNameFilters;
 
@@ -2723,6 +2751,78 @@ namespace MisterGames.Common.Audio {
                       $"cancelled {e.CancellationToken.IsCancellationRequested}, " +
                       $"paused {e.IsPaused}/{e.IsPausedByFocus}/{e.IsPausedExplicitly}, " +
                       $"engine suspended {_audioEngineSuspended}");
+        }
+
+        private ReverbSettingsData _lastLoggedReverbTarget;
+        private bool _lastLoggedReverbSkipped;
+        private bool _hasLoggedReverbTarget;
+
+        private void LogReverbVolumeRegistration(IReverbVolume volume, bool registered) {
+            if (!_showReverbInfo) return;
+
+            Debug.Log($"AudioPool.{(registered ? "RegisterReverbVolume" : "UnregisterReverbVolume")}: f {Time.frameCount}, " +
+                      $"volume {volume}, id {volume.Id}, priority {volume.Priority}, level {volume.Level}, " +
+                      $"settings null {volume.GetReverbSettings() == null}, total volumes {_reverbVolumes.Count}");
+        }
+
+        private void LogReverbSkipped(bool skipped) {
+            if (!_showReverbInfo || _lastLoggedReverbSkipped == skipped) return;
+
+            _lastLoggedReverbSkipped = skipped;
+
+            Debug.Log($"AudioPool.ProcessReverb: f {Time.frameCount}, {(skipped ? "skipped" : "resumed")}, " +
+                      $"enabled {_enableReverbVolumes}, listeners {_audioListenersMap.Count}, " +
+                      $"mixers {_reverbMixers?.Length ?? 0}");
+        }
+
+        private void LogReverbTargetChanged(Vector3 listenerPos, ref ReverbSettingsData target) {
+            if (!_showReverbInfo || _hasLoggedReverbTarget && _lastLoggedReverbTarget.Equals(target)) return;
+
+            _lastLoggedReverbTarget = target;
+            _hasLoggedReverbTarget = true;
+
+            var sb = new StringBuilder();
+
+            foreach (var (id, volume) in _reverbVolumes) {
+                var weightData = volume.GetWeight(listenerPos);
+                sb.Append($"\n  [{volume}, id {id}, priority {volume.Priority}, level {volume.Level}, " +
+                          $"weight {weightData.weight}, settings null {volume.GetReverbSettings() == null}]");
+            }
+
+            Debug.Log($"AudioPool.ProcessReverb: f {Time.frameCount}, target changed, listener pos {listenerPos}, " +
+                      $"{FormatReverbSettings(ref target)}, volumes {_reverbVolumes.Count}:{sb}");
+        }
+
+        private void LogReverbApplied(ref ReverbSettingsData settings) {
+            if (!_showReverbInfo) return;
+
+            var sb = new StringBuilder();
+
+            for (int i = 0; i < _reverbMixers.Length; i++) {
+                var mixer = _reverbMixers[i];
+
+                if (mixer == null) {
+                    sb.Append($"\n  mixer #{i} is null");
+                    continue;
+                }
+
+                for (int j = 0; j < _reverbParamNames.Length; j++) {
+                    if (!mixer.GetFloat(_reverbParamNames[j], out _)) {
+                        sb.Append($"\n  mixer {mixer.name}: param {_reverbParamNames[j]} is not exposed");
+                    }
+                }
+            }
+
+            Debug.Log($"AudioPool.ApplyReverbSettings: f {Time.frameCount}, {FormatReverbSettings(ref settings)}{sb}");
+        }
+
+        private static string FormatReverbSettings(ref ReverbSettingsData s) {
+            return $"room {s.room:0.##}, roomHf {s.roomHf:0.##}, roomLf {s.roomLf:0.##}, " +
+                   $"decay {s.decayTime:0.###}, decayHfRatio {s.decayHfRatio:0.###}, " +
+                   $"reflections {s.reflectionsLevel:0.##}/{s.reflectionsDelay:0.###}, " +
+                   $"reverb {s.reverbLevel:0.##}/{s.reverbDelay:0.###}, " +
+                   $"hfRef {s.hfReference:0.#}, lfRef {s.lfReference:0.#}, " +
+                   $"diffusion {s.diffusion:0.##}, density {s.density:0.##}";
         }
 
         private static bool MatchesNameFilters(string clipName, string[] filters) {
