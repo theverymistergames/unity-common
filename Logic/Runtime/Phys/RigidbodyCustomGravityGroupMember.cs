@@ -11,6 +11,7 @@ namespace MisterGames.Logic.Phys {
         [SerializeField] private Rigidbody _rigidbody;
         [SerializeField] private LabelValue _group;
         [SerializeField] private RigidbodyCustomGravityGroup.Options _options;
+        [SerializeField] private bool _strictActivationRequired;
         [SerializeField] private bool _kinematicOnAwake = true;
 
         public LabelValue Group { get => _group; set => _group = value; }
@@ -22,7 +23,7 @@ namespace MisterGames.Logic.Phys {
         }
 
         private void OnEnable() {
-            Services.Get<RigidbodyCustomGravityGroup>(_group.GetValue())?.Register(_rigidbody, _options);
+            Services.Get<RigidbodyCustomGravityGroup>(_group.GetValue())?.Register(_rigidbody, _options, _strictActivationRequired);
         }
 
         private void OnDisable() {

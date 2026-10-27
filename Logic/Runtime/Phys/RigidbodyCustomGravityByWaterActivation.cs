@@ -9,7 +9,8 @@ namespace MisterGames.Logic.Phys {
 
         [SerializeField] private LabelValue _groupId;
         [SerializeField] private LabelValue _waterZoneId;
-
+        [SerializeField] private bool _strictActivation = true;
+        
         private void OnEnable() {
             if (Services.Get<IWaterZone>(_waterZoneId.GetValue()) is {} waterZone) waterZone.OnRigidbodyEnter += OnRigidbodyEnter;
         }
@@ -19,7 +20,7 @@ namespace MisterGames.Logic.Phys {
         }
 
         private void OnRigidbodyEnter(Rigidbody rigidbody, Vector3 position, Vector3 surfacePoint, Vector3 surfaceNormal) {
-            Services.Get<RigidbodyCustomGravityGroup>(_groupId.GetValue())?.ForceActivate(rigidbody);
+            Services.Get<RigidbodyCustomGravityGroup>(_groupId.GetValue())?.ForceActivate(rigidbody, _strictActivation);
         }
     }
     

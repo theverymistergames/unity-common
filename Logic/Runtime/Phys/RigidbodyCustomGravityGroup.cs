@@ -46,11 +46,13 @@ namespace MisterGames.Logic.Phys {
             public readonly Vector3 position;
             public readonly Quaternion rotation;
             public readonly Options options;
+            public readonly bool strictActivationRequired;
             
-            public RigidbodyData(Vector3 position, Quaternion rotation, Options options) {
+            public RigidbodyData(Vector3 position, Quaternion rotation, Options options, bool strictActivationRequired) {
                 this.position = position;
                 this.rotation = rotation;
                 this.options = options;
+                this.strictActivationRequired = strictActivationRequired;
             }
         }
         
@@ -80,7 +82,7 @@ namespace MisterGames.Logic.Phys {
             _isCustomGravityActive = true;
             
             foreach (var rb in _rigidbodyMap.Keys) {
-                SetupRigidbodyActiveState(rb);
+                SetupRigidbodyActiveState(rb, strict: true);
             }
         }
 
@@ -88,10 +90,15 @@ namespace MisterGames.Logic.Phys {
             ResetAllMembers();
         }
 
-        public void Register(Rigidbody rigidbody, Options options) {
-            if (!_rigidbodyMap.TryAdd(rigidbody, new RigidbodyData(rigidbody.position, rigidbody.rotation, CreateOptions(options, _options)))) return;
+        public void Register(Rigidbody rigidbody, Options options, bool strictActivationRequired) {
+            if (!_rigidbodyMap.TryAdd(
+                    rigidbody,
+                    new RigidbodyData(rigidbody.position, rigidbody.rotation, CreateOptions(options, _options), strictActivationRequired))
+            ) {
+                return;
+            }
             
-            if (_isCustomGravityActive) SetupRigidbodyActiveState(rigidbody);
+            if (_isCustomGravityActive) SetupRigidbodyActiveState(rigidbody, strict: true);
             else SetupRigidbodyInitialState(rigidbody);
         }
 
@@ -100,8 +107,8 @@ namespace MisterGames.Logic.Phys {
             _rigidbodyMap.Remove(rigidbody);
         }
 
-        public void ForceActivate(Rigidbody rigidbody) {
-            SetupRigidbodyActiveState(rigidbody);
+        public void ForceActivate(Rigidbody rigidbody, bool strict) {
+            SetupRigidbodyActiveState(rigidbody, strict);
         }
 
         public void ResetAllMembers() {
@@ -119,8 +126,12 @@ namespace MisterGames.Logic.Phys {
             return optionsOfRigidbody == Options.UseDefault ? defaultOptions : optionsOfRigidbody;
         }
 
-        private void SetupRigidbodyActiveState(Rigidbody rigidbody) {
-            if (!_rigidbodyMap.TryGetValue(rigidbody, out var data)) return;
+        private void SetupRigidbodyActiveState(Rigidbody rigidbody, bool strict) {
+            if (!_rigidbodyMap.TryGetValue(rigidbody, out var data) ||
+                !strict && data.strictActivationRequired)
+            {
+                return;
+            }
             
             rigidbody.isKinematic = false;
             
@@ -157,7 +168,7 @@ namespace MisterGames.Logic.Phys {
                 _isCustomGravityActive = true;
                 
                 foreach (var rb in _rigidbodyMap.Keys) {
-                    SetupRigidbodyActiveState(rb);
+                    SetupRigidbodyActiveState(rb, strict: true);
                 }
             }
 

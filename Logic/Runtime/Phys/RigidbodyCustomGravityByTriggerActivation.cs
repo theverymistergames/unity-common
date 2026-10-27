@@ -9,6 +9,7 @@ namespace MisterGames.Logic.Phys {
 
         [SerializeField] private TriggerEmitter _triggerEmitter;
         [SerializeField] private LabelValue _groupId;
+        [SerializeField] private bool _strictActivation;
 
         private void OnEnable() {
             _triggerEmitter.TriggerEnter += TriggerEnter;
@@ -21,7 +22,7 @@ namespace MisterGames.Logic.Phys {
         private void TriggerEnter(Collider collider) {
             if (collider.attachedRigidbody == null) return;
             
-            Services.Get<RigidbodyCustomGravityGroup>(_groupId.GetValue())?.ForceActivate(collider.attachedRigidbody);
+            Services.Get<RigidbodyCustomGravityGroup>(_groupId.GetValue())?.ForceActivate(collider.attachedRigidbody, _strictActivation);
         }
     }
     
