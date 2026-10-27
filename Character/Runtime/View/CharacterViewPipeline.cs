@@ -157,7 +157,7 @@ namespace MisterGames.Character.View {
         }
         
         public void AttachObject(Transform obj, Vector3 point, float smoothing = 0f) {
-            _headJoint.AttachObject(obj, point, _head.position, _headRotation.ToEulerAngles180(), smoothing);
+            _headJoint.AttachObject(obj, point, _head.position, (_gravityRotation * _headRotation).ToEulerAngles180(), smoothing);
         }
         
         public void DetachObject(Transform obj) {
@@ -165,7 +165,7 @@ namespace MisterGames.Character.View {
         }
         
         public void RotateObject(Transform obj, Vector3 sensitivity, Quaternion rotationOffset, RotationPlane plane = RotationPlane.XY, float smoothing = 0f) {
-            _headJoint.RotateObject(obj, (_headRotation * rotationOffset).ToEulerAngles180(), sensitivity, plane, smoothing);
+            _headJoint.RotateObject(obj, (_gravityRotation * _headRotation * rotationOffset).ToEulerAngles180(), sensitivity, plane, smoothing);
         }
 
         public void StopRotateObject(Transform obj) {

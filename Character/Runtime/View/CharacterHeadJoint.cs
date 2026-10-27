@@ -21,6 +21,7 @@ namespace MisterGames.Character.View {
         private Mode _mode;
         private float _smoothing;
         private Vector3 _attachOffset;
+        private Vector3 _attachedObjectsHeadPosition;
 
         private enum Mode {
             Free,
@@ -94,6 +95,8 @@ namespace MisterGames.Character.View {
                 orientation = Quaternion.Euler(orientation),
                 smoothing = smoothing,
             };
+
+            _attachedObjectsHeadPosition = position;
         }
 
         public void DetachObject(Transform obj) {
@@ -183,11 +186,14 @@ namespace MisterGames.Character.View {
             float dt,
             IAttachedObjectObstacleChecker obstacleChecker
         ) {
+            var headDelta = position - _attachedObjectsHeadPosition;
+            _attachedObjectsHeadPosition = position;
+
             foreach (var (obj, data) in _attachedObjectsMap) {
                 var rot = orientation * Quaternion.Inverse(data.orientation);
                 var targetPos = position + rot * data.offset;
-                var smoothPos = data.smoothing > 0f 
-                    ? Vector3.Lerp(obj.position, targetPos, data.smoothing * dt)
+                var smoothPos = data.smoothing > 0f
+                    ? Vector3.Lerp(obj.position + headDelta, targetPos, data.smoothing * dt)
                     : targetPos;
                 
                 if (obstacleChecker != null) smoothPos = obstacleChecker.AdjustObjectPosition(obj, smoothPos);
