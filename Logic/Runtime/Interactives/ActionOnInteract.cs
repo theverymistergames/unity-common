@@ -47,6 +47,8 @@ namespace MisterGames.Logic.Interactives {
         }
 
         private void OnStartInteract(IInteractiveUser user) {
+            if (_enableCts == null) return;
+
             var token = _enableCts.Token;
             
             if (NeedCancelPrevious(isStartAction: true)) {
@@ -58,6 +60,8 @@ namespace MisterGames.Logic.Interactives {
         }
 
         private void OnStopInteract(IInteractiveUser user) {
+            if (_enableCts == null) return;
+
             var token = _enableCts.Token;
             
             if (NeedCancelPrevious(isStartAction: false)) {
