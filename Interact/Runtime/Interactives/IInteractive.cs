@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MisterGames.Interact.Detectables;
 using UnityEngine;
 
 namespace MisterGames.Interact.Interactives {
@@ -15,6 +16,7 @@ namespace MisterGames.Interact.Interactives {
         bool IsInteracting { get; }
         IReadOnlyCollection<IInteractiveUser> Users { get; }
         Transform Transform { get; }
+        IDetectable Detectable { get; }
 
         bool IsInteractingWith(IInteractiveUser user);
         bool TryGetInteractionStartTime(IInteractiveUser user, out int startTime);

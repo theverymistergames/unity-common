@@ -45,6 +45,10 @@ namespace MisterGames.Interact.Detectables {
         private readonly List<CollisionInfo> _hitsBuffer = new();
         private readonly List<CollisionInfo> _hitsBufferResult = new();
 
+        private readonly Dictionary<IDetectable, float> _lastDetectTimeMap = new();
+        private readonly Dictionary<IDetectable, float> _lastLostTimeMap = new();
+        private readonly HashSet<int> _blockSources = new();
+
         private CollisionInfo _directViewHit;
         private IDetectable _directViewDetectable;
 
@@ -82,11 +86,33 @@ namespace MisterGames.Interact.Detectables {
             return _detectedTargetsSet.Contains(detectable);
         }
 
+        public float GetDetectableLastTimeOf(DetectorEvent evt, IDetectable detectable) {
+            if (detectable == null) return -1f;
+
+            var map = evt switch {
+                DetectorEvent.Lost => _lastLostTimeMap,
+                DetectorEvent.Detect => _lastDetectTimeMap,
+                _ => throw new ArgumentOutOfRangeException(nameof(evt), evt, null)
+            };
+
+            return map.TryGetValue(detectable, out float time) ? time : -1f;
+        }
+
+        public void Block(object source, bool block) {
+            if (source == null) return;
+
+            int hash = source.GetHashCode();
+
+            if (block) _blockSources.Add(hash);
+            else _blockSources.Remove(hash);
+        }
+
         public void ForceDetect(IDetectable detectable) {
             if (detectable?.Transform == null || IsDetected(detectable)) return;
 
             _detectedTargetsSet.Add(detectable);
             _detectedTargets.Add(detectable);
+            _lastDetectTimeMap[detectable] = TimeSources.scaledTime;
 
             OnDetected.Invoke(detectable);
             detectable.NotifyDetectedBy(this);
@@ -97,6 +123,7 @@ namespace MisterGames.Interact.Detectables {
 
             _detectedTargetsSet.Remove(detectable);
             _detectedTargets.Remove(detectable);
+            _lastLostTimeMap[detectable] = TimeSources.scaledTime;
 
             if (detectable.Transform != null) detectable.NotifyLostBy(this);
             OnLost.Invoke(detectable);
@@ -110,8 +137,11 @@ namespace MisterGames.Interact.Detectables {
             _detectedTargetsSet.Clear();
             _detectedTargets.Clear();
 
+            float time = TimeSources.scaledTime;
+
             for (int i = 0; i < _forceLoseCache.Count; i++) {
                 var detectable = _forceLoseCache[i];
+                if (detectable != null) _lastLostTimeMap[detectable] = time;
 
                 if (detectable?.Transform != null) detectable.NotifyLostBy(this);
                 if (detectable != null) OnLost.Invoke(detectable);
@@ -125,6 +155,8 @@ namespace MisterGames.Interact.Detectables {
         }
 
         void IUpdate.OnUpdate(float dt) {
+            if (_blockSources.Count > 0) return;
+
             var hits = GetHits();
 
             UpdateCandidates(hits);

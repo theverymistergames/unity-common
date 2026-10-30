@@ -15,6 +15,9 @@ namespace MisterGames.Interact.Detectables {
 
         bool IsInDirectView(IDetectable detectable, out float distance);
         bool IsDetected(IDetectable detectable);
+        float GetDetectableLastTimeOf(DetectorEvent evt, IDetectable detectable);
+
+        void Block(object source, bool block);
 
         void ForceDetect(IDetectable detectable);
         void ForceLose(IDetectable detectable);

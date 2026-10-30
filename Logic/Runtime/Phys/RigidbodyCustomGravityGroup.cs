@@ -35,6 +35,7 @@ namespace MisterGames.Logic.Phys {
             SetKinematic = 2,
             ReturnToInitialPosition = 4,
             ContinuousSpeculativeCCD = 8,
+            EnableInterpolation = 16,
         }
         
         private enum StartMode {
@@ -137,6 +138,10 @@ namespace MisterGames.Logic.Phys {
             
             if ((data.options & Options.ContinuousSpeculativeCCD) == Options.ContinuousSpeculativeCCD) {
                 rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+            }
+            
+            if ((data.options & Options.EnableInterpolation) == Options.EnableInterpolation) {
+                rigidbody.interpolation = RigidbodyInterpolation.Interpolate;
             }
         }
 

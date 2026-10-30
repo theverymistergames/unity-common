@@ -52,8 +52,7 @@ namespace MisterGames.Interact.Cursors {
         private IDeviceService _deviceService;
         private IGameplaySaveService _saveService;
         
-        private readonly Dictionary<object, CursorIconQueueItem> _iconOverridesMap = new();
-        private readonly List<object> _destroyedSourcesCache = new();
+        private readonly PriorityMap<object, CursorIconQueueItem> _iconOverridesMap = new(asc: false);
         private LearnData _learnData;
         private string _learnDataKey;
         private float _lastLearnTime;
@@ -65,7 +64,7 @@ namespace MisterGames.Interact.Cursors {
         }
 
         private void OnEnable() {
-            _iconOverridesMap[this] = new CursorIconQueueItem(TimeSources.frameCount, _settings.initialCursorIcon);
+            _iconOverridesMap.Set(this, new CursorIconQueueItem(TimeSources.frameCount, _settings.initialCursorIcon), priority: 0);
 
             FetchLearnData();
             
@@ -113,8 +112,8 @@ namespace MisterGames.Interact.Cursors {
             RefreshCursorIcon();
         }
 
-        public void ApplyCursorIconOverride(object source, CursorIcon icon) {
-            _iconOverridesMap[source] = new CursorIconQueueItem(TimeSources.frameCount, icon);
+        public void ApplyCursorIconOverride(object source, CursorIcon icon, int priority = 0) {
+            _iconOverridesMap.Set(source, new CursorIconQueueItem(TimeSources.frameCount, icon), priority);
 
             RefreshCursorIcon(notifyLearn: true);
         }
@@ -126,8 +125,6 @@ namespace MisterGames.Interact.Cursors {
         }
 
         void IUpdate.OnUpdate(float deltaTime) {
-            if (RemoveDestroyedIconOverrides()) RefreshCursorIcon();
-
             if (!_settings.isAlphaControlledByDistance) return;
 
             var hits = _transparencyRaycaster.FilterLastResults(_collisionFilter);
@@ -152,37 +149,24 @@ namespace MisterGames.Interact.Cursors {
             _cursorImage.color = color;
         }
 
-        private bool RemoveDestroyedIconOverrides() {
-            _destroyedSourcesCache.Clear();
-
-            foreach (object source in _iconOverridesMap.Keys) {
-                if (source is UnityEngine.Object o && o == null) _destroyedSourcesCache.Add(source);
-            }
-
-            for (int i = 0; i < _destroyedSourcesCache.Count; i++) {
-                _iconOverridesMap.Remove(_destroyedSourcesCache[i]);
-            }
-
-            bool removed = _destroyedSourcesCache.Count > 0;
-            _destroyedSourcesCache.Clear();
-
-            return removed;
-        }
-
         /// <summary>
         /// Learn count is increased only when cursor is refreshed by an external icon override change,
-        /// so that internal refreshes (save profile update, device change, destroyed sources cleanup)
+        /// so that internal refreshes (save profile update, device change)
         /// do not affect learn progress.
         /// </summary>
         private void RefreshCursorIcon(bool notifyLearn = false) {
             if (!_settings.enableCursorOverride) return;
 
-            RemoveDestroyedIconOverrides();
-
+            var sources = _iconOverridesMap.SortedKeys;
+            int topPriority = _iconOverridesMap.GetFirstOrder();
             int lastCreationFrame = -1;
             CursorIconQueueItem lastCreatedItem = default;
 
-            foreach (var item in _iconOverridesMap.Values) {
+            for (int i = 0; i < sources.Count; i++) {
+                var source = sources[i];
+                if (_iconOverridesMap.GetOrder(source) != topPriority) break;
+
+                var item = _iconOverridesMap[source];
                 if (lastCreationFrame >= 0 && item.creationFrame <= lastCreationFrame) continue;
 
                 lastCreationFrame = item.creationFrame;

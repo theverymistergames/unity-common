@@ -17,6 +17,7 @@ namespace MisterGames.Interact.Interactives {
         
         [EmbeddedInspector]
         [SerializeField] private InteractiveCursorStrategy _cursorStrategy;
+        [SerializeField] private int _cursorIconPriority;
 
         [SerializeField] private bool _syncEnableStateWithDetectable = true;
         
@@ -28,6 +29,7 @@ namespace MisterGames.Interact.Interactives {
 
         public IReadOnlyCollection<IInteractiveUser> Users => _users;
         public Transform Transform { get; private set; }
+        public IDetectable Detectable => _detectable;
         public bool IsInteracting => _userInteractionMap.Count > 0;
         private readonly List<IInteractiveUser> _users = new();
         private readonly List<IInteractiveUser> _detectedByUsers = new();
@@ -131,7 +133,7 @@ namespace MisterGames.Interact.Interactives {
 
         public void ForceStopInteractWithAllUsers() {
             for (int i = _users.Count - 1; i >= 0; i--) {
-                _users[i].TryStopInteract(this);
+                _users[i].ForceStopInteract(this);
             }
 
             _users.Clear();
@@ -142,7 +144,7 @@ namespace MisterGames.Interact.Interactives {
             if (!TryGetCursorHost(user, out var host)) return;
 
             if (_enabled && _cursorStrategy.TryGetCursorIcon(user, this, out var icon)) {
-                host.ApplyCursorIconOverride(this, icon);
+                host.ApplyCursorIconOverride(this, icon, _cursorIconPriority);
                 return;
             }
 
@@ -161,7 +163,7 @@ namespace MisterGames.Interact.Interactives {
                 return false;
             }
 
-            return user.Transform.TryGetComponent(out host);
+            return user.TryGetCursorHost(out host);
         }
 
         public override string ToString() {

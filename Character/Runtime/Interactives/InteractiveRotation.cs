@@ -36,10 +36,14 @@ namespace MisterGames.Character.Interactives {
         private Vector2 _smoothedOrientation;
         private float _smoothFactor;
         private bool _finishingFlag;
+        private bool _isUpdating;
         
         private void Awake() {
             _interactive = GetComponent<Interactive>();
+            FetchOrientationFromTarget();
+        }
 
+        private void FetchOrientationFromTarget() {
             var eulers = _target.eulerAngles.ToEulerAngles180();
             _targetOrientation = new Vector2(eulers.z, eulers.y);
             _smoothedOrientation = _targetOrientation;
@@ -57,6 +61,7 @@ namespace MisterGames.Character.Interactives {
 
         private void OnDisable() {
             PlayerLoopStage.Update.Unsubscribe(this);
+            _isUpdating = false;
             
             _interactive.OnStartInteract -= OnStartInteract;
             _interactive.OnStopInteract -= OnStopInteract;
@@ -76,7 +81,10 @@ namespace MisterGames.Character.Interactives {
 
         private void ActualizeSubscriptions() {
             if (_interactive.IsInteracting) {
+                if (!_isUpdating) FetchOrientationFromTarget();
+                
                 _finishingFlag = false;
+                _isUpdating = true;
                 _exitInput.Get().performed -= OnExitInput;
                 _exitInput.Get().performed += OnExitInput;
                 PlayerLoopStage.Update.Subscribe(this);
@@ -120,6 +128,7 @@ namespace MisterGames.Character.Interactives {
                 Vector3.Angle(_smoothedOrientation, _targetOrientation) <= _stopAngleThreshold) 
             {
                 _finishingFlag = false;
+                _isUpdating = false;
                 PlayerLoopStage.Update.Unsubscribe(this);
             }
         }

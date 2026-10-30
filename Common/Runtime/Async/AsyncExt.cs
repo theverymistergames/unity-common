@@ -22,26 +22,6 @@ namespace MisterGames.Common.Async {
             cts?.Dispose();
             cts = null;
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static UniTask WhenAll(UniTask t0, UniTask t1) {
-            return UniTask.WhenAll(t0, t1);
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static async UniTask WhenSequence(UniTask t0, UniTask t1, CancellationToken cancellationToken = default) {
-            await t0;
-            if (cancellationToken.IsCancellationRequested) return;
-
-            await t1;
-        }
-        
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static async UniTask WhenSequence(IReadOnlyList<UniTask> tasks, CancellationToken cancellationToken = default) {
-            for (int i = 0; i < tasks?.Count && !cancellationToken.IsCancellationRequested; i++) {
-                await tasks[i];
-            }
-        }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static async UniTask Delay(float delay, bool ignoreTimeScale, CancellationToken cancellationToken) {

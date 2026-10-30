@@ -12,11 +12,9 @@ namespace MisterGames.Common.Tick {
 
         private readonly Dictionary<int, (byte priority, float timescale)> _timescaleMap = new();
         private readonly Dictionary<int, byte> _sourceToChangeIdMap = new();
-
-        private float _baseFixedDt;
         
         public void Initialize() {
-            _baseFixedDt = Time.fixedDeltaTime;
+            
         }
         
         public void Dispose() {
@@ -110,9 +108,8 @@ namespace MisterGames.Common.Tick {
             }
         }
 
-        private void ApplySystemTimescale(float timescale) {
+        private static void ApplySystemTimescale(float timescale) {
             Time.timeScale = timescale;
-            Time.fixedDeltaTime = _baseFixedDt * timescale;
         }
         
         private float CalculateTimescale(byte minPriority) {

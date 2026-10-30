@@ -322,7 +322,7 @@ namespace MisterGames.Scenes.Core {
             data = new SceneLoadData { handle = handle, cts = cts, isLoading = false }; 
             _loadSceneDataMap[sceneName] = data;
 
-            await AsyncExt.WhenAll(handle.WithCancellation(token), ProcessSceneHooksUnloadRequest(sceneName, token));
+            await UniTask.WhenAll(handle.WithCancellation(token), ProcessSceneHooksUnloadRequest(sceneName, token));
             if (token.IsCancellationRequested) return;
             
             if (_logLevel >= LogLevel.Short) {
