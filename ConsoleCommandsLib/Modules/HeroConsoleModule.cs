@@ -9,6 +9,7 @@ using MisterGames.Dbg.Console.Core;
 using MisterGames.Input.Bindings;
 using MisterGames.Logic.Damage;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
 namespace MisterGames.ConsoleCommandsLib.Modules {
@@ -153,8 +154,47 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
 
         private CharacterSpawnPoint[] GetSpawnPoints() {
             var spawnPoints = Object.FindObjectsByType<CharacterSpawnPoint>(FindObjectsInactive.Exclude);
-            Array.Sort(spawnPoints, (p0, p1) => p0.transform.GetEntityId().CompareTo(p1.transform.GetEntityId()));
+            var paths = new Dictionary<CharacterSpawnPoint, List<int>>(spawnPoints.Length);
+
+            for (int i = 0; i < spawnPoints.Length; i++) {
+                var spawnPoint = spawnPoints[i];
+                paths[spawnPoint] = GetHierarchyPath(spawnPoint.transform);
+            }
+
+            Array.Sort(spawnPoints, (p0, p1) => CompareHierarchyPaths(paths[p0], paths[p1]));
             return spawnPoints;
+        }
+
+        private static List<int> GetHierarchyPath(Transform transform) {
+            var path = new List<int>();
+
+            for (var t = transform; t != null; t = t.parent) {
+                path.Add(t.GetSiblingIndex());
+            }
+
+            path.Add(GetSceneIndex(transform.gameObject.scene));
+            path.Reverse();
+
+            return path;
+        }
+
+        private static int GetSceneIndex(Scene scene) {
+            for (int i = 0; i < SceneManager.sceneCount; i++) {
+                if (SceneManager.GetSceneAt(i) == scene) return i;
+            }
+
+            return SceneManager.sceneCount;
+        }
+
+        private static int CompareHierarchyPaths(List<int> path0, List<int> path1) {
+            int count = Mathf.Min(path0.Count, path1.Count);
+
+            for (int i = 0; i < count; i++) {
+                int result = path0[i].CompareTo(path1[i]);
+                if (result != 0) return result;
+            }
+
+            return path0.Count.CompareTo(path1.Count);
         }
 
         private void SpawnHero(Vector3 position, string spawnPointName) {
