@@ -18,7 +18,7 @@ namespace MisterGames.Logic.Rendering {
     
         [SerializeField] private Light[] _lights;
         
-        [Header("Intensity")]
+        [Header("Intensity (Lux)")]
         [SerializeField] [Min(0f)] private float _intensity0 = 100f;
         [SerializeField] [Min(0f)] private float _intensity1 = 1000f;
         [SerializeField] [Min(0f)] private float _intensitySmoothing = 5f;
