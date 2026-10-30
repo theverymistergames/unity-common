@@ -33,15 +33,8 @@ namespace MisterGames.Collisions.Detectors {
             FetchTextureIndexToMaterialIdMap();
         }
 
-        private void OnEnable() {
-            _groundDetector.OnContact += OnContact;
-            _groundDetector.OnLostContact += OnLostContact;
-        }
-
         private void OnDisable() {
-            _groundDetector.OnContact -= OnContact;
-            _groundDetector.OnLostContact -= OnLostContact;
-            
+            _lastContactHash = EntityId.None;
             ResetTerrainData();
         }
 
@@ -54,6 +47,8 @@ namespace MisterGames.Collisions.Detectors {
 
         public override IReadOnlyList<MaterialInfo> GetMaterials(Vector3 point, Vector3 normal) {
             _materialList.Clear();
+
+            UpdateTerrainData();
 
             if (_terrain == null) {
                 return _materialList;
@@ -86,24 +81,25 @@ namespace MisterGames.Collisions.Detectors {
             return _materialList;
         }
 
-        private void OnContact() {
-            var info = _groundDetector.CollisionInfo;
-            var hash = info.collider.GetEntityId();
-            
+        private void UpdateTerrainData() {
+            var collider = _groundDetector.HasContact ? _groundDetector.CollisionInfo.collider : null;
+
+            if (collider == null) {
+                _lastContactHash = EntityId.None;
+                ResetTerrainData();
+                return;
+            }
+
+            var hash = collider.GetEntityId();
             if (hash == _lastContactHash) return;
 
             _lastContactHash = hash;
 
-            if (info.collider.TryGetComponent(out TerrainCollider terrainCollider)) {
+            if (collider.TryGetComponent(out TerrainCollider terrainCollider)) {
                 FetchTerrainData(terrainCollider);
                 return;
             }
             
-            ResetTerrainData();
-        }
-
-        private void OnLostContact() {
-            _lastContactHash = EntityId.None;
             ResetTerrainData();
         }
 
