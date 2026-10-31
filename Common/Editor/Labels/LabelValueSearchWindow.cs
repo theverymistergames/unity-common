@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using MisterGames.Common.Editor.Drawers;
 using MisterGames.Common.Editor.Menu;
+using MisterGames.Common.Editor.Search;
 using MisterGames.Common.Editor.SerializedProperties;
 using MisterGames.Common.Labels;
 using MisterGames.Common.Labels.Base;
@@ -135,6 +136,15 @@ namespace MisterGames.Common.Editor.Labels {
 
         private static Dictionary<string, MonoScript> _monoScriptByTypeFullName;
 
+        private sealed class PendingSearch {
+            public AssetFileScanner scanner;
+            public SearchTab tab;
+            public bool isLabelArray;
+            public List<(LabelLibraryBase library, int id)> targets;
+        }
+
+        private PendingSearch _pendingSearch;
+
         [MenuItem("MisterGames/Tools/Label Value Search")]
         public static void Open() {
             var window = GetWindow<LabelValueSearchWindow>("Label Value Search");
@@ -211,6 +221,7 @@ namespace MisterGames.Common.Editor.Labels {
 
             EditorSceneManager.sceneOpened += OnSceneOpened;
             EditorSceneManager.sceneClosed += OnSceneClosed;
+            EditorApplication.update += OnEditorUpdate;
 
             LoadSearchFolders();
 
@@ -226,7 +237,9 @@ namespace MisterGames.Common.Editor.Labels {
         private void OnDisable() {
             EditorSceneManager.sceneOpened -= OnSceneOpened;
             EditorSceneManager.sceneClosed -= OnSceneClosed;
+            EditorApplication.update -= OnEditorUpdate;
 
+            CancelSearch();
             SaveSearchFolders();
             SaveSearchState();
 
@@ -303,7 +316,25 @@ namespace MisterGames.Common.Editor.Labels {
         }
 
         private void DrawSearchButton() {
-            if (GUILayout.Button("Search", GUILayout.Height(28))) Search();
+            if (_pendingSearch == null) {
+                if (GUILayout.Button("Search", GUILayout.Height(28))) Search();
+                return;
+            }
+
+            var scanner = _pendingSearch.scanner;
+            if (GUILayout.Button($"Searching {scanner.ProcessedCount}/{scanner.TotalCount}... Cancel", GUILayout.Height(28))) CancelSearch();
+        }
+
+        private void OnEditorUpdate() {
+            if (_pendingSearch == null) return;
+
+            if (_pendingSearch.scanner.IsDone) FinishSearch();
+            Repaint();
+        }
+
+        private void CancelSearch() {
+            _pendingSearch?.scanner.Cancel();
+            _pendingSearch = null;
         }
 
         private void DrawResults() {
@@ -701,6 +732,8 @@ namespace MisterGames.Common.Editor.Labels {
         }
 
         private void Search() {
+            if (_pendingSearch != null) return;
+
             if (_activeTabIndex < 0 || _activeTabIndex >= _tabs.Count) {
                 _tabs.Add(new SearchTab { Label = "New" });
                 _tabRuntimes.Add(CreateTabRuntime());
@@ -710,7 +743,6 @@ namespace MisterGames.Common.Editor.Labels {
             var activeRt = _tabRuntimes[_activeTabIndex];
             var activeTab = _tabs[_activeTabIndex];
             bool isLabelArray = activeTab.SearchLabelArray;
-            FieldInfo fi = isLabelArray ? null : activeRt.TargetsProperty.GetFieldInfo();
 
             string[] searchFolders = GetValidSearchFolderPaths();
             SaveSearchFolders();
@@ -719,69 +751,96 @@ namespace MisterGames.Common.Editor.Labels {
             bool searchAllScenes = _state.searchInAllScenes;
             bool searchOpenedScenes = _state.searchInOpenedScenes && !searchAllScenes;
 
-            if (searchFolders.Length == 0 && !searchOpenedScenes && !searchAllScenes) return;
+            if (searchFolders.Length == 0 && !searchOpenedScenes) return;
+            if ((searchOpenedScenes || searchAllScenes) && !AssetFileScanner.SaveOpenedScenesIfUserWantsTo()) return;
 
-            var libraryGroups = new Dictionary<LabelLibraryBase, HashSet<int>>();
+            var targets = new List<(LabelLibraryBase library, int id)>();
 
             if (isLabelArray) {
                 foreach (var entry in activeRt.ArrayTargetsState.targets) {
-                    if (entry.library == null) continue;
-                    if (!libraryGroups.TryGetValue(entry.library, out var ids)) {
-                        ids = new HashSet<int>();
-                        libraryGroups[entry.library] = ids;
-                    }
-                    ids.Add(entry.id);
+                    targets.Add((entry.library, entry.id));
                 }
-            } else {
+            }
+            else {
                 foreach (var entry in activeRt.TargetsState.targets) {
-                    if (entry.library == null) continue;
-                    if (!libraryGroups.TryGetValue(entry.library, out var ids)) {
-                        ids = new HashSet<int>();
-                        libraryGroups[entry.library] = ids;
-                    }
-                    ids.Add(entry.id);
+                    targets.Add((entry.library, entry.id));
                 }
             }
 
-            var matchedBy = new Dictionary<string, (string libPath, int id)>();
-            var allResults = new List<SerializedReferenceUsageFinder.Usage>();
-            var seen = new HashSet<string>();
+            var request = new AssetFileScanner.Request();
+            request.AddFiles(searchFolders, assets: searchAssets, prefabs: searchAssets, scenes: searchAllScenes);
+            if (searchOpenedScenes) request.AddOpenedScenes();
 
-            foreach (var (lib, ids) in libraryGroups) {
-                string libPath = AssetDatabase.GetAssetPath(lib);
+            request.fieldNames.Add(LibraryFieldName);
+            request.fieldNames.Add(IdFieldName);
 
-                bool Predicate(SerializedReferenceUsageFinder.UsageCandidate<LabelLibraryBase> u) {
-                    int matchedId;
-                    if (isLabelArray) {
-                        if (!IsLabelArrayType(u, lib, ids, out matchedId)) return false;
-                    } else {
-                        if (!IsLabelValue(u, lib, ids, out matchedId)) return false;
-                    }
-                    string k = $"{u.Kind}|{u.AssetPath}|{u.ObjectPath}|{u.OwnerType}|{u.PropertyPath}";
-                    if (!matchedBy.ContainsKey(k)) matchedBy[k] = (libPath, matchedId);
-                    return true;
+            _pendingSearch = new PendingSearch {
+                scanner = AssetFileScanner.Start(request),
+                tab = activeTab,
+                isLabelArray = isLabelArray,
+                targets = targets,
+            };
+        }
+
+        private void FinishSearch() {
+            var pendingSearch = _pendingSearch;
+            _pendingSearch = null;
+
+            pendingSearch.scanner.Complete();
+
+            int tabIndex = _tabs.IndexOf(pendingSearch.tab);
+            if (tabIndex < 0 || pendingSearch.scanner.IsCancelled) return;
+
+            var activeRt = _tabRuntimes[tabIndex];
+            var activeTab = _tabs[tabIndex];
+            bool isLabelArray = pendingSearch.isLabelArray;
+            FieldInfo fi = isLabelArray ? null : activeRt.TargetsProperty.GetFieldInfo();
+
+            var targetIdsByGuid = new Dictionary<string, (string libPath, HashSet<int> ids)>();
+            foreach (var (library, id) in pendingSearch.targets) {
+                if (library == null || !AssetDatabase.TryGetGUIDAndLocalFileIdentifier(library, out string guid, out long _)) continue;
+
+                if (!targetIdsByGuid.TryGetValue(guid, out var target)) {
+                    target = (AssetDatabase.GetAssetPath(library), new HashSet<int>());
+                    targetIdsByGuid[guid] = target;
                 }
 
-                if (searchAssets)
-                    AddResultsUnique(SerializedReferenceUsageFinder.FindUsagesInAssetsAndPrefabs(
-                        lib, searchFolders, new[] { typeof(ScriptableObject) }, Predicate), allResults, seen);
-                if (searchAllScenes)
-                    AddResultsUnique(SerializedReferenceUsageFinder.FindUsagesInAllScenes(
-                        lib, searchFolders, predicate: Predicate), allResults, seen);
-                else if (searchOpenedScenes)
-                    AddResultsUnique(SerializedReferenceUsageFinder.FindUsagesInOpenedScenes(
-                        lib, predicate: Predicate), allResults, seen);
+                target.ids.Add(id);
             }
+
+            var slots = new List<AssetFileScanner.ReferenceSlot>();
+            AssetFileScanner.CollectReferenceSlots(
+                pendingSearch.scanner.Files,
+                LibraryFieldName,
+                IdFieldName,
+                isLabelArray ? IsLabelArrayType : IsLabelValueType,
+                slots
+            );
 
             var resultsByTarget = new Dictionary<(string, int), List<SerializedReferenceUsageFinder.Usage>>();
-            foreach (var r in allResults) {
-                string k = $"{r.Kind}|{r.AssetPath}|{r.ObjectPath}|{r.OwnerType}|{r.PropertyPath}";
-                if (!matchedBy.TryGetValue(k, out var pair)) continue;
+            var seen = new HashSet<string>();
+
+            foreach (var slot in slots) {
+                if (!targetIdsByGuid.TryGetValue(slot.refGuid, out var target) || !target.ids.Contains(slot.id)) continue;
+
+                var usage = new SerializedReferenceUsageFinder.Usage(
+                    slot.file.kind,
+                    slot.file.assetPath,
+                    slot.owner.path,
+                    AssetFileScanner.GetScriptTypeName(slot.owner.scriptGuid),
+                    slot.propertyPath
+                );
+
+                string key = $"{usage.Kind}|{usage.AssetPath}|{usage.ObjectPath}|{usage.OwnerType}|{usage.PropertyPath}";
+                if (!seen.Add(key)) continue;
+
+                var pair = (target.libPath, slot.id);
                 if (!resultsByTarget.TryGetValue(pair, out var list)) {
                     list = new List<SerializedReferenceUsageFinder.Usage>();
                     resultsByTarget[pair] = list;
                 }
-                list.Add(r);
+
+                list.Add(usage);
             }
 
             var orderedResults = new List<SerializedReferenceUsageFinder.Usage>();
@@ -1016,17 +1075,6 @@ namespace MisterGames.Common.Editor.Labels {
             return validCount == 1 ? first : $"{first} [+{validCount - 1}]";
         }
 
-        private static void AddResultsUnique(
-            IReadOnlyList<SerializedReferenceUsageFinder.Usage> usages,
-            List<SerializedReferenceUsageFinder.Usage> results,
-            HashSet<string> seen) {
-            for (int i = 0; i < usages.Count; i++) {
-                var usage = usages[i];
-                string key = $"{usage.Kind}|{usage.AssetPath}|{usage.ObjectPath}|{usage.OwnerType}|{usage.PropertyPath}";
-                if (seen.Add(key)) results.Add(usage);
-            }
-        }
-
         private string[] GetValidSearchFolderPaths() {
             var paths = new List<string>();
             foreach (var folder in _state.searchFolders) {
@@ -1044,38 +1092,15 @@ namespace MisterGames.Common.Editor.Labels {
             return path;
         }
 
-        private static bool IsLabelValue(
-            SerializedReferenceUsageFinder.UsageCandidate<LabelLibraryBase> usage,
-            LabelLibraryBase lib,
-            HashSet<int> ids,
-            out int matchedId) {
-            matchedId = 0;
-            var fieldType = usage.GetParentProperty()?.GetFieldInfo()?.FieldType;
-            if (fieldType == null) return false;
-            if (fieldType != typeof(LabelValue) &&
-                !(fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(LabelValue<>))) return false;
-            if (usage.Target != lib) return false;
-            var idProp = usage.GetSiblingProperty(nameof(LabelValue.id));
-            if (idProp?.propertyType != SerializedPropertyType.Integer) return false;
-            matchedId = idProp.intValue;
-            return ids.Contains(matchedId);
+        private const string LibraryFieldName = nameof(LabelValue.library);
+        private const string IdFieldName = nameof(LabelValue.id);
+
+        private static bool IsLabelValueType(Type type) {
+            return type == typeof(LabelValue) || type.IsGenericType && type.GetGenericTypeDefinition() == typeof(LabelValue<>);
         }
 
-        private static bool IsLabelArrayType(
-            SerializedReferenceUsageFinder.UsageCandidate<LabelLibraryBase> usage,
-            LabelLibraryBase lib,
-            HashSet<int> ids,
-            out int matchedId) {
-            matchedId = 0;
-            var fieldType = usage.GetParentProperty()?.GetFieldInfo()?.FieldType;
-            if (fieldType == null) return false;
-            if (fieldType != typeof(LabelArray) &&
-                !(fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(LabelArray<>))) return false;
-            if (usage.Target != lib) return false;
-            var idProp = usage.GetSiblingProperty(nameof(LabelArray.id));
-            if (idProp?.propertyType != SerializedPropertyType.Integer) return false;
-            matchedId = idProp.intValue;
-            return ids.Contains(matchedId);
+        private static bool IsLabelArrayType(Type type) {
+            return type == typeof(LabelArray) || type.IsGenericType && type.GetGenericTypeDefinition() == typeof(LabelArray<>);
         }
 
         private void SaveSearchState() {

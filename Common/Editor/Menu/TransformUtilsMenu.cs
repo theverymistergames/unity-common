@@ -58,6 +58,32 @@ namespace MisterGames.Common.Editor.Menu {
             transform.localPosition = Vector3.zero;
         }
 
+        [MenuItem("CONTEXT/Transform/Move parent to avg children position")]
+        public static void MoveParentToAvgChildrenPosition(MenuCommand command) {
+            if (command.context is not Transform parent || parent.childCount == 0) return;
+
+            int childCount = parent.childCount;
+            var worldPositions = new Vector3[childCount];
+            var avgPosition = Vector3.zero;
+
+            for (int i = 0; i < childCount; i++) {
+                worldPositions[i] = parent.GetChild(i).position;
+                avgPosition += worldPositions[i];
+            }
+
+            Undo.RecordObject(parent, MovePositionKey);
+            parent.position = avgPosition / childCount;
+            EditorUtility.SetDirty(parent);
+
+            for (int i = 0; i < childCount; i++) {
+                var child = parent.GetChild(i);
+
+                Undo.RecordObject(child, MovePositionKey);
+                child.position = worldPositions[i];
+                EditorUtility.SetDirty(child);
+            }
+        }
+
         [MenuItem("CONTEXT/Transform/Move scale to children")]
         public static void MoveScale(MenuCommand command) {
             if (command.context is not Transform root) return;

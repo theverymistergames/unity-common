@@ -104,6 +104,14 @@ namespace MisterGames.Common.Editor.Search {
 
         private static Dictionary<string, MonoScript> _monoScriptByTypeFullName;
 
+        private sealed class PendingSearch {
+            public AssetFileScanner scanner;
+            public SearchTab tab;
+            public List<ScriptableObject> targets;
+        }
+
+        private PendingSearch _pendingSearch;
+
         [MenuItem("MisterGames/Tools/Scriptable Object Search")]
         public static void Open() {
             var window = GetWindow<ScriptableObjectSearchWindow>("Scriptable Object Search");
@@ -185,6 +193,7 @@ namespace MisterGames.Common.Editor.Search {
 
             EditorSceneManager.sceneOpened += OnSceneOpened;
             EditorSceneManager.sceneClosed += OnSceneClosed;
+            EditorApplication.update += OnEditorUpdate;
 
             LoadSearchFolders();
 
@@ -200,7 +209,9 @@ namespace MisterGames.Common.Editor.Search {
         private void OnDisable() {
             EditorSceneManager.sceneOpened -= OnSceneOpened;
             EditorSceneManager.sceneClosed -= OnSceneClosed;
+            EditorApplication.update -= OnEditorUpdate;
 
+            CancelSearch();
             SaveSearchFolders();
             SaveSearchState();
 
@@ -273,7 +284,25 @@ namespace MisterGames.Common.Editor.Search {
         }
 
         private void DrawSearchButton() {
-            if (GUILayout.Button("Search", GUILayout.Height(28))) Search();
+            if (_pendingSearch == null) {
+                if (GUILayout.Button("Search", GUILayout.Height(28))) Search();
+                return;
+            }
+
+            var scanner = _pendingSearch.scanner;
+            if (GUILayout.Button($"Searching {scanner.ProcessedCount}/{scanner.TotalCount}... Cancel", GUILayout.Height(28))) CancelSearch();
+        }
+
+        private void OnEditorUpdate() {
+            if (_pendingSearch == null) return;
+
+            if (_pendingSearch.scanner.IsDone) FinishSearch();
+            Repaint();
+        }
+
+        private void CancelSearch() {
+            _pendingSearch?.scanner.Cancel();
+            _pendingSearch = null;
         }
 
         private void DrawResults() {
@@ -637,6 +666,8 @@ namespace MisterGames.Common.Editor.Search {
         }
 
         private void Search() {
+            if (_pendingSearch != null) return;
+
             if (_activeTabIndex < 0 || _activeTabIndex >= _tabs.Count) {
                 _tabs.Add(new SearchTab { Label = "New" });
                 _tabRuntimes.Add(CreateTabRuntime());
@@ -653,28 +684,88 @@ namespace MisterGames.Common.Editor.Search {
             bool searchAllScenes = _state.searchInAllScenes;
             bool searchOpenedScenes = _state.searchInOpenedScenes && !searchAllScenes;
 
-            if (searchFolders.Length == 0 && !searchOpenedScenes && !searchAllScenes) return;
+            if (searchFolders.Length == 0 && !searchOpenedScenes) return;
+            if ((searchOpenedScenes || searchAllScenes) && !AssetFileScanner.SaveOpenedScenesIfUserWantsTo()) return;
+
+            var request = new AssetFileScanner.Request();
+            request.AddFiles(searchFolders, assets: searchAssets, prefabs: searchAssets, scenes: searchAllScenes);
+            if (searchOpenedScenes) request.AddOpenedScenes();
+
+            var targets = new List<ScriptableObject>();
+
+            foreach (var target in activeRt.TargetsState.targets) {
+                if (target == null || targets.Contains(target) ||
+                    !AssetDatabase.TryGetGUIDAndLocalFileIdentifier(target, out string guid, out long _))
+                {
+                    continue;
+                }
+
+                targets.Add(target);
+                request.referencedGuids.Add(guid);
+            }
+
+            _pendingSearch = new PendingSearch {
+                scanner = AssetFileScanner.Start(request),
+                tab = activeTab,
+                targets = targets,
+            };
+        }
+
+        private void FinishSearch() {
+            var pendingSearch = _pendingSearch;
+            _pendingSearch = null;
+
+            pendingSearch.scanner.Complete();
+
+            int tabIndex = _tabs.IndexOf(pendingSearch.tab);
+            if (tabIndex < 0 || pendingSearch.scanner.IsCancelled) return;
+
+            var activeRt = _tabRuntimes[tabIndex];
+            var activeTab = _tabs[tabIndex];
+
+            var resultsByTarget = new Dictionary<(string guid, long fileId), List<SerializedReferenceUsageFinder.Usage>>();
+            var groupTargets = new List<ScriptableObject>();
+
+            foreach (var target in pendingSearch.targets) {
+                if (target == null || !AssetDatabase.TryGetGUIDAndLocalFileIdentifier(target, out string guid, out long fileId)) continue;
+
+                resultsByTarget[(guid, fileId)] = new List<SerializedReferenceUsageFinder.Usage>();
+                groupTargets.Add(target);
+            }
+
+            var files = pendingSearch.scanner.Files;
+            var seen = new HashSet<string>();
+
+            for (int f = 0; f < files.Count; f++) {
+                var file = files[f];
+
+                for (int o = 0; o < file.objects.Count; o++) {
+                    var obj = file.objects[o];
+                    if (obj.fields == null) continue;
+
+                    for (int i = 0; i < obj.fields.Count; i++) {
+                        var field = obj.fields[i];
+                        if (field.refGuid == null || !resultsByTarget.TryGetValue((field.refGuid, field.refFileId), out var list)) continue;
+
+                        var usage = new SerializedReferenceUsageFinder.Usage(
+                            file.kind,
+                            file.assetPath,
+                            obj.path,
+                            AssetFileScanner.GetScriptTypeName(obj.scriptGuid),
+                            field.path
+                        );
+
+                        if (seen.Add($"{usage.Kind}|{usage.AssetPath}|{usage.ObjectPath}|{usage.OwnerType}|{usage.PropertyPath}")) list.Add(usage);
+                    }
+                }
+            }
 
             var orderedResults = new List<SerializedReferenceUsageFinder.Usage>();
             var tabGroups = new List<SearchTabGroup>();
-            var groupTargets = new List<ScriptableObject>();
-            var seenTargets = new HashSet<ScriptableObject>();
 
-            foreach (var target in activeRt.TargetsState.targets) {
-                if (target == null || !seenTargets.Add(target)) continue;
-
-                var groupResults = new List<SerializedReferenceUsageFinder.Usage>();
-                var seen = new HashSet<string>();
-
-                if (searchAssets)
-                    AddResultsUnique(SerializedReferenceUsageFinder.FindUsagesInAssetsAndPrefabs(
-                        target, searchFolders, new[] { typeof(ScriptableObject) }), groupResults, seen);
-                if (searchAllScenes)
-                    AddResultsUnique(SerializedReferenceUsageFinder.FindUsagesInAllScenes(
-                        target, searchFolders), groupResults, seen);
-                else if (searchOpenedScenes)
-                    AddResultsUnique(SerializedReferenceUsageFinder.FindUsagesInOpenedScenes(
-                        target), groupResults, seen);
+            foreach (var target in groupTargets) {
+                AssetDatabase.TryGetGUIDAndLocalFileIdentifier(target, out string guid, out long fileId);
+                var groupResults = resultsByTarget[(guid, fileId)];
 
                 tabGroups.Add(new SearchTabGroup {
                     TargetId = GetTargetId(target),
@@ -682,8 +773,8 @@ namespace MisterGames.Common.Editor.Search {
                     ResultStartIndex = orderedResults.Count,
                     ResultCount = groupResults.Count,
                 });
+
                 orderedResults.AddRange(groupResults);
-                groupTargets.Add(target);
             }
 
             // Clear old results, keep targets state intact
@@ -796,17 +887,6 @@ namespace MisterGames.Common.Editor.Search {
             }
             if (first == null) return "New";
             return validCount == 1 ? first : $"{first} [+{validCount - 1}]";
-        }
-
-        private static void AddResultsUnique(
-            IReadOnlyList<SerializedReferenceUsageFinder.Usage> usages,
-            List<SerializedReferenceUsageFinder.Usage> results,
-            HashSet<string> seen) {
-            for (int i = 0; i < usages.Count; i++) {
-                var usage = usages[i];
-                string key = $"{usage.Kind}|{usage.AssetPath}|{usage.ObjectPath}|{usage.OwnerType}|{usage.PropertyPath}";
-                if (seen.Add(key)) results.Add(usage);
-            }
         }
 
         private string[] GetValidSearchFolderPaths() {
