@@ -230,6 +230,40 @@ namespace MisterGames.Collisions.Tools {
 
             Undo.CollapseUndoOperations(undoGroup);
         }
+        
+        [Button(mode: ButtonAttribute.Mode.Editor)]
+        private void ResetToMeshCollider() {
+            if (_meshRenderer == null) {
+                Debug.LogWarning($"{nameof(PrimitiveCollidersGenerator)}[{name}]: mesh renderer is required.");
+                return;
+            }
+
+            Undo.IncrementCurrentGroup();
+            int undoGroup = Undo.GetCurrentGroup();
+            Undo.SetCurrentGroupName(UndoName);
+
+            Collider primitive = null;
+            for (int i = 0; i < _createdColliders.Count && primitive == null; i++) {
+                primitive = _createdColliders[i];
+            }
+
+            var physicMaterial = primitive != null ? primitive.sharedMaterial : null;
+
+            DestroyCreatedObjects();
+
+            if (_meshRenderer.TryGetComponent(out MeshCollider meshCollider)) {
+                Undo.RecordObject(meshCollider, UndoName);
+                meshCollider.enabled = true;
+            }
+            else {
+                meshCollider = Undo.AddComponent<MeshCollider>(_meshRenderer.gameObject);
+
+                if (_meshRenderer.TryGetComponent(out MeshFilter meshFilter)) meshCollider.sharedMesh = meshFilter.sharedMesh;
+                if (primitive != null) meshCollider.sharedMaterial = physicMaterial;
+            }
+
+            Undo.CollapseUndoOperations(undoGroup);
+        }
 
         private bool TrySamplePoints(out List<Vector3> points, out float cellSize, out int gridCells) {
             if (_meshRenderer == null ||
