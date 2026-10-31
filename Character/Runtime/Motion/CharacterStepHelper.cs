@@ -17,6 +17,8 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(0f)] private float _distance;
         [SerializeField] [Min(0f)] private float _minInclineAngle;
         [SerializeField] [Min(0f)] private float _maxStepDepth;
+        [SerializeField] [Min(0f)] private float _stepTopOffset = 0.05f;
+        [SerializeField] [Range(0f, 90f)] private float _maxStepTopAngle = 45f;
         [SerializeField] [Min(1)] private int _maxHits = 6;
         [SerializeField] [Min(1)] private int _maxHitsSweepTest = 12;
         [SerializeField] [Min(0f)] private float _sweepDistance = 0.1f;
@@ -98,6 +100,8 @@ namespace MisterGames.Character.Motion {
             float angle = Vector3.SignedAngle(up, lowerHit.normal, Vector3.Cross(inputDir, up));
             if (angle < _minInclineAngle) return;
 
+            if (!HasStepTop(upperPoint, inputDir, up, lowerHit.distance + _stepTopOffset, stepHeight)) return;
+
             var speedVector = _climbSpeed.x * inputDir + _climbSpeed.y * up + _climbSpeed.z * -lowerHit.normal; 
             var forceVector = _climbForce.x * inputDir + _climbForce.y * up + _climbForce.z * -lowerHit.normal; 
 
@@ -109,11 +113,22 @@ namespace MisterGames.Character.Motion {
             
             _motion.Rigidbody.MovePosition(_motion.Rigidbody.position + diff);
             _motion.AddForce(forceVector * forceK, ForceMode.Acceleration);
-            
+
 #if UNITY_EDITOR
             if (_showDebugInfo) DebugExt.DrawSphere(lowerPoint, 0.01f, Color.green, duration: 5f);
             if (_showDebugInfo) DebugExt.DrawRay(lowerPoint, diff, Color.green, duration: 5f);
 #endif
+        }
+
+        private bool HasStepTop(Vector3 upperPoint, Vector3 direction, Vector3 up, float distance, float stepHeight) {
+            var origin = upperPoint + direction * distance;
+
+#if UNITY_EDITOR
+            if (_showDebugInfo) DebugExt.DrawRay(origin, -up * stepHeight, Color.cyan);
+#endif
+
+            return Physics.Raycast(origin, -up, out var hit, stepHeight, _layerMask, QueryTriggerInteraction.Ignore) &&
+                   Vector3.Angle(up, hit.normal) <= _maxStepTopAngle;
         }
 
         private bool HasObstacles(Vector3 origin, Vector3 direction, float distance, Vector3 up, Vector3 upperPoint) {

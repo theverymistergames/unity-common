@@ -1,12 +1,11 @@
 ﻿using MisterGames.Actors;
 using MisterGames.Character.Phys;
 using MisterGames.Common.Attributes;
-using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Character.Motion {
-    
-    public sealed class CharacterSlopeProcessor : MonoBehaviour, IActorComponent, IMotionProcessor, IUpdate {
+
+    public sealed class CharacterSlopeProcessor : MonoBehaviour, IActorComponent, IMotionProcessor {
         
         [SerializeField] [MinMaxSlider(0f, 90f)] private Vector2 _slopeAngle = new Vector2(25f, 45f);
         
@@ -31,20 +30,18 @@ namespace MisterGames.Character.Motion {
         }
 
         private void OnEnable() {
-            PlayerLoopStage.FixedUpdate.Subscribe(this);
             _motionPipeline.AddProcessor(this);
         }
 
         private void OnDisable() {
-            PlayerLoopStage.FixedUpdate.Unsubscribe(this);
             _motionPipeline.RemoveProcessor(this);
         }
 
-        void IUpdate.OnUpdate(float dt) {
+        private void UpdateSlopeAngle() {
             var up = _motionPipeline.Up;
             var normal = _groundDetector.CollisionInfo.normal;
             var axis = Vector3.Cross(_motionPipeline.MotionDirWorld, up);
-            
+
             SlopeAngle = axis == default ? 0f : Vector3.SignedAngle(up, normal, axis.normalized);
         }
 
@@ -58,21 +55,23 @@ namespace MisterGames.Character.Motion {
         }
 
         void IMotionProcessor.ProcessInputForce(ref Vector3 inputForce, Vector3 desiredVelocity, float dt) {
+            UpdateSlopeAngle();
+
             if (!_groundDetector.HasContact || !_characterGravity.HasGravity || _motionPipeline.Input == default) return;
 
             var velocity = Vector3.ProjectOnPlane(_motionPipeline.Velocity, _motionPipeline.MotionNormal);
-            
+
             ApplyDirCorrection(desiredVelocity, velocity, ref inputForce, dt);
             LimitForceBySlopeAngle(ref inputForce);
         }
-        
+
         private void LimitForceBySlopeAngle(ref Vector3 inputForce) {
             if (SlopeAngle <= _slopeAngle.y) return;
-            
+
             var up = _motionPipeline.Up;
             var normal = _motionPipeline.MotionNormal;
             var slopeUp = Vector3.Cross(Vector3.Cross(normal, up), normal).normalized;
-            
+
             inputForce = Vector3.ProjectOnPlane(inputForce, slopeUp);
         }
 
