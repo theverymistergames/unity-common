@@ -17,12 +17,19 @@ namespace MisterGames.Common.Easing {
         [Range(0f, 1f)] public float phase;
 
         public float Evaluate(float t) {
+            float osc = NumberExtensions.Oscillate(t, oscillateFreq0, oscillateFreq1, oscillateThr, phase);
+            return Blend(t, osc);
+        }
+
+        public float Evaluate(float t, float dt, ref float phase) {
+            float osc = NumberExtensions.Oscillate(t, dt, oscillateFreq0, oscillateFreq1, oscillateThr, this.phase, ref phase);
+            return Blend(t, osc);
+        }
+
+        private float Blend(float t, float osc) {
             float v0 = (curve0?.Evaluate(t) ?? 0f) * scale0;
             float v1 = (curve1?.Evaluate(t) ?? 0f) * scale1;
-            
-            float osc = NumberExtensions.Oscillate(t, oscillateFreq0, oscillateFreq1, oscillateThr, phase);
             float w = (osc + 1f) * 0.5f;
-            
             return w * v0 + (1f - w) * v1;
         }
     }

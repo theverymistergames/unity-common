@@ -27,6 +27,7 @@ namespace MisterGames.Common.Inputs {
         private Vector2 _resultFrequency;
         private int _topPriority;
         private int _lastMul = 1;
+        private bool _hasFocus = true;
 
         private void Awake() {
             _deviceService = Services.Get<IDeviceService>();
@@ -42,6 +43,19 @@ namespace MisterGames.Common.Inputs {
             _deviceService.OnDeviceChanged -= OnDeviceChanged;
             
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
+        }
+
+        private void OnApplicationFocus(bool hasFocus) {
+            if (_hasFocus == hasFocus) return;
+
+            _hasFocus = hasFocus;
+
+            if (hasFocus) ApplyFrequencyIfGamepadActive(_resultFrequency);
+            else ApplyFrequency(Vector2.zero);
+        }
+
+        private void OnApplicationPause(bool pauseStatus) {
+            OnApplicationFocus(!pauseStatus);
         }
 
         void IUpdate.OnUpdate(float dt) {
@@ -136,17 +150,15 @@ namespace MisterGames.Common.Inputs {
         }
 
         private void ApplyFrequencyIfGamepadActive(Vector2 frequency) {
-            switch (_deviceService.CurrentDevice) {
-                case InputDeviceType.KeyboardMouse:
-                    return;
+            if (!_hasFocus) return;
 
-                case InputDeviceType.Gamepad:
-                    ApplyFrequency(frequency * _lastMul);
-                    break;
-                
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+            bool allowRumble = _deviceService.CurrentDevice == InputDeviceType.Gamepad;
+
+#if UNITY_EDITOR
+            if (_forceAllowVibration) allowRumble = true;
+#endif
+            
+            if (allowRumble) ApplyFrequency(frequency * _lastMul);
         }
 
         private void ApplyFrequency(Vector2 frequency) {
@@ -188,6 +200,11 @@ namespace MisterGames.Common.Inputs {
             
             return priority;
         }
+
+#if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private bool _forceAllowVibration;
+#endif
     }
     
 }

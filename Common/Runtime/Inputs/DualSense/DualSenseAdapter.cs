@@ -23,6 +23,8 @@ namespace MisterGames.Common.Inputs.DualSense {
         [SerializeField] [Min(0.05f)] private float _controllerCountCheckPeriod = 1f;
         [Tooltip("Upper bound of HID output reports per second per controller. DualSense accepts up to ~250 Hz.")]
         [SerializeField] [Range(1, 250)] private int _maxOutputWritesPerSecond = 125;
+        [Tooltip("Period of re-sending unchanged non-zero rumble, seconds. Controller drops rumble if output reports stop coming.")]
+        [SerializeField] [Min(0.05f)] private float _rumbleKeepAlivePeriod = 0.5f;
 
         private const int MaxControllers = 8;
         private const int AllControllersMask = (1 << MaxControllers) - 1;
@@ -237,9 +239,11 @@ namespace MisterGames.Common.Inputs.DualSense {
 
             long countCheckPeriodMs = (long) (_controllerCountCheckPeriod * 1000f);
             long minWriteIntervalMs = 1000L / (_maxOutputWritesPerSecond > 0 ? _maxOutputWritesPerSecond : 1);
+            long keepAlivePeriodMs = (long) (_rumbleKeepAlivePeriod * 1000f);
 
             long nextCountCheckMs = 0L;
             long nextWriteMs = 0L;
+            long nextKeepAliveMs = 0L;
 
             try {
                 while (_running) {
@@ -254,9 +258,12 @@ namespace MisterGames.Common.Inputs.DualSense {
                     // Dirty bits stay set, the next iteration picks them up.
                     if (timer.ElapsedMilliseconds < nextWriteMs) continue;
 
+                    if (timer.ElapsedMilliseconds >= nextKeepAliveMs) MarkRumblingControllersDirty();
+
                     if (!TryFlushOutputStates()) continue;
 
                     nextWriteMs = timer.ElapsedMilliseconds + minWriteIntervalMs;
+                    nextKeepAliveMs = timer.ElapsedMilliseconds + keepAlivePeriodMs;
                 }
             }
             catch (Exception e) {
@@ -264,6 +271,21 @@ namespace MisterGames.Common.Inputs.DualSense {
             }
             finally {
                 ResetHardwareOutputState();
+            }
+        }
+
+        private void MarkRumblingControllersDirty() {
+            int count = _controllerCount;
+
+            lock (_lock) {
+                if (_outputMuted) return;
+
+                for (int i = 0; i < count; i++) {
+                    ref var state = ref _desiredStates[i];
+                    if (state.LeftRumbleIntensity == 0d && state.RightRumbleIntensity == 0d) continue;
+
+                    _dirtyMask |= 1 << i;
+                }
             }
         }
 

@@ -29,9 +29,13 @@ namespace MisterGames.Character.Interactives {
         [SerializeField] private OscillatedCurve _leftFreqCurve;
         [SerializeField] private OscillatedCurve _rightFreqCurve;
 
+        private const float WeightThreshold = 0.001f;
+        
         private IGamepadVibration _gamepadVibration;
         private float _weightSmoothedLeft;
         private float _weightSmoothedRight;
+        private float _phaseLeft;
+        private float _phaseRight;
         private bool _isRegistered;
         private bool _enabled;
 
@@ -108,9 +112,12 @@ namespace MisterGames.Character.Interactives {
             _weightSmoothedLeft = _weightSmoothedLeft.SmoothExpNonZero(targetWeightLeft, _weightSmoothingLeft, dt);
             _weightSmoothedRight = _weightSmoothedRight.SmoothExpNonZero(targetWeightRight, _weightSmoothingRight, dt);
 
+            if (_weightSmoothedLeft < WeightThreshold) _weightSmoothedLeft = 0f;
+            if (_weightSmoothedRight < WeightThreshold) _weightSmoothedRight = 0f;
+            
             var freq = new Vector2(
-                Mathf.Lerp(_leftFreqStart, _leftFreqEnd, _leftFreqCurve.Evaluate(_weightSmoothedLeft)),
-                Mathf.Lerp(_rightFreqStart, _rightFreqEnd, _rightFreqCurve.Evaluate(_weightSmoothedRight))
+                Mathf.Lerp(_leftFreqStart, _leftFreqEnd, _leftFreqCurve.Evaluate(_weightSmoothedLeft, dt, ref _phaseLeft)),
+                Mathf.Lerp(_rightFreqStart, _rightFreqEnd, _rightFreqCurve.Evaluate(_weightSmoothedRight, dt, ref _phaseRight))
             );
             
             _gamepadVibration?.SetTwoMotors(
