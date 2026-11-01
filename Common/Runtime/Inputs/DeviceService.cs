@@ -19,6 +19,7 @@ namespace MisterGames.Common.Inputs {
         public bool AnyInputActivatedThisFrame { get; private set; }
         
         public IGamepadVibration GamepadVibration { get; private set; }
+        public IGamepadHidColors GamepadHidColors { get; private set; }
         public IDualSenseAdapter DualSenseAdapter { get; private set; }
 
         private static readonly HashSet<string> _gamepadStickNames = new() {
@@ -26,8 +27,9 @@ namespace MisterGames.Common.Inputs {
             "rightStick",
         };
 
-        public void Initialize(IGamepadVibration gamepadVibration, IDualSenseAdapter dualSenseAdapter) {
+        public void Initialize(IGamepadVibration gamepadVibration, IGamepadHidColors gamepadHidColors, IDualSenseAdapter dualSenseAdapter) {
             GamepadVibration = gamepadVibration;
+            GamepadHidColors = gamepadHidColors;
             DualSenseAdapter = dualSenseAdapter;
             
             PlayerLoopStage.LateUpdate.Subscribe(this);

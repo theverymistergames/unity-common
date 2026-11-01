@@ -174,6 +174,25 @@ namespace MisterGames.Common.Inputs.DualSense {
             if (dirtyMask != 0) _signal?.Set();
         }
 
+        public void SetHidColors(GamepadHidColorState state, int index = 0) {
+            int dirtyMask = 0;
+
+            lock (_lock) {
+                if (_replicateOutputStateForAllControllers) {
+                    for (int i = 0; i < MaxControllers; i++) {
+                        dirtyMask |= ApplyHidColors(i, state);
+                    }
+                }
+                else {
+                    dirtyMask = ApplyHidColors(index, state);
+                }
+
+                _dirtyMask |= dirtyMask;
+            }
+
+            if (dirtyMask != 0) _signal?.Set();
+        }
+
         /// <summary>
         /// Returns a dirty bit for the controller if the state actually changed, 0 otherwise.
         /// Must be called under <see cref="_lock"/>.
@@ -207,6 +226,58 @@ namespace MisterGames.Common.Inputs.DualSense {
                 if (state.RightTriggerEffect.Equals(effect)) return 0;
                 state.RightTriggerEffect = effect;
             }
+
+            return 1 << index;
+        }
+
+        /// <summary>
+        /// Returns a dirty bit for the controller if the state actually changed, 0 otherwise.
+        /// Must be called under <see cref="_lock"/>.
+        /// </summary>
+        private int ApplyHidColors(int index, in GamepadHidColorState hidColors) {
+            if (index < 0 || index >= MaxControllers) return 0;
+
+            ref var state = ref _desiredStates[index];
+            var lights = hidColors.lightOptions;
+
+            double intensity = hidColors.intensity;
+            double r = hidColors.color.r;
+            double g = hidColors.color.g;
+            double b = hidColors.color.b;
+            bool lightBarEnabled = intensity * r != 0d || intensity * g != 0d || intensity * b != 0d;
+            bool left = (lights & LightOptions.L) != 0;
+            bool middleLeft = (lights & LightOptions.Lc) != 0;
+            bool middle = (lights & LightOptions.C) != 0;
+            bool middleRight = (lights & LightOptions.Rc) != 0;
+            bool right = (lights & LightOptions.R) != 0;
+            bool fade = (lights & LightOptions.SmoothFade) != 0;
+
+            if (state.LightBarEnabled == lightBarEnabled &&
+                state.LightBarIntensity.Equals(intensity) &&
+                state.LightBarR.Equals(r) &&
+                state.LightBarG.Equals(g) &&
+                state.LightBarB.Equals(b) &&
+                state.LeftPlayerLightEnabled == left &&
+                state.MiddleLeftPlayerLightEnabled == middleLeft &&
+                state.MiddlePlayerLightEnabled == middle &&
+                state.MiddleRightPlayerLightEnabled == middleRight &&
+                state.RightPlayerLightEnabled == right &&
+                state.FadePlayerLight == fade)
+            {
+                return 0;
+            }
+
+            state.LightBarEnabled = lightBarEnabled;
+            state.LightBarIntensity = intensity;
+            state.LightBarR = r;
+            state.LightBarG = g;
+            state.LightBarB = b;
+            state.LeftPlayerLightEnabled = left;
+            state.MiddleLeftPlayerLightEnabled = middleLeft;
+            state.MiddlePlayerLightEnabled = middle;
+            state.MiddleRightPlayerLightEnabled = middleRight;
+            state.RightPlayerLightEnabled = right;
+            state.FadePlayerLight = fade;
 
             return 1 << index;
         }
@@ -291,7 +362,18 @@ namespace MisterGames.Common.Inputs.DualSense {
 
         private void UpdateControllerCount() {
             int count = (int) DualSenseNative.GetControllerCount();
-            _controllerCount = count > MaxControllers ? MaxControllers : count;
+            if (count > MaxControllers) count = MaxControllers;
+
+            int oldCount = _controllerCount;
+            _controllerCount = count;
+
+            if (count <= oldCount) return;
+
+            lock (_lock) {
+                for (int i = oldCount; i < count; i++) {
+                    _dirtyMask |= 1 << i;
+                }
+            }
         }
 
         /// <summary>

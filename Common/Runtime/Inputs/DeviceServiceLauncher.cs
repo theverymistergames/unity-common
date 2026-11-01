@@ -8,12 +8,13 @@ namespace MisterGames.Common.Inputs {
     public sealed class DeviceServiceLauncher : MonoBehaviour {
         
         [SerializeField] private GamepadVibration _gamepadVibration;
+        [SerializeField] private GamepadHidColorsService _gamepadHidColors;
         [SerializeField] private DualSenseAdapter _dualSenseAdapter;
-        
+
         private readonly DeviceService _deviceService = new();
-        
+
         private void Awake() {
-            _deviceService.Initialize(_gamepadVibration, _dualSenseAdapter);
+            _deviceService.Initialize(_gamepadVibration, _gamepadHidColors, _dualSenseAdapter);
             Services.Register<IDeviceService>(_deviceService);
         }
 

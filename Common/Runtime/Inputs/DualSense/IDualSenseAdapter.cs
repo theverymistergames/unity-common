@@ -10,6 +10,7 @@ namespace MisterGames.Common.Inputs.DualSense {
         
         void SetRumble(Vector2 rumble, int index = 0);
         void SetTriggerEffect(GamepadSide side, TriggerEffect effect, int index = 0);
+        void SetHidColors(GamepadHidColorState state, int index = 0);
     }
     
 }
