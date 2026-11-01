@@ -116,6 +116,7 @@ namespace MisterGames.Common.Audio {
         
         private readonly Dictionary<AttachKey, int> _attachKeyToHandleIdMap = new();
         private readonly Dictionary<int, AttachKey> _handleIdToAttachKeyMap = new();
+        private readonly Dictionary<int, PendingAttachData> _pendingAttachMap = new();
         private readonly Dictionary<int, IAudioElement> _handleIdToAudioElementMap = new();
         private int _lastHandleId;
         
@@ -200,6 +201,7 @@ namespace MisterGames.Common.Audio {
             
             _attachKeyToHandleIdMap.Clear();
             _handleIdToAttachKeyMap.Clear();
+            _pendingAttachMap.Clear();
             _handleIdToAudioElementMap.Clear();
             
             _elements.Clear();
@@ -461,6 +463,10 @@ namespace MisterGames.Common.Audio {
                 return AudioHandle.Invalid;
             }
             
+            if (audioElement.Transform.parent != attachTo) {
+                _pendingAttachMap[id] = new PendingAttachData(attachTo, localPosition);
+            }
+
             var attachKey = new AttachKey(attachTo.GetEntityId(), attachId);
 
 #if UNITY_EDITOR
@@ -738,6 +744,7 @@ namespace MisterGames.Common.Audio {
                 _attachKeyToHandleIdMap.Remove(attachKey);
             }
 
+            _pendingAttachMap.Remove(handleId);
             _fadeInDataMap.Remove(handleId);
 
             bool isNull = e.Source == null;
@@ -789,10 +796,45 @@ namespace MisterGames.Common.Audio {
             ProcessAudioEngineState();
             ProcessInternalTime(out float dtScaled, out float dtUnscaled);
             ProcessClipShuffles();
+            ProcessPendingAttach();
             ProcessFadeIn();
             ProcessFadeOutAndRelease();
             ProcessSounds(dtScaled, dtUnscaled);
             ProcessReverb(dtScaled);
+        }
+
+        private void ProcessPendingAttach() {
+            int count = _pendingAttachMap.Count;
+            if (count == 0) return;
+
+            var handleIds = new NativeArray<int>(count, Allocator.Temp);
+            int index = 0;
+
+            foreach (int handleId in _pendingAttachMap.Keys) {
+                handleIds[index++] = handleId;
+            }
+
+            for (int i = 0; i < count; i++) {
+                int handleId = handleIds[i];
+                if (!_pendingAttachMap.Remove(handleId, out var data) ||
+                    !_handleIdToAudioElementMap.TryGetValue(handleId, out var e))
+                {
+                    continue;
+                }
+
+                if (data.parent == null) {
+                    ReleaseSound(handleId, immediate: true);
+                    continue;
+                }
+
+                var t = e.Transform;
+                t.SetParent(data.parent, worldPositionStays: true);
+                t.position = data.parent.TransformPoint(data.localPosition);
+
+                if (t.parent != data.parent) _pendingAttachMap[handleId] = data;
+            }
+
+            handleIds.Dispose();
         }
 
         private void ProcessInternalTime(out float dtScaled, out float dtUnscaled) {
@@ -1967,6 +2009,17 @@ namespace MisterGames.Common.Audio {
             public IndexCheckData(int hash, float time) {
                 this.hash = hash;
                 this.time = time;
+            }
+        }
+
+        private readonly struct PendingAttachData {
+
+            public readonly Transform parent;
+            public readonly Vector3 localPosition;
+
+            public PendingAttachData(Transform parent, Vector3 localPosition) {
+                this.parent = parent;
+                this.localPosition = localPosition;
             }
         }
 
