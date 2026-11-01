@@ -2,10 +2,13 @@
 using System.Collections.Generic;
 using MisterGames.Actors;
 using MisterGames.Common;
+using MisterGames.Common.Inputs;
 using MisterGames.Common.Maths;
+using MisterGames.Common.Service;
 using MisterGames.Common.Tick;
 using MisterGames.Input.Actions;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace MisterGames.Character.Transport {
     
@@ -15,6 +18,9 @@ namespace MisterGames.Character.Transport {
         [SerializeField] private InputActionRef _move;
         [SerializeField] private InputActionRef _brake;
         [SerializeField] private InputActionRef _nitro;
+        [SerializeField] private InputActionRef _gasGamepad;
+        [FormerlySerializedAs("_brakeGamepad")]
+        [SerializeField] private InputActionRef _reverseGamepad;
         [SerializeField] private Vector2 _inputSmoothing = new(10f, 10f);
         [SerializeField] private Vector2 _inputSmoothingRelease = new(10f, 10f);
 
@@ -58,6 +64,14 @@ namespace MisterGames.Character.Transport {
         [Header("Steering")]
         [SerializeField] [Range(0f, 180f)] private float _steerMaxAngle = 45f;
         [SerializeField] [Min(0f)] private float _steerSmoothing = 1f;
+        
+        [Header("Stability")]
+        [SerializeField] [Min(0f)] private float _idleBrakeTorque = 100f;
+        [SerializeField] [Min(0f)] private float _idleBrakeMaxSpeed = 1f;
+        [SerializeField] [Min(0f)] private float _lateralGrip = 2f;
+        [SerializeField] [Min(0f)] private float _substepsSpeedThreshold = 5f;
+        [SerializeField] [Min(1)] private int _substepsBelowThreshold = 12;
+        [SerializeField] [Min(1)] private int _substepsAboveThreshold = 15;
         
         [Header("Overturn")]
         [SerializeField] private float _overturnForce;
@@ -122,15 +136,21 @@ namespace MisterGames.Character.Transport {
         public bool IsIgnitionOn { get; private set; }
         public bool IsEntered { get; private set; }
         public float Speed { get; private set; }
+        public float ForwardSpeed { get; private set; }
+        public bool IsGrounded { get; private set; }
         public float Rpm { get; private set; }
         public float BrakeForce { get; private set; }
         public bool AreBrakeWheelsGrounded { get; private set; }
         public bool AreDriveWheelsGrounded { get; private set; }
         public bool IsNitroActive { get; private set; }
         public float NitroActivation { get; private set; }
+        public float GasInput { get; private set; }
+        public float ReverseInput { get; private set; }
+        public float BrakeInput { get; private set; }
 
         private readonly Dictionary<WheelCollider, int> _wheelIndexMap = new();
         private IActor _actor;
+        private IDeviceService _deviceService;
         private Rigidbody _rigidbody;
         private Vector2 _input;
         private float _lastTimeNotOverturned;
@@ -148,10 +168,12 @@ namespace MisterGames.Character.Transport {
         void IActorComponent.OnAwake(IActor actor) {
             _rigidbody = actor.GetComponent<Rigidbody>();
             Root = _rigidbody.transform;
+            _deviceService = Services.Get<IDeviceService>();
             
             InitializeMass();
             InitializeWheels();
             SetupWheelsData();
+            ResetWheelForces();
             AnimateWheels();
         }
         
@@ -171,6 +193,10 @@ namespace MisterGames.Character.Transport {
             OnExit.Invoke();
             
             ResetWheelForces();
+            
+            GasInput = 0f;
+            ReverseInput = 0f;
+            BrakeInput = 0f;
             
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
         }
@@ -197,6 +223,10 @@ namespace MisterGames.Character.Transport {
                 
                 _wheelIndexMap[wheel.collider] = i;
             }
+
+            if (_wheels.Length > 0) {
+                _wheels[0].collider.ConfigureVehicleSubsteps(_substepsSpeedThreshold, _substepsBelowThreshold, _substepsAboveThreshold);
+            }
         }
 
         private void SetupWheelsData() {
@@ -212,10 +242,11 @@ namespace MisterGames.Character.Transport {
 
         void IUpdate.OnUpdate(float dt) {
             AnimateWheels();
-            EnableBrakes(!IsIgnitionOn || _brake.Get().ReadValue<float>() > 0f);
+            ReadPedalsInput();
+            EnableBrakes(!IsIgnitionOn || BrakeInput > 0f);
             CheckIgnition();
             
-            var targetInput = _move.Get().ReadValue<Vector2>();
+            var targetInput = new Vector2(_move.Get().ReadValue<Vector2>().x, ReadThrottleInput());
 
             var smoothing = new Vector2(
                 targetInput.x.IsNearlyZero() ? _inputSmoothingRelease.x : _inputSmoothing.x,
@@ -225,7 +256,8 @@ namespace MisterGames.Character.Transport {
             _input.x = Mathf.Lerp(_input.x, targetInput.x, dt * smoothing.x);
             _input.y = Mathf.Lerp(_input.y, targetInput.y, dt * smoothing.y);
             
-            float brake = _brake.Get().ReadValue<float>();
+            float brake = BrakeInput;
+            bool idleBrake = Mathf.Abs(targetInput.y) < _inputThreshold && brake.IsNearlyZero() && Speed < _idleBrakeMaxSpeed;
             bool nitro = _nitro.Get().IsPressed() && IsIgnitionOn && _input.y >= _inputThreshold;
 
             IsNitroActive = nitro;
@@ -247,11 +279,17 @@ namespace MisterGames.Character.Transport {
                 
                 brakeForce += wheel.collider.brakeTorque;
                 
+                if (idleBrake && isGrounded) {
+                    wheel.collider.brakeTorque = Mathf.Max(wheel.collider.brakeTorque, _idleBrakeTorque);
+                }
+                
                 atLeastOneWheelGrounded |= isGrounded;
                 if (IsMatch(wheel.axel, _driveMode)) atLeastOneDriveWheelGrounded |= isGrounded;
                 if (IsMatch(wheel.axel, _brakeMode)) atLeastOneBrakeWheelGrounded |= isGrounded;
             }
 
+            if (atLeastOneWheelGrounded) ApplyLateralGrip(brake);
+            
             var massCenter = atLeastOneWheelGrounded ? _centerOfMass : _centerOfMassAir; 
             _rigidbody.centerOfMass = Vector3.Scale(massCenter, Root.localScale);
             
@@ -261,8 +299,10 @@ namespace MisterGames.Character.Transport {
 
             AreBrakeWheelsGrounded = atLeastOneBrakeWheelGrounded;
             AreDriveWheelsGrounded = atLeastOneDriveWheelGrounded;
+            IsGrounded = atLeastOneWheelGrounded;
             
             Speed = _rigidbody.linearVelocity.magnitude;
+            ForwardSpeed = Vector3.Dot(_rigidbody.linearVelocity, Root.forward);
             BrakeForce = _wheels.Length > 0 ? brakeForce / _wheels.Length : 0f;
             
             ApplyAntiOverturn(_input.x);
@@ -278,7 +318,7 @@ namespace MisterGames.Character.Transport {
                     break;
                 
                 case IgnitionMode.OnAcceleration:
-                    if (_move.Get().ReadValue<Vector2>().y.IsNearlyZero()) EnableIgnition(false, forceNotify: _isIgnitionStartRequested);
+                    if (ReadThrottleInput().IsNearlyZero()) EnableIgnition(false, forceNotify: _isIgnitionStartRequested);
                     else StartIgnition(_ignitionDuration);
                     break;
             }
@@ -289,7 +329,7 @@ namespace MisterGames.Character.Transport {
         }
 
         private void UpdateRpm(float dt) {
-            bool accelerationPressed = !_move.Get().ReadValue<Vector2>().y.IsNearlyZero();
+            bool accelerationPressed = !ReadThrottleInput().IsNearlyZero();
             
             float targetRpm = accelerationPressed
                 ? AreDriveWheelsGrounded 
@@ -302,6 +342,19 @@ namespace MisterGames.Character.Transport {
                 : _rpmDownSmoothing;
             
             Rpm = Mathf.Lerp(Rpm, targetRpm, f * dt);
+        }
+
+        private void ReadPedalsInput() {
+            GasInput = _gasGamepad.Get()?.ReadValue<float>() ?? 0f;
+            ReverseInput = _reverseGamepad.Get()?.ReadValue<float>() ?? 0f;
+            BrakeInput = _brake.Get().ReadValue<float>();
+        }
+
+        private float ReadThrottleInput() {
+            float moveY = _move.Get().ReadValue<Vector2>().y;
+            if (_deviceService?.CurrentDevice != InputDeviceType.Gamepad) return moveY;
+
+            return GasInput - ReverseInput;
         }
 
         private void StartIgnition(float duration) {
@@ -334,7 +387,7 @@ namespace MisterGames.Character.Transport {
                 ref var wheel = ref _wheels[i];
 
                 wheel.collider.motorTorque = 0f;
-                wheel.collider.brakeTorque = 0f;
+                wheel.collider.brakeTorque = _idleBrakeTorque;
             }
         }
         
@@ -387,6 +440,15 @@ namespace MisterGames.Character.Transport {
         private static bool IsMatch(Axel axel, DriveMode mode) {
             return axel == Axel.Front && mode != DriveMode.Rear ||
                    axel == Axel.Rear && mode != DriveMode.Forward;
+        }
+
+        private void ApplyLateralGrip(float brake) {
+            if (_lateralGrip <= 0f) return;
+            
+            var right = Root.right;
+            float lateralSpeed = Vector3.Dot(_rigidbody.linearVelocity, right);
+            
+            _rigidbody.AddForce(-lateralSpeed * _lateralGrip * (1f - Mathf.Clamp01(brake)) * right, ForceMode.Acceleration);
         }
 
         private void ApplyAntiOverturn(float input) {

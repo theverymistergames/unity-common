@@ -22,16 +22,16 @@ namespace MisterGames.Character.Interactives {
         private void OnEnable() {
             SetEnabled(true);
             
-            _motion.OnTeleport += OnTeleport;
+            _motion.OnBeforeTeleport += OnBeforeTeleport;
         }
 
         private void OnDisable() {
             SetEnabled(false);
             
-            _motion.OnTeleport -= OnTeleport;
+            _motion.OnBeforeTeleport -= OnBeforeTeleport;
         }
 
-        private void OnTeleport() {
+        private void OnBeforeTeleport() {
             _interactiveUser.ForceStopInteractAll();
         }
 

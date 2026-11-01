@@ -2,10 +2,14 @@
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MisterGames.ActionLib.Sounds;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
+using MisterGames.Collisions.Rigidbodies;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Audio;
+using MisterGames.Common.Easing;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using MisterGames.Input.Actions;
@@ -70,6 +74,14 @@ namespace MisterGames.Character.Transport {
         [SerializeReference] [SubclassSelector] private IActorAction _onBrakeOn;
         [SerializeReference] [SubclassSelector] private IActorAction _onBrakeOff;
 
+        [Header("Collision Sounds")]
+        [SerializeField] private CollisionEmitter _collisionEmitter;
+        [SerializeField] [Min(0f)] private float _collisionSpeedMin = 1f;
+        [SerializeField] [Min(0f)] private float _collisionSpeedMax = 10f;
+        [SerializeField] private AnimationCurve _collisionVolumeCurve = EasingType.Linear.ToAnimationCurve();
+        [SerializeField] [Min(0f)] private float _collisionSoundCooldown = 0.1f;
+        [SerializeField] private PlaySoundAction _collisionSound;
+
         [Header("Brakes Trails")]
         [SerializeField] private float _trailGroundOffset = 0.05f;
         [SerializeField] private TrailData[] _trails;
@@ -105,6 +117,7 @@ namespace MisterGames.Character.Transport {
         private float _ignitionStartTime;
         private float _ignitionTurnOffTime;
         private bool _isNitroActive;
+        private float _lastCollisionSoundTime;
         
         void IActorComponent.OnAwake(IActor actor) {
             _actor = actor;
@@ -148,6 +161,8 @@ namespace MisterGames.Character.Transport {
             if (_carController.IsBrakeOn) OnBrake(true);
             if (_carController.IsIgnitionOn) OnIgnition(true);
             
+            if (_collisionEmitter != null) _collisionEmitter.CollisionEnter += OnCollision;
+            
             DisableTrails();
             
             _brakesAudioSource.Play();
@@ -166,6 +181,8 @@ namespace MisterGames.Character.Transport {
             _carController.OnStartIgnition -= OnStartIgnition;
             _carController.OnIgnition -= OnIgnition;
             _carController.OnBrake -= OnBrake;
+            
+            if (_collisionEmitter != null) _collisionEmitter.CollisionEnter -= OnCollision;
             
             SetLightEnabled(false, false);
             DisableTrails();
@@ -304,6 +321,22 @@ namespace MisterGames.Character.Transport {
                 ref var trail = ref _trails[i];
                 trail.trailRenderer.emitting = false;
             }
+        }
+
+        private void OnCollision(Collision collision) {
+            if (_collisionSound?.audioClipVariants is not { Length: > 0 } ||
+                TimeSources.scaledTime < _lastCollisionSoundTime + _collisionSoundCooldown) 
+            {
+                return;
+            }
+
+            float impact = Mathf.InverseLerp(_collisionSpeedMin, _collisionSpeedMax, collision.relativeVelocity.magnitude);
+            if (impact <= 0f) return;
+
+            _lastCollisionSoundTime = TimeSources.scaledTime;
+
+            var clip = AudioPool.Main?.ShuffleClips(_collisionSound.audioClipVariants);
+            _collisionSound.PlaySound(clip, _collisionSound.volume * _collisionVolumeCurve.Evaluate(impact), _actor, _enableCts.Token);
         }
 
         private void OnLightInput(InputAction.CallbackContext callbackContext) {

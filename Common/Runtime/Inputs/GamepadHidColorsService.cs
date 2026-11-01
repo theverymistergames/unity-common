@@ -41,12 +41,15 @@ namespace MisterGames.Common.Inputs {
         private readonly List<AnimationPlayback> _animations = new();
         private GamepadHidColorState _resultState;
         private int _orderCounter;
+        private bool _enabled;
 
         private void Awake() {
             _deviceService = Services.Get<IDeviceService>();
         }
 
         private void OnEnable() {
+            _enabled = true;
+            
             ApplyState(_resultState);
 
             if (_defaultAnimation != null) PlayAnimation(this, _defaultAnimation);
@@ -54,6 +57,8 @@ namespace MisterGames.Common.Inputs {
         }
 
         private void OnDisable() {
+            _enabled = false;
+            
             PlayerLoopStage.Update.Unsubscribe(this);
             ApplyState(default);
         }
@@ -102,7 +107,7 @@ namespace MisterGames.Common.Inputs {
 
             SetState(source, animation.EvaluateAtTime(time, out _));
 
-            if (enabled) PlayerLoopStage.Update.Subscribe(this);
+            if (_enabled) PlayerLoopStage.Update.Subscribe(this);
         }
 
         public void StopAnimation(object source) {
@@ -159,7 +164,7 @@ namespace MisterGames.Common.Inputs {
             if (state == _resultState) return;
 
             _resultState = state;
-            if (enabled) ApplyState(_resultState);
+            if (_enabled) ApplyState(_resultState);
         }
 
         private void ApplyState(GamepadHidColorState state) {

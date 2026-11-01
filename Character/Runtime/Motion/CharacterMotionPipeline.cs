@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using MisterGames.Actors;
 using MisterGames.Character.Phys;
 using MisterGames.Character.Input;
 using MisterGames.Character.View;
 using MisterGames.Common;
+using MisterGames.Common.Async;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using UnityEngine;
@@ -23,8 +25,10 @@ namespace MisterGames.Character.Motion {
         [SerializeField] private float _speedCorrectionBack = 0.6f;
         [SerializeField] private float _inputSmoothing = 20f;
         
+        public event Action OnBeforeTeleport = delegate { };
         public event Action OnTeleport = delegate { }; 
         public bool HasBeenTeleported { get; private set; }
+        public CancellationToken TeleportCancellationToken => (_teleportCts ??= new CancellationTokenSource()).Token;
         
         public Vector3 MotionDirWorld { get; private set; }
         public Vector3 MotionNormal { get; private set; }
@@ -50,6 +54,7 @@ namespace MisterGames.Character.Motion {
         private CharacterGroundDetector _groundDetector;
         private CharacterCollisionPipeline _collisionPipeline;
         private Vector2 _smoothedInput;
+        private CancellationTokenSource _teleportCts;
 
         void IActorComponent.OnAwake(IActor actor) {
             _transform = actor.Transform;
@@ -74,6 +79,10 @@ namespace MisterGames.Character.Motion {
             _collisionPipeline.Block(this, blocked: false);
         }
 
+        private void OnDestroy() {
+            AsyncExt.DisposeCts(ref _teleportCts);
+        }
+
         public void AddProcessor(IMotionProcessor processor) {
             if (!_processorIndexMap.TryAdd(processor, _processorList.Count)) return;
 
@@ -95,6 +104,9 @@ namespace MisterGames.Character.Motion {
         }
 
         public void Teleport(Vector3 position, Quaternion rotation, bool preserveVelocity = true) {
+            OnBeforeTeleport.Invoke();
+            AsyncExt.RecreateCts(ref _teleportCts);
+            
             _collisionPipeline.Block(this, blocked: true);
             
             var velocity = Rigidbody.linearVelocity;
@@ -112,8 +124,6 @@ namespace MisterGames.Character.Motion {
                 Vector3.ProjectOnPlane(oldBodyRotation * Vector3.forward, up),
                 Vector3.ProjectOnPlane(rotation * Vector3.forward, up)
             );
-            
-            var headOffset = t.InverseTransformPoint(_view.HeadPosition);
 
             Rigidbody.position = position;
             Rigidbody.rotation = rotation;
@@ -121,13 +131,13 @@ namespace MisterGames.Character.Motion {
             t.SetPositionAndRotation(position, flatRotDelta * oldBodyRotation);
             
             _view.HeadRotation = rotDelta * oldHeadRotation;
-            _view.HeadPosition = t.TransformPoint(headOffset);
 
             _view.Detach();
             _view.StopLookAt();
             _view.ResetHorizontalClamp();
             _view.ResetVerticalClamp();
             _view.ResetSmoothing();
+            _view.HeadLocalPosition = Vector3.zero;
             
             _collisionPipeline.Block(this, blocked: false);
             

@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
+using MisterGames.Character.Motion;
 using MisterGames.Character.View;
 using MisterGames.Common;
 using MisterGames.Common.Attributes;
@@ -47,6 +48,8 @@ namespace MisterGames.ActionLib.Character {
         }
 
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
+            cancellationToken = LinkTeleportCancellation(context, cancellationToken);
+            
             return targetType switch {
                 TargetType.LocalPosition => MoveHeadToLocalPosition(context, cancellationToken),
                 TargetType.Transform => MoveHeadToTransform(context, cancellationToken),
@@ -177,6 +180,11 @@ namespace MisterGames.ActionLib.Character {
 #endif
             
             if (attach) view.AttachTo(target, view.HeadPosition, attachMode, attachSmoothing);
+        }
+
+        private static CancellationToken LinkTeleportCancellation(IActor context, CancellationToken cancellationToken) {
+            if (!context.TryGetComponent(out CharacterMotionPipeline motion)) return cancellationToken;
+            return CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, motion.TeleportCancellationToken).Token;
         }
     }
     

@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Actors.Actions;
+using MisterGames.Character.Motion;
 using MisterGames.Character.Phys;
 using MisterGames.Character.View;
 using MisterGames.Common;
@@ -57,6 +58,8 @@ namespace MisterGames.ActionLib.Character {
         }
 
         public async UniTask MoveToTransform(IActor context, CancellationToken cancellationToken = default) {
+            cancellationToken = LinkTeleportCancellation(context, cancellationToken);
+            
             var view = context.GetComponent<CharacterViewPipeline>();
             var collisions = context.GetComponent<CharacterCollisionPipeline>();
             target.GetPositionAndRotation(out var targetStartPosition, out var targetStartRotation);
@@ -161,6 +164,8 @@ namespace MisterGames.ActionLib.Character {
         }
 
         public async UniTask MoveToHead(IActor context, CancellationToken cancellationToken = default) {
+            cancellationToken = LinkTeleportCancellation(context, cancellationToken);
+            
             var view = context.GetComponent<CharacterViewPipeline>();
             var collisions = context.GetComponent<CharacterCollisionPipeline>();
 
@@ -259,6 +264,11 @@ namespace MisterGames.ActionLib.Character {
 #endif
             
             if (disableCollisionsWhileMoving) collisions.Block(this, blocked: false, cancellationToken);
+        }
+
+        private static CancellationToken LinkTeleportCancellation(IActor context, CancellationToken cancellationToken) {
+            if (!context.TryGetComponent(out CharacterMotionPipeline motion)) return cancellationToken;
+            return CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, motion.TeleportCancellationToken).Token;
         }
     }
     

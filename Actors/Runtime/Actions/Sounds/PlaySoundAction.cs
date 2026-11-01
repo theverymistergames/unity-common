@@ -11,11 +11,13 @@ using MisterGames.Common.Maths;
 using MisterGames.Common.Strings;
 using UnityEngine;
 using UnityEngine.Audio;
+using UnityEngine.Scripting.APIUpdating;
 using Random = UnityEngine.Random;
 
 namespace MisterGames.ActionLib.Sounds {
 
     [Serializable]
+    [MovedFrom(true, sourceNamespace: "MisterGames.ActionLib.Sounds", sourceAssembly: "MisterGames.ActionLib", sourceClassName: "PlaySoundAction")]
     public sealed class PlaySoundAction : IActorAction {
         
         [Header("Attach")]
