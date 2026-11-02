@@ -626,8 +626,8 @@ namespace MisterGames.Common.Pooling {
             // Wait frame to avoid setting parent while object is being deactivated/destroyed.
             await UniTask.Yield();
 
-            if (!_isEnabled || go == null) return;
-            
+            if (!_isEnabled || go == null || _instanceToPrefabIdMap.ContainsKey(go.GetEntityId())) return;
+
             go.transform.SetParent(PoolRoot);
         }
         
