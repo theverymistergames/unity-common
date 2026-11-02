@@ -78,6 +78,10 @@ namespace MisterGames.Character.Transport {
         [SerializeField] [Range(0f, 180f)] private float _overturnAngleMin = 80f;
         [SerializeField] [Min(0f)] private float _minTimeOverturnedToApplyForce = 0.5f;
         
+        [Header("Air Stability")]
+        [SerializeField] private Vector3 _airAlignForce = new(10f, 0f, 10f);
+        [SerializeField] private Vector3 _airAngularDamping = new(2f, 2f, 2f);
+        
         [Header("Wheels")]
         [SerializeField] private Vector3 _sideOffset;
         [SerializeField] [Min(0f)] private float _wheelMass = 10f;
@@ -306,6 +310,7 @@ namespace MisterGames.Character.Transport {
             BrakeForce = _wheels.Length > 0 ? brakeForce / _wheels.Length : 0f;
             
             ApplyAntiOverturn(_input.x);
+            ApplyAirStability();
             UpdateRpm(dt);
         }
 
@@ -388,6 +393,16 @@ namespace MisterGames.Character.Transport {
 
                 wheel.collider.motorTorque = 0f;
                 wheel.collider.brakeTorque = _idleBrakeTorque;
+                wheel.collider.steerAngle = 0f;
+
+                var forwardFriction = wheel.collider.forwardFriction;
+                var sidewaysFriction = wheel.collider.sidewaysFriction;
+
+                forwardFriction.extremumSlip = wheel.forwardExtremumSlip;
+                sidewaysFriction.extremumSlip = wheel.sideExtremumSlip;
+
+                wheel.collider.forwardFriction = forwardFriction;
+                wheel.collider.sidewaysFriction = sidewaysFriction;
             }
         }
         
@@ -464,6 +479,16 @@ namespace MisterGames.Character.Transport {
             }
 
             _rigidbody.AddRelativeTorque(_overturnForce * input * Vector3.forward, ForceMode.Acceleration);
+        }
+
+        private void ApplyAirStability() {
+            if (IsGrounded) return;
+
+            var alignAxis = Root.InverseTransformDirection(Vector3.Cross(Root.up, Vector3.up));
+            var angularVelocity = Root.InverseTransformDirection(_rigidbody.angularVelocity);
+            
+            var torque = Vector3.Scale(alignAxis, _airAlignForce) - Vector3.Scale(angularVelocity, _airAngularDamping);
+            _rigidbody.AddRelativeTorque(torque, ForceMode.Acceleration);
         }
 
         private void AnimateWheels() {

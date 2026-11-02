@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
 using MisterGames.Interact.Interactives;
 using UnityEngine;
@@ -10,6 +11,8 @@ namespace MisterGames.Character.Interactives {
 
         [SerializeField] private Interactive _interactive;
         [SerializeField] private Transform _follow;
+        [SerializeField] private Vector3 _followOffset;
+        [SerializeField] [Min(0f)] private float _offsetSmoothing;
         [SerializeField] private bool _makeKinematic = true;
         [SerializeField] private Collider[] _ignoreColliders;
 
@@ -19,11 +22,11 @@ namespace MisterGames.Character.Interactives {
             public Rigidbody rigidbody;
             public Collider[] colliders;
             public bool madeKinematic;
+            public Vector3 offset;
         }
 
         private readonly List<FollowData> _followers = new();
         private Rigidbody _followRigidbody;
-        private Vector3 _lastPosition;
         private Quaternion _lastRotation;
 
         private void Awake() {
@@ -65,11 +68,15 @@ namespace MisterGames.Character.Interactives {
 
             IgnoreCollisions(data.colliders, ignore: true);
 
+            GetFollowPose(Time.fixedDeltaTime, out var position, out var rotation);
+            var userPosition = _followRigidbody != null && data.rigidbody != null ? data.rigidbody.position : root.position;
+            data.offset = Quaternion.Inverse(rotation) * (userPosition - position);
+
             _followers.Add(data);
 
             if (_followers.Count > 1) return;
 
-            GetFollowPose(Time.fixedDeltaTime, out _lastPosition, out _lastRotation);
+            _lastRotation = rotation;
             GetUpdateStage().Subscribe(this);
         }
 
@@ -90,19 +97,18 @@ namespace MisterGames.Character.Interactives {
             for (int i = 0; i < _followers.Count; i++) {
                 var data = _followers[i];
 
-                if (_followRigidbody != null && data.rigidbody != null) {
-                    var rbPosition = data.rigidbody.position;
-                    var rbRotation = data.rigidbody.rotation;
+                data.offset = data.offset.SmoothExpNonZero(_followOffset, _offsetSmoothing, dt);
+                _followers[i] = data;
 
-                    data.rigidbody.MovePosition(position + rotationDelta * (rbPosition - _lastPosition));
-                    data.rigidbody.MoveRotation(rotationDelta * rbRotation);
+                var newPosition = position + rotation * data.offset;
+
+                if (_followRigidbody != null && data.rigidbody != null) {
+                    data.rigidbody.MovePosition(newPosition);
+                    data.rigidbody.MoveRotation(rotationDelta * data.rigidbody.rotation);
                     continue;
                 }
 
-                data.root.GetPositionAndRotation(out var rootPosition, out var rootRotation);
-
-                var newPosition = position + rotationDelta * (rootPosition - _lastPosition);
-                var newRotation = rotationDelta * rootRotation;
+                var newRotation = rotationDelta * data.root.rotation;
 
                 data.root.SetPositionAndRotation(newPosition, newRotation);
 
@@ -112,7 +118,6 @@ namespace MisterGames.Character.Interactives {
                 data.rigidbody.rotation = newRotation;
             }
 
-            _lastPosition = position;
             _lastRotation = rotation;
         }
 

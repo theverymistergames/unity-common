@@ -14,10 +14,9 @@ namespace MisterGames.ActionLib.Interactives {
         public bool force = true;
         
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
-            if (!context.TryGetComponent(out IInteractiveUser user)) return default;
-
-            if (interactive == null) {
-                if (force) user.ForceStopInteractAll();
+            if (!context.TryGetComponent(out IInteractiveUser user) ||
+                interactive == null) 
+            {
                 return default;
             }
 

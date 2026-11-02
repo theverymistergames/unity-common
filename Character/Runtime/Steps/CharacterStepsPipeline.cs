@@ -58,7 +58,10 @@ namespace MisterGames.Character.Steps {
             if (_groundDetector.HasContact) _lastTimeGrounded = time; 
             if (sqrSpeedFlat >= _speedMin * _speedMin) _lastTimeMoving = time;
             
-            if (time - _lastTimeGrounded > _skipNotGroundedDuration || time - _lastTimeMoving > _minSpeedDetectDuration) {
+            if (_rigidbody.isKinematic ||
+                time - _lastTimeGrounded > _skipNotGroundedDuration ||
+                time - _lastTimeMoving > _minSpeedDetectDuration)
+            {
                 _stepProgress = -1f;
                 return;
             }

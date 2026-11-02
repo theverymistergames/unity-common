@@ -275,8 +275,8 @@ namespace MisterGames.Character.View {
         }
         
         private void ProcessBodyUpdate() {
-            if (_body == null) return;
-            
+            if (_body == null || _body.isKinematic) return;
+
             var rotation = _gravityRotation * _bodyRotation;
             
             // Body is rotated around the head, so that head is not dragged along an arc around the body pivot

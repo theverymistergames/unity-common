@@ -95,8 +95,6 @@ namespace MisterGames.Character.Transport {
             rightEffect = LerpEffect(rightEffect, rightBrake, brake);
             leftEffect = LerpEffect(leftEffect, leftBrake, brake);
 
-            Debug.Log($"CarTriggerController.OnUpdate: f {Time.frameCount}, L {left}, R {right}, brake {brake}");
-            
             _dualSenseAdapter.SetTriggerEffect(GamepadSide.Right, rightEffect);
             _dualSenseAdapter.SetTriggerEffect(GamepadSide.Left, leftEffect);
         }
