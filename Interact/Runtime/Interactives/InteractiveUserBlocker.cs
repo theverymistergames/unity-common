@@ -3,15 +3,11 @@ using UnityEngine;
 
 namespace MisterGames.Interact.Interactives {
 
-    [RequireComponent(typeof(Interactive))]
     public sealed class InteractiveUserBlocker : MonoBehaviour {
 
-        private readonly HashSet<IInteractiveUser> _users = new();
-        private Interactive _interactive;
+        [SerializeField] private Interactive _interactive;
 
-        private void Awake() {
-            _interactive = GetComponent<Interactive>();
-        }
+        private readonly HashSet<IInteractiveUser> _users = new();
 
         private void OnEnable() {
             _interactive.OnStartInteract += OnStartInteract;

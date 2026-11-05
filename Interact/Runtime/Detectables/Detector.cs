@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common;
+using MisterGames.Common.Layers;
 using MisterGames.Common.Tick;
 using UnityEngine;
 
@@ -14,6 +15,7 @@ namespace MisterGames.Interact.Detectables {
         [SerializeField] private CollisionDetectorBase _collisionDetector;
         [SerializeField] private CollisionFilter _collisionFilter;
         [SerializeField] private GameObject _root;
+        [SerializeField] private LayerMask _ignoreCollidersWithExcludedLayers;
 
         public event Action<IDetectable> OnDetected = delegate {  };
         public event Action<IDetectable> OnLost = delegate {  };
@@ -95,7 +97,7 @@ namespace MisterGames.Interact.Detectables {
                 _ => throw new ArgumentOutOfRangeException(nameof(evt), evt, null)
             };
 
-            return map.TryGetValue(detectable, out float time) ? time : -1f;
+            return map.GetValueOrDefault(detectable, -1f);
         }
 
         public void Block(object source, bool block) {
@@ -179,7 +181,8 @@ namespace MisterGames.Interact.Detectables {
 
             for (int i = 0; i < _hitsBuffer.Count; i++) {
                 var hit = _hitsBuffer[i];
-                if (!IsActiveCollider(hit.collider)) continue;
+                if (!IsActiveCollider(hit.collider) || 
+                    hit.collider.excludeLayers.Intersects(_ignoreCollidersWithExcludedLayers)) continue;
 
                 _hitsBufferResult.Add(hit);
                 if (!hit.collider.isTrigger) break;
@@ -229,6 +232,7 @@ namespace MisterGames.Interact.Detectables {
 
                 if (!info.hasContact ||
                     !IsActiveCollider(info.collider) ||
+                    info.collider.excludeLayers.Intersects(_ignoreCollidersWithExcludedLayers) ||
                     minDistance >= 0f && info.distance > minDistance ||
                     !TryGetCandidateDetectable(info.collider, out var detectable))
                 {

@@ -7,6 +7,7 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -19,6 +20,7 @@ namespace MisterGames.Logic.Rendering {
         [SerializeField] private Light[] _lights;
         
         [Header("Intensity (Lux)")]
+        [SerializeField] [Min(0f)] private float _intensityMul = 1f;
         [SerializeField] [Min(0f)] private float _intensity0 = 100f;
         [SerializeField] [Min(0f)] private float _intensity1 = 1000f;
         [SerializeField] [Min(0f)] private float _intensitySmoothing = 5f;
@@ -29,11 +31,16 @@ namespace MisterGames.Logic.Rendering {
         [SerializeField] private float _noiseSpeedChangeRate = 0.01f;
         [SerializeField] [Min(0f)] private float _noiseSpeedSmoothing = 5f;
         
-        private const float IndexOffset = 1000f;
-
+        public float IntensityMul { get => _intensityMul; set => _intensityMul = value; }
+        
+        private float _indexOffset;
         private float _noiseAccumulator;
         private float _noiseSpeedSmoothed;
         
+        private void Awake() {
+            _indexOffset = Random.Range(1000f, 10000f);
+        }
+
         private void OnEnable() {
             _noiseSpeedSmoothed = GetTargetNoiseSpeed(TimeSources.scaledTime);
             
@@ -64,10 +71,11 @@ namespace MisterGames.Logic.Rendering {
             var job = new CalculateIntensityJob {
                 t = _noiseAccumulator,
                 dt = dt,
-                intensity0 = _intensity0,
-                intensity1 = _intensity1,
+                intensity0 = _intensity0 * _intensityMul,
+                intensity1 = _intensity1 * _intensityMul,
                 smoothing = _intensitySmoothing,
                 intensityArray = intensityArray,
+                indexOffset = _indexOffset,
             };
 
             job.Schedule(_lights.Length, JobExt.BatchFor(_lights.Length)).Complete();
@@ -87,13 +95,14 @@ namespace MisterGames.Logic.Rendering {
             [Unity.Collections.ReadOnly] public float intensity0;
             [Unity.Collections.ReadOnly] public float intensity1;
             [Unity.Collections.ReadOnly] public float smoothing;
+            [Unity.Collections.ReadOnly] public float indexOffset;
             
             public NativeArray<float> intensityArray;
             
             public void Execute(int index) {
                 float currentIntensity = intensityArray[index];
                 
-                float lerp = noise.cnoise((float2) (t + index * IndexOffset));
+                float lerp = noise.cnoise((float2) (t + index * indexOffset));
                 float targetIntensity = math.lerp(intensity0, intensity1, lerp);
                 
                 intensityArray[index] = currentIntensity.SmoothExpNonZero(targetIntensity, smoothing, dt);

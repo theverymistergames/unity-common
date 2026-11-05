@@ -15,6 +15,7 @@ namespace MisterGames.Character.Motion {
         [SerializeField] private ActorAction _action;
 
         private readonly BlockSet _blockSet = new();
+        private readonly PriorityMap<int, IActorAction> _graphOverrideMap = new(asc: false);
         
         private IActor _actor;
         private CharacterPosePipeline _pose;
@@ -47,27 +48,39 @@ namespace MisterGames.Character.Motion {
             _blockSet.SetBlock(source, blocked, cancellationToken);
         }
 
+        public void SetGraphOverride(object source, IActorAction graph, int priority) {
+            _graphOverrideMap.Set(source.GetHashCode(), graph, priority);
+            
+            ApplyState(GetGraph());
+        }
+
+        public void RemoveGraphOverride(object source) {
+            _graphOverrideMap.Remove(source.GetHashCode());
+            
+            ApplyState(GetGraph());
+        }
+        
         private void UpdateState() {
             if (_blockSet.Count <= 0) EnableGraph();
             else DisableGraph();
             
-            ApplyState();
+            ApplyState(GetGraph());
         }
 
         private void OnStartContactGround() {
-            ApplyState();
+            ApplyState(GetGraph());
         }
 
         private void OnStopContactGround() {
-            ApplyState();
+            ApplyState(GetGraph());
         }
 
         private void OnPoseChanged(CharacterPose newPose, CharacterPose oldPose) {
-            ApplyState();
+            ApplyState(GetGraph());
         }
 
         private void OnRunPressed() {
-            ApplyState();
+            ApplyState(GetGraph());
         }
 
         private void EnableGraph() {
@@ -95,13 +108,17 @@ namespace MisterGames.Character.Motion {
         }
 
         private void OnTeleport() {
-            ApplyState();
+            ApplyState(GetGraph());
         }
 
-        private void ApplyState() {
+        private void ApplyState(IActorAction graph) {
             if (_enableCts == null) return; 
             
-            _action.Apply(_actor, _enableCts.Token).Forget();
+            graph?.Apply(_actor, _enableCts.Token).Forget();
+        }
+
+        private IActorAction GetGraph() {
+            return _graphOverrideMap.GetResultOrDefault(_action);
         }
     }
 

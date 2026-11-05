@@ -12,6 +12,7 @@ using MisterGames.Common.Strings;
 using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.Scripting.APIUpdating;
+using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
 namespace MisterGames.ActionLib.Sounds {
@@ -28,7 +29,7 @@ namespace MisterGames.ActionLib.Sounds {
         [VisibleIf(nameof(position), 1)]
         public Transform transform;
         [VisibleIf(nameof(position), 2)]
-        public LabelValue<UnityEngine.Object> libraryObject;
+        public LabelValue<Object> libraryObject;
         
         [Header("Settings")]
         [MinMaxSlider(0f, 1f)] public Vector2 startTime;
@@ -80,7 +81,7 @@ namespace MisterGames.ActionLib.Sounds {
             };
 
             if (trf == null) {
-                Debug.LogError($"PlaySoundAction.Apply: f {UnityEngine.Time.frameCount}, cannot find transform (mode {position}) to play sound. Audio clip variants: {audioClipVariants.AsString()}");
+                Debug.LogError($"PlaySoundAction.Apply: f {Time.frameCount}, cannot find transform (mode {position}) to play sound. Audio clip variants: {audioClipVariants.AsString()}");
                 return default;
             }
             
@@ -104,6 +105,23 @@ namespace MisterGames.ActionLib.Sounds {
             return attach 
                 ? pool.Play(clip, trf, localPosition: default, attachId, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, attenuationMul, mixerGroup, options, cancellationToken) 
                 : pool.Play(clip, trf.position, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, attenuationMul, mixerGroup, options, cancellationToken);
+        }
+        
+        public AudioHandle PlaySoundNoAttach(AudioClip clip, Vector3 point, float volume, IActor context, CancellationToken cancellationToken) {
+            if (clip == null || AudioPool.Main is not { } pool) return default;
+            
+            float resultPitch = pitch + Random.Range(-pitchRandomAdd, pitchRandomAdd);
+            float resultStartTime = startTime.GetRandomInRange();
+            
+            var options = AudioOptions.None;
+            options |= loop ? AudioOptions.Loop : AudioOptions.None;
+            options |= affectedByTimeScale ? AudioOptions.AffectedByTimeScale : AudioOptions.None;
+            options |= occlusion ? AudioOptions.ApplyOcclusion : AudioOptions.None;
+            options |= affectedByVolumes ? AudioOptions.AffectedByVolumes : AudioOptions.None;
+
+            cancellationToken = useActorDestroyToken ? context.DestroyToken : cancellationToken;
+            
+            return pool.Play(clip, point, volume, fadeIn, fadeOut, resultPitch, spatialBlend, resultStartTime, attenuationMul, mixerGroup, options, cancellationToken);
         }
     }
     
