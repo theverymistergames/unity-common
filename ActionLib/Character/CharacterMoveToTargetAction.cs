@@ -26,7 +26,9 @@ namespace MisterGames.ActionLib.Character {
         
         [Header("Motion")]
         public bool disableCollisionsWhileMoving = true;
-        [Min(0f)] public float speed = 1f;
+        public Mode mode;
+        [VisibleIf(nameof(mode), 0)] [Min(0f)] public float speed = 1f;
+        [VisibleIf(nameof(mode), 1)] [Min(0f)] public float duration = 1f;
         public float curvature = 1f;
         public AnimationCurve progressCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
         public bool useUnscaledTime;
@@ -48,7 +50,12 @@ namespace MisterGames.ActionLib.Character {
             Local,
             World,
         }
-        
+
+        public enum Mode {
+            Speed,
+            Duration,
+        }
+
         public UniTask Apply(IActor context, CancellationToken cancellationToken = default) {
             return targetType switch {
                 TargetType.Transform => MoveToTransform(context, cancellationToken),
@@ -96,7 +103,7 @@ namespace MisterGames.ActionLib.Character {
             var finalPointOffset = finalPoint - targetStartPosition;
             
             float pathLength = BezierExtensions.GetBezier3PointsLength(startPoint, curvePoint, finalPoint);
-            float speed = pathLength > 0f && this.speed > 0f ? this.speed / pathLength : float.MaxValue;
+            float speed = GetProgressSpeed(pathLength);
             float t = 0f;
 
             if (disableCollisionsWhileMoving) {
@@ -204,9 +211,9 @@ namespace MisterGames.ActionLib.Character {
             var finalPointOffset = finalPoint - targetStartPosition;
             
             float pathLength = BezierExtensions.GetBezier3PointsLength(startPoint, curvePoint, finalPoint);
-            float speed = pathLength > 0f && this.speed > 0f ? this.speed / pathLength : float.MaxValue;
+            float speed = GetProgressSpeed(pathLength);
             float t = 0f;
-            
+
             if (disableCollisionsWhileMoving) collisions.Block(this, blocked: true, cancellationToken);
 
             var headPos = view.HeadPosition;
@@ -264,6 +271,14 @@ namespace MisterGames.ActionLib.Character {
 #endif
             
             if (disableCollisionsWhileMoving) collisions.Block(this, blocked: false, cancellationToken);
+        }
+
+        private float GetProgressSpeed(float pathLength) {
+            return mode switch {
+                Mode.Speed => pathLength > 0f && speed > 0f ? speed / pathLength : float.MaxValue,
+                Mode.Duration => duration > 0f ? 1f / duration : float.MaxValue,
+                _ => throw new ArgumentOutOfRangeException()
+            };
         }
 
         private static CancellationToken LinkTeleportCancellation(IActor context, CancellationToken cancellationToken) {
