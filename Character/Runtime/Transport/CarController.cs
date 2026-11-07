@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using MisterGames.Actors;
 using MisterGames.Common;
-using MisterGames.Common.Inputs;
 using MisterGames.Common.Maths;
-using MisterGames.Common.Service;
 using MisterGames.Common.Tick;
 using MisterGames.Input.Actions;
 using UnityEngine;
@@ -18,9 +16,11 @@ namespace MisterGames.Character.Transport {
         [SerializeField] private InputActionRef _move;
         [SerializeField] private InputActionRef _brake;
         [SerializeField] private InputActionRef _nitro;
-        [SerializeField] private InputActionRef _gasGamepad;
+        [FormerlySerializedAs("_gasGamepad")]
+        [SerializeField] private InputActionRef _gas;
         [FormerlySerializedAs("_brakeGamepad")]
-        [SerializeField] private InputActionRef _reverseGamepad;
+        [FormerlySerializedAs("_reverseGamepad")]
+        [SerializeField] private InputActionRef _reverse;
         [SerializeField] private Vector2 _inputSmoothing = new(10f, 10f);
         [SerializeField] private Vector2 _inputSmoothingRelease = new(10f, 10f);
 
@@ -91,7 +91,7 @@ namespace MisterGames.Character.Transport {
 
         [Header("Debug")]
         [SerializeField] private bool _showDebugInfo;
-        
+         
         private enum DriveMode {
             Forward,
             Rear,
@@ -154,7 +154,6 @@ namespace MisterGames.Character.Transport {
 
         private readonly Dictionary<WheelCollider, int> _wheelIndexMap = new();
         private IActor _actor;
-        private IDeviceService _deviceService;
         private Rigidbody _rigidbody;
         private Vector2 _input;
         private float _lastTimeNotOverturned;
@@ -172,7 +171,6 @@ namespace MisterGames.Character.Transport {
         void IActorComponent.OnAwake(IActor actor) {
             _rigidbody = actor.GetComponent<Rigidbody>();
             Root = _rigidbody.transform;
-            _deviceService = Services.Get<IDeviceService>();
             
             InitializeMass();
             InitializeWheels();
@@ -197,6 +195,7 @@ namespace MisterGames.Character.Transport {
             OnExit.Invoke();
             
             ResetWheelForces();
+            AnimateWheels();
             
             GasInput = 0f;
             ReverseInput = 0f;
@@ -350,15 +349,12 @@ namespace MisterGames.Character.Transport {
         }
 
         private void ReadPedalsInput() {
-            GasInput = _gasGamepad.Get()?.ReadValue<float>() ?? 0f;
-            ReverseInput = _reverseGamepad.Get()?.ReadValue<float>() ?? 0f;
+            GasInput = _gas.Get()?.ReadValue<float>() ?? 0f;
+            ReverseInput = _reverse.Get()?.ReadValue<float>() ?? 0f;
             BrakeInput = _brake.Get().ReadValue<float>();
         }
 
         private float ReadThrottleInput() {
-            float moveY = _move.Get().ReadValue<Vector2>().y;
-            if (_deviceService?.CurrentDevice != InputDeviceType.Gamepad) return moveY;
-
             return GasInput - ReverseInput;
         }
 

@@ -235,31 +235,37 @@ namespace MisterGames.Tweens {
 
             if (startIndex < 0) return;
 
-            // Play first tween with calculated start progress.
-            if (tweens[startIndex] is { } t1) {
-                await t1.Play(context, Mathf.Max(t1.Duration, 0f), startProgress, speed, cancellationToken);
-            }
-
             // Speed is 0: notify other tweens in sequence in both directions.
             if (speed is <= 0f and >= 0f)
             {
-                for (int i = startIndex + 1; i < count; i++) {
-                    if (cancellationToken.IsCancellationRequested) break;
+                for (int i = count - 1; i > startIndex; i--) {
+                    if (cancellationToken.IsCancellationRequested) return;
 
                     if (tweens[i] is { } t2) {
                         await t2.Play(context, Mathf.Max(t2.Duration, 0f), startProgress: 0f, speed, cancellationToken);
                     }
                 }
-                
-                for (int i = startIndex - 1; i >= 0; i--) {
-                    if (cancellationToken.IsCancellationRequested) break;
+
+                for (int i = 0; i < startIndex; i++) {
+                    if (cancellationToken.IsCancellationRequested) return;
 
                     if (tweens[i] is { } t2) {
                         await t2.Play(context, Mathf.Max(t2.Duration, 0f), startProgress: 1f, speed, cancellationToken);
                     }
                 }
-                
+
+                if (cancellationToken.IsCancellationRequested) return;
+
+                if (tweens[startIndex] is { } t0) {
+                    await t0.Play(context, Mathf.Max(t0.Duration, 0f), startProgress, speed, cancellationToken);
+                }
+
                 return;
+            }
+
+            // Play first tween with calculated start progress.
+            if (tweens[startIndex] is { } t1) {
+                await t1.Play(context, Mathf.Max(t1.Duration, 0f), startProgress, speed, cancellationToken);
             }
 
             // Setup start progress for next tweens.

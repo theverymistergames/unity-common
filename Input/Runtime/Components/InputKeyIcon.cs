@@ -1,5 +1,4 @@
 ﻿using System;
-using MisterGames.Common.Data;
 using MisterGames.Common.Inputs;
 using MisterGames.Common.Service;
 using MisterGames.Input.Actions;
@@ -7,7 +6,6 @@ using MisterGames.Input.Icons;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
-
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -21,9 +19,6 @@ namespace MisterGames.Input.Components {
         [SerializeField] private Image _image;
         [SerializeField] [Min(-1)] private int _bindingIndexKeyboardMouse = -1;
         [SerializeField] [Min(-1)] private int _bindingIndexGamepad = -1;
-
-        [Header("Debug")]
-        [SerializeField] private Optional<InputDeviceType> _debugDevice;
 
         private const string KeyboardLayout = "Keyboard";
         private const string PointerLayout = "Pointer";
@@ -64,16 +59,28 @@ namespace MisterGames.Input.Components {
         }
 
         private void OnDeviceChanged(InputDeviceType deviceType) {
-            var action = _inputAction.Get();
-            if (action == null) return;
+            if (!TryGetBinding(deviceType, out var binding)) return;
 
-            int bindingIndex = GetBindingIndex(action, deviceType);
-            if (bindingIndex < 0) return;
-
-            var gamepadType = Services.TryGet(out IDeviceService deviceService) ? deviceService.GamepadType : GamepadType.Default;
-            var sprite = _iconsTable.GetSprite(action.bindings[bindingIndex], gamepadType);
+            var sprite = GetSprite(binding);
             if (_image.sprite == sprite) return;
 
+            SetSprite(sprite);
+        }
+
+        private bool TryGetBinding(InputDeviceType deviceType, out InputBinding binding) {
+            var action = _inputAction.Get();
+            int bindingIndex = action == null ? -1 : GetBindingIndex(action, deviceType);
+
+            binding = bindingIndex >= 0 ? action!.bindings[bindingIndex] : default;
+            return bindingIndex >= 0;
+        }
+
+        private Sprite GetSprite(InputBinding binding) {
+            var gamepadType = Services.TryGet(out IDeviceService deviceService) ? deviceService.GamepadType : GamepadType.Default;
+            return _iconsTable.GetSprite(binding, gamepadType);
+        }
+
+        private void SetSprite(Sprite sprite) {
             _image.sprite = sprite;
 
 #if UNITY_EDITOR
@@ -111,19 +118,42 @@ namespace MisterGames.Input.Components {
         }
 
 #if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private InputDeviceType _debugDevice;
+        [SerializeField] [HideInInspector] private string _lastBindingPath;
+
         private void OnValidate() {
-            EditorApplication.delayCall -= UpdateIconInEditor;
-            EditorApplication.delayCall += UpdateIconInEditor;
+            var device = Services.TryGet(out IDeviceService deviceService)
+                ? deviceService.CurrentDevice
+                : _debugDevice;
+                
+            if (_image == null ||
+                _iconsTable == null ||
+                !TryGetBinding(device, out var binding) ||
+                binding.effectivePath == _lastBindingPath)
+            {
+                return;
+            }
+
+            _lastBindingPath = binding.effectivePath;
+            SetSprite(GetSprite(binding));
         }
 
-        private void UpdateIconInEditor() {
-            if (this == null || _image == null || _iconsTable == null) return;
-
-            var deviceType = Services.TryGet(out IDeviceService deviceService)
+        [Common.Attributes.Button]
+        private void ForceRefreshSprite() {
+            var device = Services.TryGet(out IDeviceService deviceService)
                 ? deviceService.CurrentDevice
-                : InputDeviceType.KeyboardMouse;
+                : _debugDevice;
+            
+            if (_image == null ||
+                _iconsTable == null ||
+                !TryGetBinding(device, out var binding))
+            {
+                return;
+            }
 
-            OnDeviceChanged(_debugDevice.GetOrDefault(deviceType));
+            _lastBindingPath = binding.effectivePath;
+            SetSprite(GetSprite(binding));
         }
 #endif
     }

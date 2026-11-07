@@ -45,7 +45,7 @@ namespace MisterGames.Common.Editor.Attributes.SubclassSelector {
                     var wrapper = JsonUtility.FromJson<ManagedReferenceWrapper>(str);
                     return JsonUtility.FromJson(wrapper._json, wrapper._type.ToType());
                 }
-                catch (Exception e) {
+                catch (Exception) {
                     return null;
                 }
             }
