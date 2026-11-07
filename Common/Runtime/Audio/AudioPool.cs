@@ -1096,8 +1096,8 @@ namespace MisterGames.Common.Audio {
                 e.Source.pitch = resultData.pitch;
                 e.Source.maxDistance = resultData.attenuationDistance;
 
-                e.LowPass.cutoffFrequency = NumberExtensions.LerpLog(HpCutoffLowerBound, resultData.lpCutoff, e.LpCutoffLerp);
-                e.HighPass.cutoffFrequency = NumberExtensions.LerpLog(LpCutoffUpperBound, resultData.hpCutoff, e.HpCutoffLerp);
+                e.LowPass.cutoffFrequency = NumberExtensions.LerpLog(HpCutoffLowerBound, math.clamp(resultData.lpCutoff, HpCutoffLowerBound, LpCutoffUpperBound), e.LpCutoffLerp);
+                e.HighPass.cutoffFrequency = NumberExtensions.LerpLog(LpCutoffUpperBound, math.clamp(resultData.hpCutoff, HpCutoffLowerBound, LpCutoffUpperBound), e.HpCutoffLerp);
 
                 e.LpCutoff = resultData.lpCutoff;
                 e.HpCutoff = resultData.hpCutoff;
@@ -1203,8 +1203,8 @@ namespace MisterGames.Common.Audio {
             e.Source.pitch = resultData.pitch;
             e.Source.maxDistance = resultData.attenuationDistance;
 
-            e.LowPass.cutoffFrequency = NumberExtensions.LerpLog(HpCutoffLowerBound, resultData.lpCutoff, e.LpCutoffLerp);
-            e.HighPass.cutoffFrequency = NumberExtensions.LerpLog(LpCutoffUpperBound, resultData.hpCutoff, e.HpCutoffLerp);
+            e.LowPass.cutoffFrequency = NumberExtensions.LerpLog(HpCutoffLowerBound, math.clamp(resultData.lpCutoff, HpCutoffLowerBound, LpCutoffUpperBound), e.LpCutoffLerp);
+            e.HighPass.cutoffFrequency = NumberExtensions.LerpLog(LpCutoffUpperBound, math.clamp(resultData.hpCutoff, HpCutoffLowerBound, LpCutoffUpperBound), e.HpCutoffLerp);
 
             e.LpCutoff = resultData.lpCutoff;
             e.HpCutoff = resultData.hpCutoff;
