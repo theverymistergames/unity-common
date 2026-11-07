@@ -43,6 +43,16 @@ namespace MisterGames.Common.Audio {
             set { if (IsValid(out var e)) e.AttenuationMul = value; }
         }
 
+        public float LpCutoffLerp {
+            get => IsValid(out var e) ? e.LpCutoffLerp : 0f;
+            set { if (IsValid(out var e)) e.LpCutoffLerp = value; }
+        }
+
+        public float HpCutoffLerp {
+            get => IsValid(out var e) ? e.HpCutoffLerp : 0f;
+            set { if (IsValid(out var e)) e.HpCutoffLerp = value; }
+        }
+
         public Vector3 Position {
             get => IsValid(out var e) ? e.Transform.position : default;
             set { if (IsValid(out var e)) e.Transform.position = value; }

@@ -36,6 +36,8 @@ namespace MisterGames.Common.Audio {
         public float SpatialBlend { get; set; }
         public float LpCutoff { get; set; }
         public float HpCutoff { get; set; }
+        public float LpCutoffLerp { get; set; }
+        public float HpCutoffLerp { get; set; }
         public bool MixerGroupAffectedByVolumes { get; set; }
         public bool IgnoreZeroTimescale { get; set; }
         

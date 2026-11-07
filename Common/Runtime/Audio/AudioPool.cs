@@ -85,8 +85,8 @@ namespace MisterGames.Common.Audio {
 
         private const int MinBatch = 16;
         private const float DistanceThreshold = 0.001f;
-        private const float HpCutoffLowerBound = 10f;
-        private const float LpCutoffUpperBound = 22000f;
+        public const float HpCutoffLowerBound = 10f;
+        public const float LpCutoffUpperBound = 22000f;
 
         private const float ClipRestartOffset = 0.01f;
         private const float DspStallTimeout = 0.25f;
@@ -614,6 +614,8 @@ namespace MisterGames.Common.Audio {
 
             audioElement.LpCutoff = LpCutoffUpperBound;
             audioElement.HpCutoff = HpCutoffLowerBound;
+            audioElement.LpCutoffLerp = 1f;
+            audioElement.HpCutoffLerp = 1f;
             audioElement.LowPass.cutoffFrequency = LpCutoffUpperBound;
             audioElement.HighPass.cutoffFrequency = HpCutoffLowerBound;
             
@@ -1094,8 +1096,8 @@ namespace MisterGames.Common.Audio {
                 e.Source.pitch = resultData.pitch;
                 e.Source.maxDistance = resultData.attenuationDistance;
 
-                e.LowPass.cutoffFrequency = resultData.lpCutoff;
-                e.HighPass.cutoffFrequency = resultData.hpCutoff;
+                e.LowPass.cutoffFrequency = NumberExtensions.LerpLog(HpCutoffLowerBound, resultData.lpCutoff, e.LpCutoffLerp);
+                e.HighPass.cutoffFrequency = NumberExtensions.LerpLog(LpCutoffUpperBound, resultData.hpCutoff, e.HpCutoffLerp);
 
                 e.LpCutoff = resultData.lpCutoff;
                 e.HpCutoff = resultData.hpCutoff;
@@ -1201,8 +1203,8 @@ namespace MisterGames.Common.Audio {
             e.Source.pitch = resultData.pitch;
             e.Source.maxDistance = resultData.attenuationDistance;
 
-            e.LowPass.cutoffFrequency = resultData.lpCutoff;
-            e.HighPass.cutoffFrequency = resultData.hpCutoff;
+            e.LowPass.cutoffFrequency = NumberExtensions.LerpLog(HpCutoffLowerBound, resultData.lpCutoff, e.LpCutoffLerp);
+            e.HighPass.cutoffFrequency = NumberExtensions.LerpLog(LpCutoffUpperBound, resultData.hpCutoff, e.HpCutoffLerp);
 
             e.LpCutoff = resultData.lpCutoff;
             e.HpCutoff = resultData.hpCutoff;

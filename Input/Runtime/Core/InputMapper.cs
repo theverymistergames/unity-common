@@ -20,6 +20,8 @@ namespace MisterGames.Input.Core {
         }
 
         private void FetchInputs(InputActionAsset actionAsset) {
+            if (actionAsset == null) return;
+            
             InputMaps = actionAsset.actionMaps;
             
             actionAsset.Enable();

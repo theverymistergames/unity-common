@@ -109,6 +109,16 @@ namespace MisterGames.Common.Maths {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float LerpLog(float from, float to, float t) {
+            return math.exp(math.lerp(math.log(from), math.log(to), math.saturate(t)));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float InverseLerpLog(float from, float to, float value) {
+            return math.saturate(math.log(value / from) / math.log(to / from));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte IncrementUncheckedRef(this ref byte value) {
             unchecked {
                 return ++value;

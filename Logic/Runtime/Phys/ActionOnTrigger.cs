@@ -36,7 +36,7 @@ namespace MisterGames.Logic.Phys {
         }
 
         private void HandleTrigger(Collider collider) {
-            if (!_layerMask.Contains(collider.gameObject.layer)) return;
+            if (collider == null || !_layerMask.Contains(collider.gameObject.layer)) return;
 
             _action?.Apply(_actor, _enableCts.Token).Forget();
         }
