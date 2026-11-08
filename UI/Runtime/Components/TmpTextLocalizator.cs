@@ -13,7 +13,8 @@ namespace MisterGames.UI.Components {
         
         [SerializeField] private TMP_Text _textField;
         [SerializeField] private LocalizationKey _key;
-
+        [SerializeReference] [SubclassSelector] private IArgumentResolver _formatter;
+        
         private ILocalizationService _service;
         
         private void Awake() {
@@ -35,7 +36,13 @@ namespace MisterGames.UI.Components {
         }
 
         private void SetupValue() {
-            _textField.SetText(_key.GetValue());
+            _textField.SetText(GetResultText(_service.Locale));
+        }
+
+        private string GetResultText(Locale locale) {
+            string value = _key.GetValue(locale);
+            _formatter?.Resolve(_key, locale, ref value);
+            return value;
         }
 
 #if UNITY_EDITOR
@@ -50,7 +57,7 @@ namespace MisterGames.UI.Components {
         private void FetchValueForDefaultLocale() {
             if (_key.IsNull() || _textField == null) return;
 
-            string text = _key.GetValue(_defaultLocale);
+            string text = GetResultText(_defaultLocale);
             if (text == _textField.text) return;
             
             _textField.SetText(text);
