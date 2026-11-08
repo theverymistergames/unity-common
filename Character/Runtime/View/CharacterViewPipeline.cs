@@ -433,7 +433,7 @@ namespace MisterGames.Character.View {
 
             if (!_hasGravity || _characterGravity.IsGravityAlignBlocked) return;
 
-            _gravityRotation = _gravityRotation.SlerpNonZero(GetGravityAlignTarget(), _gravityDirSmoothing, dt);
+            _gravityRotation = _gravityRotation.SlerpNonZero(GetGravityAlignTarget(), _gravityDirSmoothing, dt).normalized;
         }
 
         private static bool IsValidRotation(Quaternion q) {

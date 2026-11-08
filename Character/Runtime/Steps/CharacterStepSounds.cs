@@ -78,8 +78,8 @@ namespace MisterGames.Character.Steps {
         }
 
         private void OnLanded(Vector3 point, float relativeSpeed) {
-            float velT = _landingVelocity1 > _landingVelocity0 
-                ? (relativeSpeed - _landingVelocity0) / (_landingVelocity1 - _landingVelocity0)
+            float velT = relativeSpeed < 0f && _landingVelocity1 > _landingVelocity0 
+                ? (-relativeSpeed - _landingVelocity0) / (_landingVelocity1 - _landingVelocity0)
                 : 0f;
             
             float vol = Mathf.Lerp(_landingVolume0, _landingVolume1, velT);
@@ -129,7 +129,7 @@ namespace MisterGames.Character.Steps {
         private void PlayStepSound(Vector3 stepPoint, float volumeMul = 1f, float cooldown = -1f, bool ignoreCooldown = false) {
             float time = TimeSources.scaledTime;
             if (!ignoreCooldown && time < _nextStepSoundTime) return;
-            
+
             _nextStepSoundTime = time + (cooldown < 0f ? _playSoundCooldown : cooldown);
 
             var up = _capsulePipeline.Root.up;
