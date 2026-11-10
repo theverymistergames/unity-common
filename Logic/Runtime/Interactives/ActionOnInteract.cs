@@ -52,8 +52,10 @@ namespace MisterGames.Logic.Interactives {
             var token = _enableCts.Token;
             
             if (NeedCancelPrevious(isStartAction: true)) {
-                AsyncExt.RecreateCts(ref _actionCts);
-                token = CancellationTokenSource.CreateLinkedTokenSource(token, _actionCts.Token).Token;
+                _actionCts?.Cancel();
+                _actionCts?.Dispose();
+                _actionCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+                token = _actionCts.Token;
             }
 
             if (user.Root.GetComponent<IActor>() is { } actor) _startAction?.Apply(actor, token).Forget();
@@ -65,8 +67,10 @@ namespace MisterGames.Logic.Interactives {
             var token = _enableCts.Token;
             
             if (NeedCancelPrevious(isStartAction: false)) {
-                AsyncExt.RecreateCts(ref _actionCts);
-                token = CancellationTokenSource.CreateLinkedTokenSource(token, _actionCts.Token).Token;
+                _actionCts?.Cancel();
+                _actionCts?.Dispose();
+                _actionCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+                token = _actionCts.Token;
             }
             
             if (user.Root.GetComponent<IActor>() is {} actor) _stopAction?.Apply(actor, token).Forget();
