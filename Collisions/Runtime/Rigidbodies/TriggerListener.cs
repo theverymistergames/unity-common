@@ -2,36 +2,26 @@
 using MisterGames.Common.Layers;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
-using Unity.Burst;
-using Unity.Collections;
-using Unity.Jobs;
 using UnityEngine;
 
 namespace MisterGames.Collisions.Rigidbodies {
-    
+
     public sealed class TriggerListener : TriggerEmitter, IUpdate {
-        
+
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] private bool _collideWithTriggers = true;
         [SerializeField] private bool _clearCollidersOnDisable = true;
-        
+
         public override event TriggerCallback TriggerEnter = delegate { };
         public override event TriggerCallback TriggerExit = delegate { };
 
         public override IReadOnlyCollection<Collider> EnteredColliders => _colliderSet;
-        
+
         private readonly HashSet<Collider> _colliderSet = new();
         private readonly Dictionary<int, Collider> _hashToColliderMap = new();
-        private NativeHashMap<int, int> _colliderHashToStayFrameMap;
+        private readonly Dictionary<int, int> _colliderHashToStayFrameMap = new();
+        private readonly List<int> _exitBuffer = new();
         private int _frameCount;
-
-        private void Awake() {
-            _colliderHashToStayFrameMap = new NativeHashMap<int, int>(2, Allocator.Persistent);
-        }
-
-        private void OnDestroy() {
-            _colliderHashToStayFrameMap.Dispose();
-        }
 
         private void OnEnable() {
             if (_colliderSet.Count > 0) PlayerLoopStage.FixedUpdate.Subscribe(this);
@@ -39,9 +29,9 @@ namespace MisterGames.Collisions.Rigidbodies {
 
         private void OnDisable() {
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
-            
+
             if (!_clearCollidersOnDisable) return;
-            
+
             foreach (var c in _colliderSet) {
                 TriggerExit.Invoke(c);
             }
@@ -50,45 +40,49 @@ namespace MisterGames.Collisions.Rigidbodies {
             _hashToColliderMap.Clear();
             _colliderHashToStayFrameMap.Clear();
         }
-        
+
         void IUpdate.OnUpdate(float dt) {
-            int count = _colliderHashToStayFrameMap.Count;
+            int frameCount = _frameCount.ReturnThenIncrementUncheckedRef();
 
-            var job = new CheckExitedCollidersJob {
-                frameCount = _frameCount.ReturnThenIncrementUncheckedRef(),
-                colliderHashToStayFrameMap = _colliderHashToStayFrameMap,
-                exitArray = new NativeArray<int>(count, Allocator.TempJob),
-                exitArrayCount = new NativeArray<int>(2, Allocator.TempJob),
-            };
+            foreach (var kvp in _colliderHashToStayFrameMap) {
+                if (kvp.Value < frameCount) _exitBuffer.Add(kvp.Key);
+            }
 
-            job.Run();
+            for (int i = 0; i < _exitBuffer.Count; i++) {
+                int hash = _exitBuffer[i];
 
-            int exitCount = job.exitArrayCount[0];
-            
-            for (int i = 0; i < exitCount; i++) {
-                if (!_hashToColliderMap.Remove(job.exitArray[i], out var collider)) continue;
-                
+                if (_hashToColliderMap.TryGetValue(hash, out var collider) && 
+                    IsAttachedRigidbodySleeping(collider)) 
+                {
+                    _colliderHashToStayFrameMap[hash] = _frameCount;
+                    continue;
+                }
+
+                _colliderHashToStayFrameMap.Remove(hash);
+
+                if (!_hashToColliderMap.Remove(hash, out collider)) continue;
+
                 _colliderSet.Remove(collider);
                 TriggerExit.Invoke(collider);
             }
-            
-            job.exitArray.Dispose();
-            job.exitArrayCount.Dispose();
+
+            _exitBuffer.Clear();
 
             if (_colliderSet.Count <= 0) PlayerLoopStage.FixedUpdate.Unsubscribe(this);
         }
-        
+
         private void OnTriggerEnter(Collider collider) {
             if (!CanCollide(collider)) return;
 
             int hash = collider.GetHashCode();
             int count = _colliderHashToStayFrameMap.Count;
-            
-            _colliderHashToStayFrameMap[hash] = _frameCount;
-            _hashToColliderMap[hash] = collider;
-            _colliderSet.Add(collider);
 
-            TriggerEnter.Invoke(collider);
+            _colliderHashToStayFrameMap[hash] = _frameCount;
+
+            if (_colliderSet.Add(collider)) {
+                _hashToColliderMap[hash] = collider;
+                TriggerEnter.Invoke(collider);
+            }
             
             if (count <= 0) PlayerLoopStage.FixedUpdate.Subscribe(this);
         }
@@ -110,38 +104,23 @@ namespace MisterGames.Collisions.Rigidbodies {
 
             _hashToColliderMap.Remove(hash);
             _colliderSet.Remove(collider);
-            
+
             TriggerExit.Invoke(collider);
         }
 
         private bool CanCollide(Collider collider) {
-            return enabled && 
-                   _layerMask.Contains(collider.gameObject.layer) && 
+            return enabled &&
+                   _layerMask.Contains(collider.gameObject.layer) &&
                    (_collideWithTriggers || !collider.isTrigger);
         }
-        
-        [BurstCompile]
-        private struct CheckExitedCollidersJob : IJob {
-            
-            [ReadOnly] public int frameCount;
-            public NativeHashMap<int, int> colliderHashToStayFrameMap;
-            public NativeArray<int> exitArray;
-            public NativeArray<int> exitArrayCount;
-            
-            public void Execute() {
-                int exitCount = 0;
-                
-                foreach (var kvp in colliderHashToStayFrameMap) {
-                    if (kvp.Value < frameCount) exitArray[exitCount++] = kvp.Key;
-                }
 
-                for (int i = 0; i < exitCount; i++) {
-                    colliderHashToStayFrameMap.Remove(exitArray[i]);
-                }
-
-                exitArrayCount[0] = exitCount;
-            }
+        private static bool IsAttachedRigidbodySleeping(Collider collider) {
+            return collider != null &&
+                   collider.enabled &&
+                   collider.gameObject.activeInHierarchy &&
+                   collider.attachedRigidbody is { } rb &&
+                   rb.IsSleeping();
         }
     }
-    
+
 }
