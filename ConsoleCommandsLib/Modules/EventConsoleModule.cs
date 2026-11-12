@@ -18,7 +18,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         private EventConsoleModuleData _data;
 
         [ConsoleCommand(EventsCmd)]
-        [ConsoleCommandHelp("raise event by name: <event>, <domain>/<event>, <group>/<event> or <domain>/<group>/<event>")]
+        [ConsoleCommandHelp("raise event by name: <event>, <domain>/<event>, <group>/<event> or <domain>/<group>/<event>, optional /<subId> at the end (default 0)")]
         public void RaiseEvent(string eventPath) {
             if (!TryFindEvent(eventPath, out var e, out string fullPath)) return;
 
@@ -27,7 +27,7 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
         }
 
         [ConsoleCommand(EventsCmd)]
-        [ConsoleCommandHelp("set event count by name: <event>, <domain>/<event>, <group>/<event> or <domain>/<group>/<event>")]
+        [ConsoleCommandHelp("set event count by name: <event>, <domain>/<event>, <group>/<event> or <domain>/<group>/<event>, optional /<subId> at the end (default 0)")]
         public void SetEventCount(string eventPath, int count) {
             if (!TryFindEvent(eventPath, out var e, out string fullPath)) return;
 
@@ -149,15 +149,19 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
             if (!ValidateData()) return false;
 
             string[] parts = eventPath.Split(Separator, StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length is 0 or > 3) {
-                ConsoleRunner.AppendLine($"Invalid event path {eventPath}, expected <event>, <domain>/<event>, <group>/<event> or <domain>/<group>/<event>");
+            int subId = 0;
+            bool hasSubId = parts.Length > 1 && int.TryParse(parts[^1], out subId);
+            int pathLength = hasSubId ? parts.Length - 1 : parts.Length;
+
+            if (pathLength is 0 or > 3) {
+                ConsoleRunner.AppendLine($"Invalid event path {eventPath}, expected <event>, <domain>/<event>, <group>/<event> or <domain>/<group>/<event>, optional /<subId> at the end");
                 return false;
             }
 
-            string eventName = parts[^1];
-            string domainName = parts.Length == 3 ? parts[0] : null;
-            string groupName = parts.Length == 3 ? parts[1] : null;
-            string domainOrGroupName = parts.Length == 2 ? parts[0] : null;
+            string eventName = parts[pathLength - 1];
+            string domainName = pathLength == 3 ? parts[0] : null;
+            string groupName = pathLength == 3 ? parts[1] : null;
+            string domainOrGroupName = pathLength == 2 ? parts[0] : null;
 
             var domains = _data.EventDomains;
 
@@ -180,8 +184,8 @@ namespace MisterGames.ConsoleCommandsLib.Modules {
                         var entry = group.events[k];
                         if (!NameEquals(entry.name, eventName)) continue;
 
-                        e = new EventReference(domain, entry.id);
-                        fullPath = GetEventPath(domain.name, group.name, entry.name);
+                        e = new EventReference(domain, entry.id, subId);
+                        fullPath = $"{GetEventPath(domain.name, group.name, entry.name)}{Separator}{subId}";
                         return true;
                     }
                 }
