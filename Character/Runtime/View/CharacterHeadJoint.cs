@@ -11,6 +11,7 @@ namespace MisterGames.Character.View {
         public bool IsAttached => _mode != Mode.Free;
         
         private readonly Dictionary<Transform, AttachData> _attachedObjectsMap = new();
+        private readonly Dictionary<Transform, Vector3> _obstacleOffsetsMap = new();
         private readonly Dictionary<Transform, RotationData> _rotationsMap = new();
         private readonly HashSet<Transform> _rotationObjects = new();
 
@@ -98,11 +99,13 @@ namespace MisterGames.Character.View {
                 radius = radius,
             };
 
+            _obstacleOffsetsMap.TryAdd(obj, obj.position - point);
             _attachedObjectsHeadPosition = position;
         }
 
         public void DetachObject(Transform obj) {
             _attachedObjectsMap.Remove(obj);
+            _obstacleOffsetsMap.Remove(obj);
         }
 
         public void RotateObject(
@@ -135,15 +138,16 @@ namespace MisterGames.Character.View {
             UpdatePosition(ref position, rotationOffset, orientation, dt);
         }
 
-        public void UpdateAttachedObjects(
+        public Vector3 UpdateAttachedObjects(
             Vector3 position,
             Quaternion rotation,
             Vector2 delta,
             float dt,
             IAttachedObjectObstacleChecker obstacleChecker = null
         ) {
-            UpdateAttachedObjects(position, rotation, dt, obstacleChecker);
+            var maxObstacleOffset = UpdateAttachedObjects(position, rotation, dt, obstacleChecker);
             UpdateRotationObjects(rotation, delta, dt);
+            return maxObstacleOffset;
         }
 
         private void UpdatePosition(ref Vector3 position, Quaternion rotationOffset, Vector2 orientation, float dt) {
@@ -182,7 +186,7 @@ namespace MisterGames.Character.View {
             }
         }
 
-        private void UpdateAttachedObjects(
+        private Vector3 UpdateAttachedObjects(
             Vector3 position,
             Quaternion orientation,
             float dt,
@@ -190,16 +194,31 @@ namespace MisterGames.Character.View {
         ) {
             var headDelta = position - _attachedObjectsHeadPosition;
             _attachedObjectsHeadPosition = position;
+            var maxObstacleOffset = Vector3.zero;
+            float maxDistanceDeficit = 0f;
 
             foreach (var (obj, data) in _attachedObjectsMap) {
                 var rot = orientation * Quaternion.Inverse(data.orientation);
-                var targetPos = position + rot * data.offset;
+                var attachVector = rot * data.offset;
+                var targetPos = position + attachVector;
+                var obstacleOffset = _obstacleOffsetsMap.GetValueOrDefault(obj);
                 var smoothPos = data.smoothing > 0f
-                    ? Vector3.Lerp(obj.position + headDelta, targetPos, data.smoothing * dt)
+                    ? Vector3.Lerp(obj.position - obstacleOffset + headDelta, targetPos, data.smoothing * dt)
                     : targetPos;
-                
-                if (obstacleChecker != null) smoothPos = obstacleChecker.AdjustObjectPosition(obj, smoothPos, data.radius);
-                
+
+                if (obstacleChecker != null) {
+                    smoothPos = obstacleChecker.AdjustObjectPosition(obj, smoothPos, data.radius, ref obstacleOffset, dt);
+                    _obstacleOffsetsMap[obj] = obstacleOffset;
+
+                    float attachDistance = attachVector.magnitude;
+                    float distanceDeficit = attachDistance - Vector3.Distance(position, smoothPos);
+
+                    if (attachDistance > 0f && distanceDeficit > maxDistanceDeficit) {
+                        maxDistanceDeficit = distanceDeficit;
+                        maxObstacleOffset = -attachVector / attachDistance * distanceDeficit;
+                    }
+                }
+
                 obj.position = smoothPos;
                 
                 if (_rotationObjects.Contains(obj)) continue;
@@ -209,6 +228,8 @@ namespace MisterGames.Character.View {
                     ? Quaternion.Slerp(obj.rotation, targetRot, data.smoothing * dt)
                     : targetRot;
             }
+
+            return maxObstacleOffset;
         }
 
         private void UpdateRotationObjects(Quaternion orientation, Vector2 delta, float dt) {

@@ -38,6 +38,8 @@ namespace MisterGames.Character.View {
         [SerializeField] private LayerMask _layerMask;
         [SerializeField] [Min(1)] private int _maxHits = 6;
         [SerializeField] [Min(0f)] private float _objectObstacleOffset = 0.05f;
+        [SerializeField] [Min(0f)] private float _objectObstacleSmoothing = 20f;
+        [SerializeField] [Min(0f)] private float _headObstacleOffsetSmoothing = 10f;
 
         public bool IsAttached => _headJoint.IsAttached;
 
@@ -45,6 +47,8 @@ namespace MisterGames.Character.View {
             get => _head.position;
             set => _head.position = value;
         }
+
+        public Vector3 HeadBasePosition => _head.position - HeadParentToWorld(_headObstacleOffsetLocal);
 
         public Vector3 HeadLocalPosition {
             get => _head.localPosition;
@@ -88,6 +92,8 @@ namespace MisterGames.Character.View {
         private readonly Dictionary<IViewProcessor, int> _processorIndexMap = new();
         private readonly List<IViewProcessor> _processorList = new();
         
+        private const float MinCastDistance = 0.0001f;
+
         private readonly CharacterHeadJoint _headJoint = new();
         private CancellationTokenSource _enableCts;
         private IDeviceService _deviceService;
@@ -107,6 +113,7 @@ namespace MisterGames.Character.View {
         private Quaternion _headRotation = Quaternion.identity;
         private Quaternion _bodyRotation = Quaternion.identity;
         private Vector2 _inputResidual;
+        private Vector3 _headObstacleOffsetLocal;
 
         private RaycastHit[] _hits;
 
@@ -157,7 +164,7 @@ namespace MisterGames.Character.View {
         }
         
         public void AttachObject(Transform obj, Vector3 point, float smoothing = 0f, float radius = 0f) {
-            _headJoint.AttachObject(obj, point, _head.position, (_gravityRotation * _headRotation).ToEulerAngles180(), smoothing, radius);
+            _headJoint.AttachObject(obj, point, HeadBasePosition,(_gravityRotation * _headRotation).ToEulerAngles180(), smoothing, radius);
         }
 
         public void DetachObject(Transform obj) {
@@ -291,7 +298,8 @@ namespace MisterGames.Character.View {
         }
         
         private void ProcessHeadUpdate(float dt) {
-            var position = _head.position;
+            var lastHeadObstacleOffset = HeadParentToWorld(_headObstacleOffsetLocal);
+            var position = _head.position - lastHeadObstacleOffset;
             var delta = ConsumeInputDelta(dt);
             var currentOrientation = (Vector2) _headRotation.ToEulerAngles180();
             var targetOrientation = currentOrientation + _inputResidual + delta;
@@ -321,11 +329,17 @@ namespace MisterGames.Character.View {
             ApplyAttach(ref position, targetOrientation, dt);
             ApplyClamp(position, ref currentOrientation, ref targetOrientation, dt: 0f);
             
-            // Position is applied before the attached objects:
-            // their obstacle check casts from the head position of the current frame.
+            // Position and rotation are applied before the attached objects:
+            // their obstacle check casts from the head position and direction of the current frame.
             ApplyPosition(position);
-            ApplyAttachedObjects(position, targetOrientation, delta, dt);
             ApplyRotation(targetOrientation, dt);
+            var targetHeadObstacleOffset = ApplyAttachedObjects(position, targetOrientation, delta, dt);
+            var headObstacleOffset = GetHeadObstacleOffset(
+                position,
+                lastHeadObstacleOffset.SmoothExpNonZero(targetHeadObstacleOffset, _headObstacleOffsetSmoothing, dt)
+            );
+            _headObstacleOffsetLocal = WorldToHeadParent(headObstacleOffset);
+            ApplyPosition(position + headObstacleOffset);
             ApplyCameraState();
             
             CleanupProcessors();
@@ -348,17 +362,47 @@ namespace MisterGames.Character.View {
             _headJoint.UpdateSelf(ref position, _gravityRotation, orientation, dt);
         }
         
-        private void ApplyAttachedObjects(Vector3 position, Vector2 orientation, Vector2 delta, float dt) {
-            _headJoint.UpdateAttachedObjects(position, _gravityRotation * Quaternion.Euler(orientation), delta, dt, this);
+        private Vector3 ApplyAttachedObjects(Vector3 position, Vector2 orientation, Vector2 delta, float dt) {
+#if UNITY_EDITOR
+            _obstacleDebugMap.Clear();
+#endif
+            return _headJoint.UpdateAttachedObjects(position, _gravityRotation * Quaternion.Euler(orientation), delta, dt, this);
         }
 
-        Vector3 IAttachedObjectObstacleChecker.AdjustObjectPosition(Transform root, Vector3 position, float radius) {
+        private Vector3 GetHeadObstacleOffset(Vector3 position, Vector3 offset) {
+            float distance = offset.magnitude;
+            if (distance <= MinCastDistance) return Vector3.zero;
+
+            var dir = offset / distance;
+            var castOrigin = position - dir * _objectObstacleOffset;
+
+            return CastFromCamera(castOrigin, dir, distance + _objectObstacleOffset, _objectObstacleOffset, null, out var hit)
+                ? dir * Mathf.Max(0f, hit.distance - _objectObstacleOffset)
+                : offset;
+        }
+
+        private Vector3 HeadParentToWorld(Vector3 localOffset) {
+            var parent = _head.parent;
+            return parent == null ? localOffset : parent.TransformVector(localOffset);
+        }
+
+        private Vector3 WorldToHeadParent(Vector3 offset) {
+            var parent = _head.parent;
+            return parent == null ? offset : parent.InverseTransformVector(offset);
+        }
+
+        public Vector3 AdjustObjectPosition(Transform root, Vector3 position, float radius, ref Vector3 obstacleOffset, float dt) {
+            obstacleOffset = obstacleOffset.SmoothExpNonZero(GetObstacleFreePosition(root, position, radius) - position, _objectObstacleSmoothing, dt);
+            return position + obstacleOffset;
+        }
+
+        private Vector3 GetObstacleFreePosition(Transform root, Vector3 position, float radius) {
             float castRadius = radius + _objectObstacleOffset;
             var castOrigin = _head.position - HeadDirection * castRadius;
             var vector = position - castOrigin;
             float castDistance = vector.magnitude;
 
-            if (castDistance <= 0f) return position;
+            if (castDistance <= MinCastDistance) return position;
 
             var dir = vector / castDistance;
 

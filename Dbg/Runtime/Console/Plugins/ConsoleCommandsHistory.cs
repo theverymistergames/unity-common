@@ -59,6 +59,7 @@ namespace MisterGames.Dbg.Console.Plugins {
         private void OnHideConsole() {
             UnsubscribeHistoryInput();
             UnsubscribeConsoleInput();
+            _historyPointer = _commandHistory.Count;
         }
 
         private void OnBeforeRunCommand(string input) {

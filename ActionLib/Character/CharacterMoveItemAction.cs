@@ -57,7 +57,9 @@ namespace MisterGames.ActionLib.Character {
             var view = context.GetComponent<CharacterViewPipeline>();
             
             if (detachOnStart) view.DetachObject(item);
-            
+
+            bool attachDuringMove = targetType == TargetType.Head && attachOnFinish && !detachOnStart && !useBodyRotation;
+
             Vector3 targetStartPosition;
             Quaternion targetStartRotation;
             
@@ -66,7 +68,7 @@ namespace MisterGames.ActionLib.Character {
 
             switch (targetType) {
                 case TargetType.Head: {
-                    targetStartPosition = view.HeadPosition;
+                    targetStartPosition = attachDuringMove ? view.HeadBasePosition : view.HeadPosition;
                     targetStartRotation = useBodyRotation ? view.BodyRotation : view.HeadRotation;
                     break;
                 }
@@ -103,14 +105,16 @@ namespace MisterGames.ActionLib.Character {
             float pathLength = BezierExtensions.GetBezier3PointsLength(startPoint, curvePoint, finalPoint);
             float speed = pathLength > 0f && this.speed > 0f ? this.speed / pathLength : float.MaxValue;
             float t = 0f;
-            
+            var position = startPoint;
+            var obstacleOffset = Vector3.zero;
+
             while (!cancellationToken.IsCancellationRequested) {
                 Vector3 targetPosition;
                 Quaternion targetRotation;
                 
                 switch (targetType) { 
                     case TargetType.Head: {
-                        targetPosition = view.HeadPosition;
+                        targetPosition = attachDuringMove ? view.HeadBasePosition : view.HeadPosition;
                         targetRotation = useBodyRotation ? view.BodyRotation : view.HeadRotation;
                         break;
                     }
@@ -136,15 +140,23 @@ namespace MisterGames.ActionLib.Character {
                 float dt = useUnscaledTime ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime;
                 t = Mathf.Clamp01(t + dt * speed);
 
-                var position = BezierExtensions.EvaluateBezier3Points(
+                position = BezierExtensions.EvaluateBezier3Points(
                     startPoint,
                     curvePoint,
                     finalPoint,
                     progressCurve.Evaluate(t)
                 );
-                
-                item.position = position;
+
                 item.rotation = Quaternion.Slerp(startRotation, finalRotation, rotationCurve.Evaluate(t));
+
+                if (attachDuringMove) {
+                    view.AttachObject(item, position, attachSmoothing, attachRadius);
+                }
+                else {
+                    item.position = attachRadius > 0f
+                        ? view.AdjustObjectPosition(item, position, attachRadius, ref obstacleOffset, dt)
+                        : position;
+                }
 
                 if (t >= 1f) break;
                 
@@ -155,15 +167,18 @@ namespace MisterGames.ActionLib.Character {
                 await UniTask.Yield(PlayerLoopTiming.PostLateUpdate);
             }
       
-            if (cancellationToken.IsCancellationRequested) return;
-            
+            if (cancellationToken.IsCancellationRequested) {
+                if (attachDuringMove) view.DetachObject(item);
+                return;
+            }
+
 #if UNITY_EDITOR
             DebugExt.DrawSphere(item.position, 0.01f, Color.green, duration: 5f);
 #endif
 
             if (enableColliderOnFinish && collider != null) collider.enabled = true;
 
-            if (attachOnFinish) view.AttachObject(item, item.position, attachSmoothing, attachRadius);
+            if (attachOnFinish) view.AttachObject(item, position, attachSmoothing, attachRadius);
         }
     }
     
