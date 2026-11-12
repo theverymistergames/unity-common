@@ -6,6 +6,7 @@ using MisterGames.Actors;
 using MisterGames.Character.Input;
 using MisterGames.Character.Motion;
 using MisterGames.Collisions.Utils;
+using MisterGames.Common;
 using MisterGames.Common.Async;
 using MisterGames.Common.Inputs;
 using MisterGames.Common.Maths;
@@ -35,7 +36,6 @@ namespace MisterGames.Character.View {
 
         [Header("Attached Objects")]
         [SerializeField] private LayerMask _layerMask;
-        [SerializeField] [Min(0f)] private float _raycastMargin = 0.02f;
         [SerializeField] [Min(1)] private int _maxHits = 6;
         [SerializeField] [Min(0f)] private float _objectObstacleOffset = 0.05f;
 
@@ -156,12 +156,15 @@ namespace MisterGames.Character.View {
             _processorList[index] = null;
         }
         
-        public void AttachObject(Transform obj, Vector3 point, float smoothing = 0f) {
-            _headJoint.AttachObject(obj, point, _head.position, (_gravityRotation * _headRotation).ToEulerAngles180(), smoothing);
+        public void AttachObject(Transform obj, Vector3 point, float smoothing = 0f, float radius = 0f) {
+            _headJoint.AttachObject(obj, point, _head.position, (_gravityRotation * _headRotation).ToEulerAngles180(), smoothing, radius);
         }
-        
+
         public void DetachObject(Transform obj) {
             _headJoint.DetachObject(obj);
+#if UNITY_EDITOR
+            _obstacleDebugMap.Remove(obj);
+#endif
         }
         
         public void RotateObject(Transform obj, Vector3 sensitivity, Quaternion rotationOffset, RotationPlane plane = RotationPlane.XY, float smoothing = 0f) {
@@ -349,39 +352,56 @@ namespace MisterGames.Character.View {
             _headJoint.UpdateAttachedObjects(position, _gravityRotation * Quaternion.Euler(orientation), delta, dt, this);
         }
 
-        Vector3 IAttachedObjectObstacleChecker.AdjustObjectPosition(Transform root, Vector3 position) {
-            if (!RaycastFromCamera(position, root, out var hit)) return position;
+        Vector3 IAttachedObjectObstacleChecker.AdjustObjectPosition(Transform root, Vector3 position, float radius) {
+            float castRadius = radius + _objectObstacleOffset;
+            var castOrigin = _head.position - HeadDirection * castRadius;
+            var vector = position - castOrigin;
+            float castDistance = vector.magnitude;
 
-            var origin = _head.position;
-            var dir = (position - origin).normalized;
+            if (castDistance <= 0f) return position;
 
-            // Hit is projected on the line from the camera to the object,
-            // so the object is moved strictly along this line.
-            float hitDistance = Vector3.Dot(hit.point - origin, dir);
-            float maxDistance = Mathf.Max(0f, hitDistance - _objectObstacleOffset);
+            var dir = vector / castDistance;
 
-            return Vector3.Dot(position - origin, dir) > maxDistance
-                ? origin + dir * maxDistance
-                : position;
+            bool hasHit = CastFromCamera(castOrigin, dir, castDistance, castRadius, root, out var hit);
+            var result = hasHit ? castOrigin + dir * hit.distance : position;
+
+#if UNITY_EDITOR
+            _obstacleDebugMap[root] = new ObstacleDebugData {
+                castOrigin = castOrigin,
+                castEnd = castOrigin + dir * castDistance,
+                castRadius = castRadius,
+                radius = radius,
+                position = position,
+                result = result,
+                hasHit = hasHit,
+                hitPoint = hit.point,
+            };
+#endif
+
+            return result;
         }
 
-        private bool RaycastFromCamera(Vector3 toPoint, Transform ignoreRoot, out RaycastHit hit) {
+        private bool CastFromCamera(Vector3 origin, Vector3 dir, float distance, float radius, Transform ignoreRoot, out RaycastHit hit) {
             hit = default;
 
-            var origin = _head.position;
-            var vector = toPoint - origin;
-            float distance = vector.magnitude;
-
-            if (distance <= 0f) return false;
-
-            int hitCount = Physics.RaycastNonAlloc(
-                origin,
-                vector / distance,
-                _hits,
-                distance + _raycastMargin,
-                _layerMask,
-                QueryTriggerInteraction.Ignore
-            );
+            int hitCount = radius > 0f
+                ? Physics.SphereCastNonAlloc(
+                    origin,
+                    radius,
+                    dir,
+                    _hits,
+                    distance,
+                    _layerMask,
+                    QueryTriggerInteraction.Ignore
+                )
+                : Physics.RaycastNonAlloc(
+                    origin,
+                    dir,
+                    _hits,
+                    distance,
+                    _layerMask,
+                    QueryTriggerInteraction.Ignore
+                );
 
             _hits
                 .RemoveInvalidHits(ref hitCount)
@@ -495,6 +515,37 @@ namespace MisterGames.Character.View {
             
             _processorList.RemoveRange(validCount, count - validCount);
         }
+
+#if UNITY_EDITOR
+        private readonly Dictionary<Transform, ObstacleDebugData> _obstacleDebugMap = new();
+
+        private struct ObstacleDebugData {
+            public Vector3 castOrigin;
+            public Vector3 castEnd;
+            public float castRadius;
+            public float radius;
+            public Vector3 position;
+            public Vector3 result;
+            public bool hasHit;
+            public Vector3 hitPoint;
+        }
+
+        private void OnDrawGizmos() {
+            if (!Application.isPlaying) return;
+
+            foreach (var data in _obstacleDebugMap.Values) {
+                DebugExt.DrawSphereCast(data.castOrigin, data.castEnd, data.castRadius, data.hasHit ? Color.red : Color.yellow, gizmo: true);
+                DebugExt.DrawSphere(data.position, data.radius, Color.white, gizmo: true);
+
+                if (!data.hasHit) continue;
+
+                DebugExt.DrawSphere(data.hitPoint, 0.01f, Color.red, gizmo: true);
+                DebugExt.DrawLine(data.position, data.result, Color.cyan, gizmo: true);
+                DebugExt.DrawSphere(data.result, data.radius, Color.green, gizmo: true);
+                DebugExt.DrawSphere(data.result, data.castRadius, Color.cyan, gizmo: true);
+            }
+        }
+#endif
     }
 
 }

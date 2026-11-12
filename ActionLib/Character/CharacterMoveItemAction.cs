@@ -36,6 +36,7 @@ namespace MisterGames.ActionLib.Character {
         public bool detachOnStart;
         public bool attachOnFinish;
         [Min(0f)] public float attachSmoothing;
+        [Min(0f)] public float attachRadius = 0.1f;
         
         [Header("Collider Options")]
         public bool disableColliderOnStart;
@@ -162,7 +163,7 @@ namespace MisterGames.ActionLib.Character {
 
             if (enableColliderOnFinish && collider != null) collider.enabled = true;
 
-            if (attachOnFinish) view.AttachObject(item, item.position, attachSmoothing);
+            if (attachOnFinish) view.AttachObject(item, item.position, attachSmoothing, attachRadius);
         }
     }
     

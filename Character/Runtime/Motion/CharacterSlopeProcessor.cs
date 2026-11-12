@@ -45,11 +45,6 @@ namespace MisterGames.Character.Motion {
             SlopeAngle = axis == default ? 0f : Vector3.SignedAngle(up, normal, axis.normalized);
         }
 
-        bool IMotionProcessor.ProcessOrientation(ref Quaternion orientation, out int priority) {
-            priority = 0;
-            return false;
-        }
-
         void IMotionProcessor.ProcessInputSpeed(ref float speed, float dt) {
             
         }

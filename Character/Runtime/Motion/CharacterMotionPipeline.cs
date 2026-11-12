@@ -33,6 +33,7 @@ namespace MisterGames.Character.Motion {
         public Vector3 MotionDirWorld { get; private set; }
         public Vector3 MotionNormal { get; private set; }
         public Vector3 InputDirWorld { get; private set; }
+        public Vector2 InputRaw { get; private set; }
         public Vector2 Input { get; private set; }
         public Vector3 Up => _transform.up;
         
@@ -154,6 +155,7 @@ namespace MisterGames.Character.Motion {
         }
         
         private void HandleMotionInput(Vector2 input) {
+            InputRaw = input;
             ApplyProcessorsForInputVector(ref input);
             Input = input;
         }

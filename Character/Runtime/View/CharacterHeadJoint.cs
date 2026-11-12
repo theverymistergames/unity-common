@@ -36,8 +36,9 @@ namespace MisterGames.Character.View {
             public Quaternion rotation;
             public Quaternion orientation;
             public float smoothing;
+            public float radius;
         }
-        
+
         private struct RotationData {
             public Vector3 sensitivity;
             public float smoothing;
@@ -88,12 +89,13 @@ namespace MisterGames.Character.View {
             _mode = Mode.Free;
         }
 
-        public void AttachObject(Transform obj, Vector3 point, Vector3 position, Vector2 orientation, float smoothing = 0f) {
+        public void AttachObject(Transform obj, Vector3 point, Vector3 position, Vector2 orientation, float smoothing = 0f, float radius = 0f) {
             _attachedObjectsMap[obj] = new AttachData {
                 offset = point - position,
                 rotation = obj.rotation,
                 orientation = Quaternion.Euler(orientation),
                 smoothing = smoothing,
+                radius = radius,
             };
 
             _attachedObjectsHeadPosition = position;
@@ -196,7 +198,7 @@ namespace MisterGames.Character.View {
                     ? Vector3.Lerp(obj.position + headDelta, targetPos, data.smoothing * dt)
                     : targetPos;
                 
-                if (obstacleChecker != null) smoothPos = obstacleChecker.AdjustObjectPosition(obj, smoothPos);
+                if (obstacleChecker != null) smoothPos = obstacleChecker.AdjustObjectPosition(obj, smoothPos, data.radius);
                 
                 obj.position = smoothPos;
                 

@@ -5,10 +5,10 @@ using MisterGames.Common.Data;
 namespace MisterGames.Actors
 {
     
-    public readonly struct ComponentCollection<T> where T : class {
-        
-        private readonly MultiValueDictionary<Type, object>.ValueCollection _valueCollection;
-        private readonly List<IActorComponent>.Enumerator _list;
+    public struct ComponentCollection<T> where T : class {
+
+        private MultiValueDictionary<Type, object>.ValueCollection _valueCollection;
+        private List<IActorComponent>.Enumerator _list;
         private readonly bool useList;
         
         public ComponentCollection(MultiValueDictionary<Type, object> source) {

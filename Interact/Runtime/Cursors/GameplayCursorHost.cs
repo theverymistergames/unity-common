@@ -177,6 +177,13 @@ namespace MisterGames.Interact.Cursors {
         }
         
         private void SetCursorIcon(CursorIcon icon, bool notifyLearn = false) {
+#if UNITY_EDITOR
+            if (_debugCursorImage) {
+                SetCursorIconDebug();
+                return;
+            }
+#endif
+            
             if (!enabled || icon == null) {
                 if (_cursorImage != null) _cursorImage.enabled = false;
                 if (_helperImage != null) _helperImage.enabled = false;
@@ -297,6 +304,74 @@ namespace MisterGames.Interact.Cursors {
 
             _saveService.Set(_learnDataKey, 0, _learnData);
         }
+
+#if UNITY_EDITOR
+        [Header("Debug")]
+        [SerializeField] private bool _debugCursorImage;
+        [SerializeField] private InputDeviceType _debugDeviceType;
+        [SerializeField] private CursorIcon _debugCursorIcon;
+
+        private void OnValidate() {
+            if (!Application.isPlaying || !isActiveAndEnabled || _deviceService == null) return;
+
+            if (_settings.enableCursorOverride) RefreshCursorIcon();
+            else SetCursorIcon(_settings.initialCursorIcon);
+        }
+
+        private void SetCursorIconDebug() {
+            var icon = _debugCursorIcon;
+
+            if (!enabled || icon == null) {
+                if (_cursorImage != null) _cursorImage.enabled = false;
+                if (_helperImage != null) _helperImage.enabled = false;
+                return;
+            }
+
+            var action = icon.interactionAction.Get();
+            int bindingIndex = _debugDeviceType switch {
+                InputDeviceType.KeyboardMouse => icon.interactionBindingMouse,
+                InputDeviceType.Gamepad => icon.interactionBindingGamepad,
+                _ => throw new ArgumentOutOfRangeException()
+            };
+
+            bool canShowPrompt = icon.showInteractionPrompt != CursorIcon.PromptMode.Disable &&
+                                 icon.iconsTable != null &&
+                                 action != null &&
+                                 bindingIndex >= 0 && bindingIndex < action.bindings.Count;
+
+            if (_cursorImage != null) {
+                _cursorImage.color = icon.tint;
+                _cursorImage.enabled = true;
+
+                if (canShowPrompt && icon.showInteractionPrompt == CursorIcon.PromptMode.ReplaceCursor) {
+                    _cursorImage.sprite = icon.iconsTable.GetSprite(action.bindings[bindingIndex]);
+                    var rect = _cursorImage.rectTransform;
+                    rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, icon.promptSize.x);
+                    rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, icon.promptSize.y);
+                }
+                else {
+                    _cursorImage.sprite = icon.sprite;
+                    var rect = _cursorImage.rectTransform;
+                    rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, icon.size.x);
+                    rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, icon.size.y);
+                }
+            }
+
+            if (_helperImage != null) {
+                if (canShowPrompt && icon.showInteractionPrompt == CursorIcon.PromptMode.ShowAdditive) {
+                    _helperImage.sprite = icon.iconsTable.GetSprite(action.bindings[bindingIndex]);
+                    _helperImage.color = icon.tint;
+                    _helperImage.enabled = true;
+                    var rect = _helperImage.rectTransform;
+                    rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, icon.promptSize.x);
+                    rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, icon.promptSize.y);
+                }
+                else {
+                    _helperImage.enabled = false;
+                }
+            }
+        }
+#endif
     }
 
 }
