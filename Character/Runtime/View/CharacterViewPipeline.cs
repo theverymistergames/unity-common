@@ -163,8 +163,8 @@ namespace MisterGames.Character.View {
             _processorList[index] = null;
         }
         
-        public void AttachObject(Transform obj, Vector3 point, float smoothing = 0f, float radius = 0f) {
-            _headJoint.AttachObject(obj, point, HeadBasePosition,(_gravityRotation * _headRotation).ToEulerAngles180(), smoothing, radius);
+        public void AttachObject(Transform obj, Vector3 point, float distance, float smoothing = 0f, float radius = 0f) {
+            _headJoint.AttachObject(obj, point, HeadBasePosition,(_gravityRotation * _headRotation).ToEulerAngles180(), distance, smoothing, radius);
         }
 
         public void DetachObject(Transform obj) {

@@ -36,6 +36,7 @@ namespace MisterGames.Character.View {
             public Vector3 offset;
             public Quaternion rotation;
             public Quaternion orientation;
+            public float distance;
             public float smoothing;
             public float radius;
         }
@@ -90,11 +91,12 @@ namespace MisterGames.Character.View {
             _mode = Mode.Free;
         }
 
-        public void AttachObject(Transform obj, Vector3 point, Vector3 position, Vector2 orientation, float smoothing = 0f, float radius = 0f) {
+        public void AttachObject(Transform obj, Vector3 point, Vector3 position, Vector2 orientation, float distance, float smoothing = 0f, float radius = 0f) {
             _attachedObjectsMap[obj] = new AttachData {
                 offset = point - position,
                 rotation = obj.rotation,
                 orientation = Quaternion.Euler(orientation),
+                distance = distance,
                 smoothing = smoothing,
                 radius = radius,
             };
@@ -211,7 +213,7 @@ namespace MisterGames.Character.View {
                     _obstacleOffsetsMap[obj] = obstacleOffset;
 
                     float attachDistance = attachVector.magnitude;
-                    float distanceDeficit = attachDistance - Vector3.Distance(position, smoothPos);
+                    float distanceDeficit = data.distance - Vector3.Distance(position, smoothPos);
 
                     if (attachDistance > 0f && distanceDeficit > maxDistanceDeficit) {
                         maxDistanceDeficit = distanceDeficit;

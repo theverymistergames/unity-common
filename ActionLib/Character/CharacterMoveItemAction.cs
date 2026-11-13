@@ -150,7 +150,7 @@ namespace MisterGames.ActionLib.Character {
                 item.rotation = Quaternion.Slerp(startRotation, finalRotation, rotationCurve.Evaluate(t));
 
                 if (attachDuringMove) {
-                    view.AttachObject(item, position, attachSmoothing, attachRadius);
+                    view.AttachObject(item, position, finalPointOffset.magnitude, attachSmoothing, attachRadius);
                 }
                 else {
                     item.position = attachRadius > 0f
@@ -178,7 +178,7 @@ namespace MisterGames.ActionLib.Character {
 
             if (enableColliderOnFinish && collider != null) collider.enabled = true;
 
-            if (attachOnFinish) view.AttachObject(item, position, attachSmoothing, attachRadius);
+            if (attachOnFinish) view.AttachObject(item, position, Vector3.Distance(position, view.HeadBasePosition), attachSmoothing, attachRadius);
         }
     }
     
