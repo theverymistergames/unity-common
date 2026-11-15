@@ -218,7 +218,7 @@ namespace MisterGames.Logic.ShadersWarmup {
         }
 
         private void UnloadForDevelopmentBuild() {
-            if (_settings.EnableTracingInDevBuild) EndTracingAndSaveToLocalFile();
+            if (_settings.EnableTracingInDevBuild && _graphicsStateCollection != null) EndTracingAndSaveToLocalFile();
         }
 
         private UniTask LoadForReleaseBuild(CancellationToken ct) {
