@@ -21,6 +21,7 @@ namespace MisterGames.Character.Motion {
         [Header("Submerge")]
         [SerializeField] private int _orientationPriority = 1;
         [SerializeField] [Min(0f)] private float _underwaterSpeed = 1f;
+        [SerializeField] [Min(0f)] private float _underwaterSpeedRun = 2f;
         [SerializeField] [Min(0f)] private float _underwaterForceUp = 5f;
         [SerializeField] private float _lowerPoint;
         [SerializeField] private float _topPoint;
@@ -86,7 +87,8 @@ namespace MisterGames.Character.Motion {
         }
 
         void IMotionProcessor.ProcessInputSpeed(ref float speed, float dt) {
-            speed = Mathf.Lerp(speed, _underwaterSpeed, RemapWeight(SubmergeWeight, _speedWeightRemap));
+            float waterSpeed = _inputPipeline.IsRunPressed ? _underwaterSpeedRun : _underwaterSpeed;
+            speed = Mathf.Lerp(speed, waterSpeed, RemapWeight(SubmergeWeight, _speedWeightRemap));
         }
 
         void IMotionProcessor.ProcessInputForce(ref Vector3 inputForce, Vector3 desiredVelocity, float dt) {

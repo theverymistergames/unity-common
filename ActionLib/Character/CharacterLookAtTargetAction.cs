@@ -53,7 +53,7 @@ namespace MisterGames.ActionLib.Character {
                     _ => throw new ArgumentOutOfRangeException()
                 };
                 
-                t += dt * speed;
+                t = Mathf.Clamp01(t + dt * speed);
                 
                 var rotationOffset = targetRotation * Quaternion.Inverse(startTargetRotation);
                 var rot = Quaternion.Slerp(startRotation * rotationOffset, targetRotation, progressCurve.Evaluate(t));

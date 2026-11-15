@@ -33,7 +33,7 @@ namespace MisterGames.ActionLib.Character {
             
             while (!cancellationToken.IsCancellationRequested) {
                 float dt = useUnscaledTime ? TimeSources.unscaledDeltaTime : TimeSources.deltaTime;
-                t += dt * speed;
+                t = Mathf.Clamp01(t + dt * speed);
                 
                 var rot = Quaternion.Slerp(startRotation, targetRotation, progressCurve.Evaluate(t));
                 

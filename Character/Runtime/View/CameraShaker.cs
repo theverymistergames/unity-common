@@ -56,7 +56,6 @@ namespace MisterGames.Character.View {
             _rotationMap[id] = default;
             
             PlayerLoopStage.LateUpdate.Subscribe(this);
-            
             return id;
         }
 

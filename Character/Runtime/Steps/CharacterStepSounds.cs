@@ -5,10 +5,12 @@ using Cysharp.Threading.Tasks;
 using MisterGames.Actors;
 using MisterGames.Character.Capsule;
 using MisterGames.Character.Motion;
+using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Detectors;
 using MisterGames.Common.Async;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Audio;
+using MisterGames.Common.Data;
 using MisterGames.Common.Labels;
 using MisterGames.Common.Maths;
 using MisterGames.Common.Tick;
@@ -131,11 +133,7 @@ namespace MisterGames.Character.Steps {
             if (!ignoreCooldown && time < _nextStepSoundTime) return;
 
             _nextStepSoundTime = time + (cooldown < 0f ? _playSoundCooldown : cooldown);
-
-            var up = _capsulePipeline.Root.up;
-            var point = _capsulePipeline.GetColliderBottomPoint(_capsulePipeline.Radius);
-            
-            var materials = _materialDetector.GetMaterials(point, up);
+            var materials = GetMaterials();
             
             for (int i = 0; i < materials.Count; i++) {
                 var info = materials[i];
@@ -163,7 +161,18 @@ namespace MisterGames.Character.Steps {
             }
         }
 
-
+        private IReadOnlyList<MaterialInfo> GetMaterials() {
+#if UNITY_EDITOR
+            if (_debugMaterial.HasValue) {
+                return new MaterialInfo[] { new(_debugMaterial.Value.GetValue(), 1f) };
+            }
+#endif
+            
+            var up = _capsulePipeline.Root.up;
+            var point = _capsulePipeline.GetColliderBottomPoint(_capsulePipeline.Radius);
+            return _materialDetector.GetMaterials(point, up);
+        }
+        
         private void FetchMaterialIdToIndexMap() {
             _materialIdToIndexMap.Clear();
             
@@ -176,6 +185,7 @@ namespace MisterGames.Character.Steps {
 #if UNITY_EDITOR
         [SerializeField] private bool _enableDebugSound;
         [SerializeField] private AudioClip _debugSound;
+        [SerializeField] private Optional<LabelValue> _debugMaterial;
         
         private void OnValidate() {
             FetchMaterialIdToIndexMap();

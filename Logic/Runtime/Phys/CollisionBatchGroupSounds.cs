@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Detectors;
+using MisterGames.Collisions.Utils;
 using MisterGames.Common.Attributes;
 using MisterGames.Common.Audio;
 using MisterGames.Common.Easing;
@@ -77,7 +78,7 @@ namespace MisterGames.Logic.Phys {
         }
         
         private readonly Dictionary<(int material, int surface), (int group, int item)> _materialPairToIndexMap = new();
-        private readonly Dictionary<int, RbData> _lastRbDataMap = new();
+        private readonly Dictionary<EntityId, RbData> _lastRbDataMap = new();
         private readonly Dictionary<EntityId, int> _colliderMaterialMap = new();
         private readonly List<MaterialInfo> _materialList = new();
 
@@ -97,18 +98,20 @@ namespace MisterGames.Logic.Phys {
             _collisionBatchGroup.OnContact -= OnContact;
         }
         
-        private void OnContact(TriggerEventType evt, Rigidbody rb, int rbMaterial, Collider collider, Vector3 point, Vector3 normal, Vector3 impulse) {
-            if (evt == TriggerEventType.Exit ||
-                _lastRbDataMap.TryGetValue(rb.GetHashCode(), out var data) && 
-                (TimeSources.scaledTime < data.soundTime + _soundCooldown || 
-                 evt == TriggerEventType.Stay && rb.position is var pos && (pos - data.point).sqrMagnitude < _distanceThreshold * _distanceThreshold)) 
+        private void OnContact(TriggerEventType evt, EntityId rigidbodyId, int rbMaterial, EntityId colliderId, Vector3 point, Vector3 normal, Vector3 impulse) {
+            if (evt == TriggerEventType.Exit || impulse.sqrMagnitude < _impulseMin * _impulseMin) return;
+
+            bool hasData = _lastRbDataMap.TryGetValue(rigidbodyId, out var data);
+
+            if (hasData && TimeSources.scaledTime < data.soundTime + _soundCooldown ||
+                CollisionUtils.GetRigidbodyByEntityId(rigidbodyId) is not { } rb ||
+                hasData && evt == TriggerEventType.Stay && (rb.position - data.point).sqrMagnitude < _distanceThreshold * _distanceThreshold ||
+                CollisionUtils.GetColliderByEntityId(colliderId) is not { } collider)
             {
                 return;
             }
 
-            if (impulse.sqrMagnitude < _impulseMin * _impulseMin) return;
-            
-            _lastRbDataMap[rb.GetHashCode()] = new RbData(TimeSources.scaledTime, rb.position);
+            _lastRbDataMap[rigidbodyId] = new RbData(TimeSources.scaledTime, rb.position);
             
             float volumeMul = _impulseMax - _impulseMin > 0f
                 ? Mathf.Lerp(_volumeMulMin, _volumeMulMax, _volumeEasing.Evaluate(impulse.magnitude - _impulseMin) / (_impulseMax - _impulseMin)) 
