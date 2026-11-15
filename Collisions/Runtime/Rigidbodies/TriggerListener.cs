@@ -50,17 +50,9 @@ namespace MisterGames.Collisions.Rigidbodies {
 
             for (int i = 0; i < _exitBuffer.Count; i++) {
                 int hash = _exitBuffer[i];
-
-                if (_hashToColliderMap.TryGetValue(hash, out var collider) && 
-                    IsAttachedRigidbodySleeping(collider)) 
-                {
-                    _colliderHashToStayFrameMap[hash] = _frameCount;
-                    continue;
-                }
-
                 _colliderHashToStayFrameMap.Remove(hash);
 
-                if (!_hashToColliderMap.Remove(hash, out collider)) continue;
+                if (!_hashToColliderMap.Remove(hash, out var collider)) continue;
 
                 _colliderSet.Remove(collider);
                 TriggerExit.Invoke(collider);
@@ -112,14 +104,6 @@ namespace MisterGames.Collisions.Rigidbodies {
             return enabled &&
                    _layerMask.Contains(collider.gameObject.layer) &&
                    (_collideWithTriggers || !collider.isTrigger);
-        }
-
-        private static bool IsAttachedRigidbodySleeping(Collider collider) {
-            return collider != null &&
-                   collider.enabled &&
-                   collider.gameObject.activeInHierarchy &&
-                   collider.attachedRigidbody is { } rb &&
-                   rb.IsSleeping();
         }
     }
 

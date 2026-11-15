@@ -22,6 +22,7 @@ namespace MisterGames.Character.Motion {
         [SerializeField] [Min(1)] private int _maxHits = 6;
         [SerializeField] [Min(1)] private int _maxHitsSweepTest = 12;
         [SerializeField] [Min(0f)] private float _sweepDistance = 0.1f;
+        [SerializeField] private float _sweepRadiusOffset = -0.05f;
         
         [Header("Resolving")]
         [SerializeField] private bool _disableIfNotUsingGravity;
@@ -77,7 +78,7 @@ namespace MisterGames.Character.Motion {
             var inputDir = Vector3.ProjectOnPlane(_motion.InputDirWorld, up).normalized;
             
             // Lower ray not detected any obstacles: do nothing
-            if (!DoubleRaycast(lowerPoint, inputDir, up, _distance, out var lowerHit)) {
+            if (DoubleRaycast(lowerPoint, inputDir, up, _distance, out var lowerHit) <= 0) {
                 return;
             }
             
@@ -85,8 +86,11 @@ namespace MisterGames.Character.Motion {
             if (_showDebugInfo) DebugExt.DrawPointer(lowerHit.point, Color.yellow);
 #endif
 
-            // Upper ray detected an obstacle: cannot climb up
-            if (DoubleRaycast(upperPoint, inputDir, up, lowerHit.distance + _maxStepDepth, out var upperHit)) {
+            int upperHitCount = DoubleRaycast(upperPoint, inputDir, up, lowerHit.distance + _maxStepDepth, out var upperHit);
+            
+            // Upper rays detected an obstacle: cannot climb up
+            if (upperHitCount >= 2 || 
+                upperHitCount == 1 && Vector3.Angle(upperHit.normal, -inputDir) <= _maxStepTopAngle) {
 #if UNITY_EDITOR
                 if (_showDebugInfo) DebugExt.DrawPointer(upperHit.point, Color.red);
 #endif
@@ -133,7 +137,9 @@ namespace MisterGames.Character.Motion {
 
         private bool HasObstacles(Vector3 origin, Vector3 direction, float distance, Vector3 up, Vector3 upperPoint) {
             _capsulePipeline.GetCapsule(out var p0, out var p1, out float radius, out _);
-
+            
+            radius = Mathf.Max(radius + _sweepRadiusOffset, 0.001f);
+            
 #if UNITY_EDITOR
             if (_showDebugInfo) DebugExt.DrawCapsuleCast(origin + p0, origin + p1, radius, direction * distance, Color.magenta);
 #endif
@@ -151,7 +157,7 @@ namespace MisterGames.Character.Motion {
             return false;
         }
         
-        private bool DoubleRaycast(Vector3 origin, Vector3 direction, Vector3 up, float distance, out RaycastHit closestHit) {
+        private int DoubleRaycast(Vector3 origin, Vector3 direction, Vector3 up, float distance, out RaycastHit closestHit) {
             var side = Vector3.Cross(direction, up);
             
             int hitCount = Physics.RaycastNonAlloc(
@@ -183,16 +189,16 @@ namespace MisterGames.Character.Motion {
             
             if (hasRightHit && hasLeftHit) {
                 closestHit = rightHit.distance < leftHit.distance ? rightHit : leftHit;
-                return true;
+                return 2;
             }
 
             if (!hasRightHit && !hasLeftHit) {
                 closestHit = default;
-                return false;
+                return 0;
             }
 
             closestHit = hasRightHit ? rightHit : leftHit;
-            return true;
+            return 1;
         }
 
 #if UNITY_EDITOR
