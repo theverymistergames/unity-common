@@ -61,6 +61,11 @@ namespace MisterGames.Logic.ShadersWarmup {
         [SerializeField] [Min(1)] private int _progressiveWarmupBatchCountPso = 128;
         [SerializeField] [Min(1)] private int _progressiveWarmupBatchCountVisualEffectAssets = 32;
 
+        [Header("Driver Cache Probe")]
+        [SerializeField] [Min(1)] private int _cacheProbeBatchCount = 4;
+        [SerializeField] [Min(0.1f)] private float _warmStageThresholdMs = 5f;
+        [SerializeField] [Min(1f)] private float _minColdToWarmBatchTimeRatio = 3f;
+
         [Header("Addressables")]
         // Warmup collection and vfx asset list reference assets directly, so those assets are built into
         // the player along with the bootstrap scene, while the game loads its own copy from a bundle.
@@ -76,6 +81,9 @@ namespace MisterGames.Logic.ShadersWarmup {
         public int ProgressiveWarmupBatchCountPso => _progressiveWarmupBatchCountPso;
         public int ProgressiveWarmupBatchCountVisualEffectAssets => _progressiveWarmupBatchCountVisualEffectAssets;
         public float SavePeriod => _traceSavePeriod;
+        public int CacheProbeBatchCount => Mathf.Max(1, _cacheProbeBatchCount);
+        public float MinColdToWarmBatchTimeRatio => _minColdToWarmBatchTimeRatio;
+        public float WarmStageThresholdSeconds => Mathf.Max(0.1f, _warmStageThresholdMs) / 1000f;
         public bool EnterShadersWarmupSceneOnBootstrapInDevBuild => _enterShadersWarmupSceneOnBootstrapInDevBuild;
         public bool EnterShadersWarmupSceneOnBootstrapInEditor => _enterShadersWarmupSceneOnBootstrapInEditor;
         public float SimulateShadersWarmupInEditorDuration => _simulateShadersWarmupInEditorDuration;

@@ -29,16 +29,22 @@ namespace MisterGames.Logic.ShadersWarmup {
         [SerializeField] private string _progressFormat = "0";
         [SerializeField] [Min(0f)] private float _epsilon = 0.1f;
 
+        [Header("Driver Cache Probe")]
+        [SerializeField] private GameObject _undecidedLoader;
+
         private ShaderWarmupSettings _settings;
         private CancellationTokenSource _cts;
         private float _lastProgress;
+        private bool _isWarmupStarted;
+        private bool _isViewRequested;
 
         private void Awake() {
             _settings = ShaderWarmupService.Instance.GetSettings();
-            
+
             AsyncExt.RecreateCts(ref _cts);
             _view.SetActive(false);
-            
+            SetUndecidedLoaderActive(false);
+
             if (ShaderWarmupService.Instance.IsWarmupCompleted) {
                 OnWarmupCompleted();
                 return;
@@ -47,24 +53,48 @@ namespace MisterGames.Logic.ShadersWarmup {
             ShaderWarmupService.Instance.OnWarmupStarted += OnWarmupStarted;
             ShaderWarmupService.Instance.OnWarmupCompleted += OnWarmupCompleted;
             ShaderWarmupService.Instance.OnWarmupProgress += OnWarmupProgress;
+            ShaderWarmupService.Instance.OnPresentationDecided += OnPresentationDecided;
         }
 
         private void OnDestroy() {
             AsyncExt.DisposeCts(ref _cts);
-            
+
             ShaderWarmupService.Instance.OnWarmupStarted -= OnWarmupStarted;
             ShaderWarmupService.Instance.OnWarmupCompleted -= OnWarmupCompleted;
             ShaderWarmupService.Instance.OnWarmupProgress -= OnWarmupProgress;
+            ShaderWarmupService.Instance.OnPresentationDecided -= OnPresentationDecided;
         }
 
         private void OnWarmupStarted() {
+            _isWarmupStarted = true;
             ApplyProgress(0f, force: true);
-            
+
+            OnPresentationDecided();
+        }
+
+        private void OnPresentationDecided() {
+            if (!_isWarmupStarted || ShaderWarmupService.Instance.IsWarmupCompleted) return;
+
+            var presentation = ShaderWarmupService.Instance.Presentation;
+            SetUndecidedLoaderActive(presentation == ShaderWarmupPresentation.Undecided);
+
+            if (presentation != ShaderWarmupPresentation.Window || _isViewRequested) return;
+
+            _isViewRequested = true;
+
             AsyncExt.RecreateCts(ref _cts);
             EnableViewDelayed(enable: true, _settings.EnableViewDelay, _settings.EnableViewFader, _cts.Token).Forget();
         }
 
         private void OnWarmupCompleted() {
+            SetUndecidedLoaderActive(false);
+
+            if (ShaderWarmupService.Instance.Presentation == ShaderWarmupPresentation.Background) {
+                AsyncExt.RecreateCts(ref _cts);
+                _view.SetActive(false);
+                return;
+            }
+
             AsyncExt.RecreateCts(ref _cts);
             EnableViewDelayed(enable: false, _settings.DisableViewDelay, _settings.DisableViewFader, _cts.Token).Forget();
         }
@@ -101,6 +131,10 @@ namespace MisterGames.Logic.ShadersWarmup {
             string v = p.ToString(_progressFormat);
             string text = string.IsNullOrWhiteSpace(_progressSurround) ? v : string.Format(_progressSurround, v);
             _header.SetText(string.Format(_headerKey.GetValue(), text));
+        }
+
+        private void SetUndecidedLoaderActive(bool active) {
+            if (_undecidedLoader != null) _undecidedLoader.SetActive(active);
         }
     }
     

@@ -11,6 +11,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.VFX;
+using Stopwatch = System.Diagnostics.Stopwatch;
 
 namespace MisterGames.Logic.ShadersWarmup {
 
@@ -22,7 +23,9 @@ namespace MisterGames.Logic.ShadersWarmup {
         public event Action<float> OnWarmupProgress = delegate { };
         public event Action OnWarmupStarted = delegate { };
         public event Action OnWarmupCompleted = delegate { };
+        public event Action OnPresentationDecided = delegate { };
         public bool IsWarmupCompleted { get; private set; }
+        public ShaderWarmupPresentation Presentation { get; private set; }
 
         public static ShaderWarmupService Instance { get; private set; }
 
@@ -49,6 +52,17 @@ namespace MisterGames.Logic.ShadersWarmup {
 
         /// <summary> How many variants to process before yielding a frame while rebinding the collection to Addressables. </summary>
         private const int RebindYieldPeriod = 256;
+
+        private const int CacheProbeTrailingFrames = 2;
+        private const int RecentFrameCount = 32;
+        private const int MinRecentFramesForMedian = 8;
+
+        private readonly float[] _recentFrameSeconds = new float[RecentFrameCount];
+        private int _recentFrameCount;
+        private int _recentFrameIndex;
+        private long _lastLateUpdateTimestamp;
+        private float _frameAllowanceSeconds = -1f;
+        private ShaderWarmupCacheProbe _cacheProbe;
 
         private CancellationTokenSource _cts;
         private GraphicsStateCollection _graphicsStateCollection;
@@ -84,8 +98,15 @@ namespace MisterGames.Logic.ShadersWarmup {
 
         public async UniTask Load() {
             AsyncExt.RecreateCts(ref _cts);
+            PlayerLoopStage.LateUpdate.Subscribe(this);
+
+            _cacheProbe = new ShaderWarmupCacheProbe(
+                GetWarmupFingerprint(),
+                _settings.MinColdToWarmBatchTimeRatio,
+                _settings.WarmStageThresholdSeconds);
 
 #if UNITY_EDITOR
+            DecidePresentation(ShaderWarmupPresentation.Window);
             await LoadForEditor(_cts.Token);
             return;
 #endif
@@ -103,6 +124,8 @@ namespace MisterGames.Logic.ShadersWarmup {
         }
 
         void IUpdate.OnUpdate(float dt) {
+            RecordFrameTime();
+
             if (!_isTracing) return;
 
             _saveTimer += dt;
@@ -184,6 +207,8 @@ namespace MisterGames.Logic.ShadersWarmup {
 
             if (_settings.EnterShadersWarmupSceneOnBootstrapInDevBuild) {
                 if (IsSceneIncludedInBuildList(_settings.WarmupSceneName)) {
+                    DecidePresentation(ShaderWarmupPresentation.Window);
+
                     Debug.LogWarning($"ShaderWarmupService.LoadForDevelopmentBuild: f {Time.frameCount}, " +
                                      $"open shaders warmup scene {_settings.WarmupSceneName} for dev build tracing. " +
                                      $"It can be disabled in {_settings}.");
@@ -212,9 +237,6 @@ namespace MisterGames.Logic.ShadersWarmup {
             EndTracingAndSaveToLocalFile();
 
             await StartWarmup(LoadReleaseCollection(), _settings.VisualEffectAssets, cancellationToken);
-            if (cancellationToken.IsCancellationRequested) return;
-
-            if (_settings.EnableTracingInDevBuild) BeginTracing();
         }
 
         private void UnloadForDevelopmentBuild() {
@@ -265,13 +287,11 @@ namespace MisterGames.Logic.ShadersWarmup {
 
         private void BeginTracing() {
             _isTracing = _graphicsStateCollection.BeginTrace();
-            PlayerLoopStage.LateUpdate.Subscribe(this);
         }
 
         private void EndTracingAndSaveToLocalFile() {
             _isTracing = false;
             _graphicsStateCollection.EndTrace();
-            PlayerLoopStage.LateUpdate.Unsubscribe(this);
 
             var localTracingCollection = LoadLocalTracingCollection();
             localTracingCollection.Append(_graphicsStateCollection);
@@ -299,10 +319,27 @@ namespace MisterGames.Logic.ShadersWarmup {
             VisualEffectAsset[] visualEffectAssets,
             CancellationToken ct)
         {
+            RunWarmup(graphicsStateCollection, visualEffectAssets, ct).Forget();
+
+            while (!IsWarmupCompleted && Presentation != ShaderWarmupPresentation.Background && !ct.IsCancellationRequested) {
+                await UniTask.Yield();
+            }
+        }
+
+        private async UniTask RunWarmup(
+            GraphicsStateCollection graphicsStateCollection,
+            VisualEffectAsset[] visualEffectAssets,
+            CancellationToken ct)
+        {
             NotifyWarmupStarted();
 
             try {
                 await WarmupRoutine(graphicsStateCollection, visualEffectAssets, ct);
+
+                if (!ct.IsCancellationRequested) {
+                    _cacheProbe.Commit();
+                    Debug.Log($"ShaderWarmupService.RunWarmup: f {Time.frameCount}, {_cacheProbe.CommitNote}");
+                }
             }
             catch (OperationCanceledException) {
                 //
@@ -313,6 +350,10 @@ namespace MisterGames.Logic.ShadersWarmup {
             finally {
                 NotifyWarmupCompleted();
             }
+
+#if DEVELOPMENT_BUILD
+            if (!ct.IsCancellationRequested && _settings.EnableTracingInDevBuild) BeginTracing();
+#endif
         }
 
         private async UniTask WarmupRoutine(
@@ -338,6 +379,8 @@ namespace MisterGames.Logic.ShadersWarmup {
                 visualEffectAssets = _addressableAssets.ResolveVisualEffectAssets(visualEffectAssets);
             }
 
+            await ProbeDriverCache(graphicsStateCollection, ct);
+
             int totalVariants = GetVariantCount(graphicsStateCollection);
             int totalVisualEffects = visualEffectAssets.Length;
             int total = totalVariants + totalVisualEffects;
@@ -347,6 +390,9 @@ namespace MisterGames.Logic.ShadersWarmup {
             float graphicsStatesShare = total > 0 ? (float) totalVariants / total : 1f;
 
             await WarmupGraphicsStates(graphicsStateCollection, 0f, graphicsStatesShare, ct);
+
+            DecidePresentation(ShaderWarmupPresentation.Background);
+
             await WarmupVisualEffects(visualEffectAssets, graphicsStatesShare, 1f, ct);
         }
 
@@ -386,6 +432,15 @@ namespace MisterGames.Logic.ShadersWarmup {
             int completed = 0;
             int idleIterations = 0;
 
+            bool measureFullRun = Presentation == ShaderWarmupPresentation.Window;
+            float frameAllowanceSeconds = _frameAllowanceSeconds >= 0f
+                ? _frameAllowanceSeconds
+                : GetNormalFrameSeconds() + GetVSyncIntervalSeconds();
+
+            int completedAtStart = graphicsStateCollection.completedWarmupCount;
+            long frameStart = Stopwatch.GetTimestamp();
+            double fullRunExcessSeconds = 0;
+
             while (!ct.IsCancellationRequested && requested < budget && requested < hardLimit) {
                 handle = graphicsStateCollection.WarmUpProgressively(batch, handle);
                 handle.Complete();
@@ -417,12 +472,21 @@ namespace MisterGames.Logic.ShadersWarmup {
                 NotifyWarmupProgress(Mathf.Lerp(progressFrom, progressTo, (float) progressDone / progressTotal));
 
                 await UniTask.Yield();
+                fullRunExcessSeconds += MeasureFrameExcess(ref frameStart, frameAllowanceSeconds);
             }
+
+            int fullRunStages = graphicsStateCollection.completedWarmupCount - completedAtStart;
+            float fullRunStageSeconds = fullRunStages > 0 ? (float) (fullRunExcessSeconds / fullRunStages) : -1f;
+
+            if (measureFullRun && !ct.IsCancellationRequested) _cacheProbe.SetFullRun(fullRunStageSeconds);
 
             Debug.Log($"ShaderWarmupService.WarmupGraphicsStates: f {Time.frameCount}, " +
                       $"variants {variantCount}, permutations requested {requested}, " +
                       $"engine completed {graphicsStateCollection.completedWarmupCount}, " +
-                      $"warmed up {graphicsStateCollection.isWarmedUp}");
+                      $"warmed up {graphicsStateCollection.isWarmedUp}, " +
+                      $"full run excess {fullRunExcessSeconds:0.00} s over {fullRunStages} stages = " +
+                      $"{(fullRunStageSeconds >= 0f ? $"{fullRunStageSeconds * 1000f:0.00} ms" : "-")} per stage" +
+                      $"{(measureFullRun ? string.Empty : " (not used: no window)")}");
 
             NotifyWarmupProgress(progressTo);
         }
@@ -585,6 +649,130 @@ namespace MisterGames.Logic.ShadersWarmup {
             {
                 ListPool<GraphicsStateCollection.ShaderVariant>.Release(variants);
             }
+        }
+
+        private string GetWarmupFingerprint() {
+            return string.Join("|",
+                Application.version,
+                Application.unityVersion,
+                SystemInfo.graphicsDeviceType,
+                SystemInfo.graphicsDeviceVendorID,
+                SystemInfo.graphicsDeviceID,
+                SystemInfo.graphicsDeviceVersion,
+                GetCurrentQualityLevelName(),
+                GetVariantCount(_settings.GetReleaseGraphicsStateCollection()),
+                _settings.VisualEffectAssets.Length);
+        }
+
+        private async UniTask ProbeDriverCache(GraphicsStateCollection graphicsStateCollection, CancellationToken ct) {
+            if (GetVariantCount(graphicsStateCollection) == 0) return;
+
+            int batch = _settings.ProgressiveWarmupBatchCountPso;
+            int probeBatchCount = _settings.CacheProbeBatchCount;
+
+            float normalFrameSeconds = GetNormalFrameSeconds();
+            float vSyncToleranceSeconds = GetVSyncIntervalSeconds();
+            _frameAllowanceSeconds = normalFrameSeconds + vSyncToleranceSeconds;
+
+            var handle = graphicsStateCollection.WarmUpProgressively(batch, new JobHandle());
+            handle.Complete();
+
+            if (graphicsStateCollection.isWarmedUp) return;
+
+            await UniTask.Yield();
+            if (ct.IsCancellationRequested) return;
+
+            int completedBefore = graphicsStateCollection.completedWarmupCount;
+            long frameStart = Stopwatch.GetTimestamp();
+            double excessSeconds = 0;
+            int measuredFrames = 0;
+            int probedBatches = 0;
+
+            while (!ct.IsCancellationRequested && probedBatches < probeBatchCount) {
+                handle = graphicsStateCollection.WarmUpProgressively(batch, handle);
+                handle.Complete();
+
+                probedBatches++;
+                bool collectionDone = graphicsStateCollection.isWarmedUp;
+
+                await UniTask.Yield();
+                excessSeconds += MeasureFrameExcess(ref frameStart, _frameAllowanceSeconds);
+                measuredFrames++;
+
+                if (collectionDone) break;
+            }
+
+            if (ct.IsCancellationRequested) return;
+
+            int stages = graphicsStateCollection.completedWarmupCount - completedBefore;
+
+            for (int i = 0; i < CacheProbeTrailingFrames && !ct.IsCancellationRequested; i++) {
+                await UniTask.Yield();
+                excessSeconds += MeasureFrameExcess(ref frameStart, _frameAllowanceSeconds);
+                measuredFrames++;
+            }
+
+            if (ct.IsCancellationRequested) return;
+
+            if (stages <= 0) stages = batch * probedBatches;
+            if (stages <= 0) return;
+
+            float stageSeconds = (float) (excessSeconds / stages);
+            bool isWarm = _cacheProbe.Decide(stageSeconds);
+
+            Debug.Log($"ShaderWarmupService.ProbeDriverCache: f {Time.frameCount}, " +
+                      $"probed batches {probedBatches}, frames {measuredFrames}, stages {stages}, " +
+                      $"frame excess {excessSeconds * 1000.0:0.0} ms over normal frame {normalFrameSeconds * 1000f:0.0} ms " +
+                      $"+ vsync tolerance {vSyncToleranceSeconds * 1000f:0.0} ms, " +
+                      $"{_cacheProbe}");
+
+            DecidePresentation(isWarm ? ShaderWarmupPresentation.Background : ShaderWarmupPresentation.Window);
+        }
+
+        private static double MeasureFrameExcess(ref long frameStart, float allowanceSeconds) {
+            long now = Stopwatch.GetTimestamp();
+            double frameSeconds = (double) (now - frameStart) / Stopwatch.Frequency;
+            frameStart = now;
+
+            return Math.Max(0.0, frameSeconds - allowanceSeconds);
+        }
+
+        private void RecordFrameTime() {
+            long now = Stopwatch.GetTimestamp();
+
+            if (_lastLateUpdateTimestamp != 0) {
+                _recentFrameSeconds[_recentFrameIndex] = (float) ((double) (now - _lastLateUpdateTimestamp) / Stopwatch.Frequency);
+                _recentFrameIndex = (_recentFrameIndex + 1) % _recentFrameSeconds.Length;
+                _recentFrameCount = Mathf.Min(_recentFrameCount + 1, _recentFrameSeconds.Length);
+            }
+
+            _lastLateUpdateTimestamp = now;
+        }
+
+        private float GetNormalFrameSeconds() {
+            if (_recentFrameCount >= MinRecentFramesForMedian) {
+                var sorted = new float[_recentFrameCount];
+                Array.Copy(_recentFrameSeconds, sorted, _recentFrameCount);
+                Array.Sort(sorted);
+
+                return sorted[_recentFrameCount / 2];
+            }
+
+            return GetVSyncIntervalSeconds();
+        }
+
+        private static float GetVSyncIntervalSeconds() {
+            int vSyncCount = QualitySettings.vSyncCount;
+            double refreshRate = Screen.currentResolution.refreshRateRatio.value;
+
+            return vSyncCount > 0 && refreshRate > 0 ? (float) (vSyncCount / refreshRate) : 0f;
+        }
+
+        private void DecidePresentation(ShaderWarmupPresentation presentation) {
+            if (Presentation != ShaderWarmupPresentation.Undecided) return;
+
+            Presentation = presentation;
+            OnPresentationDecided.Invoke();
         }
 
         private void NotifyWarmupStarted() {
