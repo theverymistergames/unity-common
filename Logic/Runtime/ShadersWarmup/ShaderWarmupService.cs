@@ -67,8 +67,6 @@ namespace MisterGames.Logic.ShadersWarmup {
         private CancellationTokenSource _cts;
         private GraphicsStateCollection _graphicsStateCollection;
         private ShaderWarmupAddressableAssets _addressableAssets;
-        private bool _isTracing;
-        private float _saveTimer;
         private bool _shaderWarmupScenePassCompleted;
 
         private void Awake() {
@@ -125,15 +123,6 @@ namespace MisterGames.Logic.ShadersWarmup {
 
         void IUpdate.OnUpdate(float dt) {
             RecordFrameTime();
-
-            if (!_isTracing) return;
-
-            _saveTimer += dt;
-            if (_saveTimer < _settings.SavePeriod) return;
-
-            _saveTimer = 0f;
-            EndTracingAndSaveToLocalFile();
-            BeginTracing();
         }
 
         private async UniTask LoadForEditor(CancellationToken cancellationToken) {
@@ -286,11 +275,10 @@ namespace MisterGames.Logic.ShadersWarmup {
         }
 
         private void BeginTracing() {
-            _isTracing = _graphicsStateCollection.BeginTrace();
+            _graphicsStateCollection.BeginTrace();
         }
 
         private void EndTracingAndSaveToLocalFile() {
-            _isTracing = false;
             _graphicsStateCollection.EndTrace();
 
             var localTracingCollection = LoadLocalTracingCollection();

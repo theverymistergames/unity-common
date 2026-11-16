@@ -19,7 +19,6 @@ namespace MisterGames.Logic.ShadersWarmup {
         [Header("Tracing")]
         [SerializeField] [ReadOnly] private string _filepath = "Shaders/pso_tracing.graphicsstate";
         [SerializeField] private bool _enableTracingInDevBuild = true;
-        [SerializeField] [Min(0f)] private float _traceSavePeriod = 10f;
 #if UNITY_EDITOR
         [SerializeField] private DefaultAsset[] _searchInFolders;
         [SerializeField] private DefaultAsset[] _searchScenesFolders;
@@ -80,7 +79,6 @@ namespace MisterGames.Logic.ShadersWarmup {
         public bool EnableTracingInDevBuild => _enableTracingInDevBuild;
         public int ProgressiveWarmupBatchCountPso => _progressiveWarmupBatchCountPso;
         public int ProgressiveWarmupBatchCountVisualEffectAssets => _progressiveWarmupBatchCountVisualEffectAssets;
-        public float SavePeriod => _traceSavePeriod;
         public int CacheProbeBatchCount => Mathf.Max(1, _cacheProbeBatchCount);
         public float MinColdToWarmBatchTimeRatio => _minColdToWarmBatchTimeRatio;
         public float WarmStageThresholdSeconds => Mathf.Max(0.1f, _warmStageThresholdMs) / 1000f;
