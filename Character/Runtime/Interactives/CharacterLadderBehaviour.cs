@@ -124,7 +124,7 @@ namespace MisterGames.Character.Interactives {
             var up = _viewPipeline.BodyUp;
             orientation = _groundDetector.HasContact
                 ? Quaternion.LookRotation(Vector3.ProjectOnPlane(headDir, up), up)
-                : Quaternion.LookRotation(up, Vector3.ProjectOnPlane(headDir, up));
+                : Quaternion.LookRotation(up, Vector3.ProjectOnPlane(_viewPipeline.HeadRotation * Vector3.up, up));
             return true;
         }
 

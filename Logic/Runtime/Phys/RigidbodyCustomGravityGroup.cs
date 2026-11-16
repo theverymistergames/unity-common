@@ -88,6 +88,7 @@ namespace MisterGames.Logic.Phys {
         }
 
         private void OnDisable() {
+            PlayerLoopStage.FixedUpdate.Unsubscribe(this);
             ResetAllMembers();
         }
 
@@ -113,8 +114,6 @@ namespace MisterGames.Logic.Phys {
         }
 
         public void ResetAllMembers() {
-            PlayerLoopStage.FixedUpdate.Unsubscribe(this);
-            
             _isCustomGravityActive = false;
             _lastGravity = Vector3.down * GravityMagnitudeDefault;
             
