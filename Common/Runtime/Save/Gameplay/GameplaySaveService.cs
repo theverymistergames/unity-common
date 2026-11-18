@@ -68,7 +68,24 @@ namespace MisterGames.Common.Save {
             _unsavedChangesInProfiles.Remove(profileKey);
             if (makeCurrent) _currentProfileKey = profileKey;
             
-            await _saveSystem.LoadFromFile(profileKey, GetOrCreateStorage(profileKey));
+            var storage = GetOrCreateStorage(profileKey);
+            bool hasFile = HasSavedProfile(profileKey);
+            
+            storage?.GetTable<string>()?.RemoveData(new SaveKey(_settings.VersionKey, 0));
+            
+            await _saveSystem.LoadFromFile(profileKey, storage);
+
+            if (storage != null && hasFile && !IsVersionValid(storage)) {
+                Debug.LogWarning($"{nameof(GameplaySaveService).FormatColorOnlyForEditor(Color.white)}: {Time.frameCount}, " +
+                                 $"profile [{profileKey}] save version does not match current version [{_settings.Version}], " +
+                                 $"old save is discarded and new save is created");
+                
+                storage.Clear();
+                WriteVersion(storage);
+                await _saveSystem.SaveIntoFile(profileKey, storage);
+            }
+            
+            if (storage != null) WriteVersion(storage);
             
             FetchProfiles();
             
@@ -196,10 +213,21 @@ namespace MisterGames.Common.Save {
             
             if (!_storageMap.TryGetValue(profileKey, out var storage)) {
                 storage = new SaveStorage<SaveKey>();
+                WriteVersion(storage);
                 _storageMap[profileKey] = storage;
             }
             
             return storage;
+        }
+
+        private void WriteVersion(ISaveStorage<SaveKey> storage) {
+            storage.GetOrCreateTable<string>()?.SetData(new SaveKey(_settings.VersionKey, 0), _settings.Version);
+        }
+
+        private bool IsVersionValid(ISaveStorage<SaveKey> storage) {
+            return storage.GetTable<string>() is { } table && 
+                   table.TryGetData(new SaveKey(_settings.VersionKey, 0), out string version) && 
+                   version == _settings.Version;
         }
         
         private ISaveStorage<SaveKey> GetStorage(string profileKey) {

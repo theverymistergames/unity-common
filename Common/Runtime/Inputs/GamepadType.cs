@@ -6,6 +6,7 @@
         DualShockGamepad,
         DualSenseGamepad,
         SwitchProController,
+        SteamDeck,
     }
     
 }

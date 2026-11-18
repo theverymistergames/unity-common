@@ -36,6 +36,8 @@ namespace MisterGames.SettingsLib.Base {
             _settingsStorage = settingsConfig.settingsStorage;
             _saveSystem = saveSystem;
             _storageId = settingsConfig.storageId;
+            
+            WriteVersion();
 
             FetchSettings(_settingsStorage);
             InitializeAsync(_cts.Token).Forget();
@@ -55,8 +57,23 @@ namespace MisterGames.SettingsLib.Base {
         }
 
         private async UniTask InitializeAsync(CancellationToken cancellationToken) {
+            bool hasFile = HasSavedFile();
+            _saveStorage.GetTable<string>()?.RemoveData(new SaveKey(_settingsConfig.versionKey, 0));
+            
             await _saveSystem.LoadFromFile(_storageId, _saveStorage);
             if (cancellationToken.IsCancellationRequested) return;
+
+            if (hasFile && !IsVersionValid()) {
+                Debug.LogWarning($"{nameof(SettingsService)}: f {Time.frameCount}, settings save version does not match " +
+                                 $"current version [{_settingsConfig.version}], old settings save is discarded and new save is created");
+                
+                _saveStorage.Clear();
+                WriteVersion();
+                await _saveSystem.SaveIntoFile(_storageId, _saveStorage);
+                if (cancellationToken.IsCancellationRequested) return;
+            }
+            
+            WriteVersion();
             
             foreach ((string key, var desc) in _settingMap) {
                 desc.Initialize(this, key);
@@ -79,7 +96,7 @@ namespace MisterGames.SettingsLib.Base {
             
             return storage.GetTable<T>()?.TryGetData(new SaveKey(key, index), out data) ?? false;
         }
-        
+
         public bool Set<T>(string key, int index, T setting) {
             bool result = _saveStorage.GetOrCreateTable<T>()?.SetData(new SaveKey(key, index), setting) ?? false;
             if (result) NotifyDirty(key);
@@ -103,6 +120,7 @@ namespace MisterGames.SettingsLib.Base {
             ResetDirty();
             
             _saveStorage.Clear();
+            WriteVersion();
             _saveSystem.DeleteFile(_storageId);
             
             foreach ((string key, var desc) in _settingMap) {
@@ -116,6 +134,7 @@ namespace MisterGames.SettingsLib.Base {
             
             _saveStorage.Clear();
             _saveSystem.GetStorage(_storageId)?.CopyTo(_saveStorage);
+            WriteVersion();
 
             foreach ((string key, var desc) in _settingMap) {
                 desc.ApplySetting(this, key);
@@ -167,6 +186,26 @@ namespace MisterGames.SettingsLib.Base {
                     Debug.LogError($"{nameof(SettingsService)}: already contains setting with key [{key}], duplicate keys are not supported.");
                 }
             }
+        }
+
+        private void WriteVersion() {
+            _saveStorage.GetOrCreateTable<string>()?.SetData(new SaveKey(_settingsConfig.versionKey, 0), _settingsConfig.version);
+        }
+
+        private bool IsVersionValid() {
+            return _saveStorage.GetTable<string>() is { } table && 
+                   table.TryGetData(new SaveKey(_settingsConfig.versionKey, 0), out string version) && 
+                   version == _settingsConfig.version;
+        }
+
+        private bool HasSavedFile() {
+            var files = _saveSystem.GetStorageFiles();
+            
+            for (int i = 0; i < files.Count; i++) {
+                if (files[i].storageId == _storageId) return true;
+            }
+            
+            return false;
         }
 
         private void ProcessAutoSave() {

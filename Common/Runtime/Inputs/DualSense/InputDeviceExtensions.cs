@@ -1,4 +1,5 @@
-﻿using UnityEngine.InputSystem;
+﻿using MisterGames.Common.Steam;
+using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.DualShock;
 using UnityEngine.InputSystem.Switch;
 using UnityEngine.InputSystem.XInput;
@@ -23,10 +24,12 @@ namespace MisterGames.Common.Inputs.DualSense {
 
         public static GamepadType GetGamepadType(this Gamepad gamepad) {
             return gamepad switch {
+                XInputController when SteamExt.IsRunningOnSteamDeck() => GamepadType.SteamDeck,
                 XInputController => GamepadType.XInputController,
                 DualSenseGamepadHID => GamepadType.DualSenseGamepad,
                 DualShockGamepad => GamepadType.DualShockGamepad,
                 SwitchProControllerHID => GamepadType.SwitchProController,
+                _ when SteamExt.IsRunningOnSteamDeck() => GamepadType.SteamDeck,
                 _ => GamepadType.Default
             };
         }

@@ -5,9 +5,14 @@ namespace MisterGames.Common.Save {
     [CreateAssetMenu(fileName = nameof(GameplaySaveSettings), menuName = "MisterGames/Save/" + nameof(GameplaySaveSettings))]
     public sealed class GameplaySaveSettings : ScriptableObject {
 
+        [SerializeField] private string _versionKey = "_gameplay_save_version";
+        [SerializeField] private string _version = "1";
         [SerializeField] private string _defaultProfileName = "profile";
         [SerializeField] private bool _autoSave = true;
         [SerializeField] [Min(0f)] private float _autoSaveDelay = 1f;
+
+        public string Version => _version;
+        public string VersionKey => _versionKey;
 
         public bool IsAutoSaveEnabled(out float delay) {
             delay = _autoSaveDelay;

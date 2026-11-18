@@ -65,13 +65,15 @@ namespace MisterGames.Common.Inputs {
             AnyInputActivatedThisFrame = keyboardMousePressed || mouseOrScrollMoved || gamepadPressed || gamepadSticksMoved;
             
             var lastDevice = CurrentDevice;
+            var lastGamepad = GamepadType;
+            
             CurrentDevice = gamepadPressed || gamepadSticksMoved ? InputDeviceType.Gamepad 
                 : keyboardMousePressed || mouseOrScrollMoved ? InputDeviceType.KeyboardMouse
                 : CurrentDevice;
 
             GamepadType = CurrentDevice is InputDeviceType.Gamepad ? Gamepad.current.GetGamepadType() : GamepadType.Default;
 
-            if (lastDevice == CurrentDevice) return;
+            if (lastDevice == CurrentDevice && lastGamepad == GamepadType) return;
 
             OnDeviceChanged.Invoke(CurrentDevice);
         }
