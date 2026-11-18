@@ -2,7 +2,7 @@
 
 namespace MisterGames.Dbg.Behaviours {
     
-    public sealed class ConditionalPrefabSpawner : MonoBehaviour {
+    public sealed class SpawnPrefabByBuildType : MonoBehaviour {
         
         [SerializeField] private GameObject _prefab;
         [SerializeField] private Transform _parent;
