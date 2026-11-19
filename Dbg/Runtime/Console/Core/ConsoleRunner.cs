@@ -3,12 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using MisterGames.Common.Attributes;
-using MisterGames.Input.Actions;
 using MisterGames.Input.Bindings;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Pool;
-
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -27,10 +25,10 @@ namespace MisterGames.Dbg.Console.Core {
         [TextArea] [SerializeField] private string _greeting = "MisterGames Debug Console";
 
         [Header("Inputs")]
-        [SerializeField] private KeyBinding _activationInput = KeyBinding.Backquote;
+        [SerializeField] private KeyBinding[] _activationInputs = { KeyBinding.Backquote, KeyBinding.GamepadSelect };
         [Tooltip("Closes console on release, so actions bound to the same key and blocked while console is opened " +
                  "are not triggered by the initial state check when console is closed and they are unblocked.")]
-        [SerializeField] private KeyBinding _closeInput = KeyBinding.Escape;
+        [SerializeField] private KeyBinding[] _closeInputs = { KeyBinding.Escape, KeyBinding.GamepadEast };
         [SerializeReference] [SubclassSelector] private IConsoleModule[] _consoleModules;
 
         private const string Editor = "editor";  
@@ -79,11 +77,15 @@ namespace MisterGames.Dbg.Console.Core {
         }
 
         private void OnEnable() {
-            _activationInput.AddPressCallback(OnPressActivationInput);
+            for (int i = 0; i < _activationInputs.Length; i++) {
+                _activationInputs[i].AddPressCallback(OnPressActivationInput);
+            }
         }
 
         private void OnDisable() {
-            _activationInput.RemovePressCallback(OnPressActivationInput);
+            for (int i = 0; i < _activationInputs.Length; i++) {
+                _activationInputs[i].RemovePressCallback(OnPressActivationInput);
+            }
             
             ClearConsole();
             HideConsole();
@@ -190,9 +192,11 @@ namespace MisterGames.Dbg.Console.Core {
             _textInputField.onSubmit.RemoveListener(RunCommand);
             _textInputField.onSubmit.AddListener(RunCommand);
 
-            _closeInput.RemoveReleaseCallback(HideConsole);
-            _closeInput.AddReleaseCallback(HideConsole);
-
+            for (int i = 0; i < _closeInputs.Length; i++) {
+                _closeInputs[i].RemoveReleaseCallback(HideConsole);
+                _closeInputs[i].AddReleaseCallback(HideConsole);
+            }
+            
             OnShowConsole.Invoke();
         }
         
@@ -200,7 +204,10 @@ namespace MisterGames.Dbg.Console.Core {
             _canvas.SetActive(false);
             
             _textInputField.onSubmit.RemoveListener(RunCommand);
-            _closeInput.RemoveReleaseCallback(HideConsole);
+            
+            for (int i = 0; i < _closeInputs.Length; i++) {
+                _closeInputs[i].RemoveReleaseCallback(HideConsole);
+            }
 
             Cursor.visible = _lastCursorVisibility;
             Cursor.lockState = _lastCursorLockMode;

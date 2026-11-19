@@ -78,11 +78,10 @@ namespace MisterGames.Common.Save {
             if (storage != null && hasFile && !IsVersionValid(storage)) {
                 Debug.LogWarning($"{nameof(GameplaySaveService).FormatColorOnlyForEditor(Color.white)}: {Time.frameCount}, " +
                                  $"profile [{profileKey}] save version does not match current version [{_settings.Version}], " +
-                                 $"old save is discarded and new save is created");
+                                 $"old save is deleted");
                 
+                _saveSystem.DeleteFile(profileKey);
                 storage.Clear();
-                WriteVersion(storage);
-                await _saveSystem.SaveIntoFile(profileKey, storage);
             }
             
             if (storage != null) WriteVersion(storage);

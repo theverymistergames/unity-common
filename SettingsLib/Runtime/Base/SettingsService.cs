@@ -65,12 +65,10 @@ namespace MisterGames.SettingsLib.Base {
 
             if (hasFile && !IsVersionValid()) {
                 Debug.LogWarning($"{nameof(SettingsService)}: f {Time.frameCount}, settings save version does not match " +
-                                 $"current version [{_settingsConfig.version}], old settings save is discarded and new save is created");
+                                 $"current version [{_settingsConfig.version}], old settings save is deleted");
                 
+                _saveSystem.DeleteFile(_storageId);
                 _saveStorage.Clear();
-                WriteVersion();
-                await _saveSystem.SaveIntoFile(_storageId, _saveStorage);
-                if (cancellationToken.IsCancellationRequested) return;
             }
             
             WriteVersion();

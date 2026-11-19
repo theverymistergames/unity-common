@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MisterGames.Common.Async;
+using MisterGames.Common.Data;
 using MisterGames.Common.Inputs;
 using MisterGames.Common.Service;
 using MisterGames.Common.Tick;
@@ -15,6 +16,7 @@ namespace MisterGames.UI.UiServices {
     public sealed class CursorService : ICursorService, IDisposable, IUpdate {
 
         private readonly HashSet<int> _visibilityBlockers = new();
+        private readonly PriorityMap<int, CursorIcon> _cursorIconMap = new(asc: false);
         private IDeviceService _deviceService;
         private IUiWindowService _windowService;
         
@@ -31,9 +33,28 @@ namespace MisterGames.UI.UiServices {
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
         }
 
+        public void SetCursorIcon(object source, CursorIcon cursorIcon, int priority = 0) {
+            _cursorIconMap.Set(source.GetHashCode(), cursorIcon, priority);
+            ActualizeCursorIcon();
+        }
+
+        public void ResetCursorIcon(object source) {
+            _cursorIconMap.Remove(source.GetHashCode());
+            ActualizeCursorIcon();
+        }
+
         public void BlockCursor(object source, bool block) {
             if (block) _visibilityBlockers.Add(source.GetHashCode());
             else _visibilityBlockers.Remove(source.GetHashCode());
+        }
+
+        private void ActualizeCursorIcon() {
+            var icon = GetCursorIcon();
+            Cursor.SetCursor(icon.icon, icon.hotspot, CursorMode.Auto);
+        }
+        
+        private CursorIcon GetCursorIcon() {
+            return _cursorIconMap.GetResultOrDefault();
         }
 
         void IUpdate.OnUpdate(float dt) {

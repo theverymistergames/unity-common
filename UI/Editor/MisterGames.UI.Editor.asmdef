@@ -1,0 +1,18 @@
+{
+    "name": "MisterGames.UI.Editor",
+    "rootNamespace": "MisterGames.UI.Editor",
+    "references": [
+        "GUID:aca0e2fb81716ab4ca096bf5427d3f5a"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
