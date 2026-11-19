@@ -4,9 +4,11 @@ using System.Reflection;
 using System.Text;
 using MisterGames.Dbg.Console.Attributes;
 using MisterGames.Dbg.Console.Core;
-using MisterGames.Input.Bindings;
+using MisterGames.Input.Actions;
+using MisterGames.Input.Core;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace MisterGames.Dbg.Console.Plugins {
 
@@ -22,8 +24,8 @@ namespace MisterGames.Dbg.Console.Plugins {
         [SerializeField] private Color _hintColor = new(0.6f, 0.6f, 0.6f, 1f);
 
         [Header("Inputs")]
-        [SerializeField] private KeyBinding _nextSuggestionInput = KeyBinding.Tab;
-        [SerializeField] private ShortcutModifiers _previousSuggestionModifiers = ShortcutModifiers.Shift;
+        [SerializeField] private InputActionRef _nextSuggestionInput;
+        [SerializeField] private InputActionRef _prevSuggestionInput;
 
         [Header("Suggestions")]
         [SerializeField] [Min(1)] private int _maxSuggestions = 100;
@@ -47,6 +49,8 @@ namespace MisterGames.Dbg.Console.Plugins {
         private string _lastInput;
         private int _selected = -1;
         private bool _isConsoleShown;
+        private bool _isNextSuggestionRequested;
+        private bool _isPrevSuggestionRequested;
 
 #if !UNITY_EDITOR && !DEVELOPMENT_BUILD
 
@@ -61,6 +65,9 @@ namespace MisterGames.Dbg.Console.Plugins {
         }
 
         private void OnEnable() {
+            InputServices.Blocks?.SetInputActionBlockOverride(this, _nextSuggestionInput, blocked: false);
+            InputServices.Blocks?.SetInputActionBlockOverride(this, _prevSuggestionInput, blocked: false);
+            
             _consoleRunner.OnShowConsole -= OnShowConsole;
             _consoleRunner.OnShowConsole += OnShowConsole;
 
@@ -75,10 +82,15 @@ namespace MisterGames.Dbg.Console.Plugins {
             _consoleRunner.OnHideConsole -= OnHideConsole;
 
             OnHideConsole();
+            
+            InputServices.Blocks?.RemoveInputActionBlockOverride(this, _nextSuggestionInput);
+            InputServices.Blocks?.RemoveInputActionBlockOverride(this, _prevSuggestionInput);
         }
 
         private void Update() {
             if (!_isConsoleShown) return;
+            
+            ProcessSuggestionRequests();
 
             string input = _consoleRunner.CurrentInput ?? string.Empty;
             if (input == _lastInput) return;
@@ -93,23 +105,53 @@ namespace MisterGames.Dbg.Console.Plugins {
             _isConsoleShown = true;
             _lastInput = null;
 
-            _nextSuggestionInput.RemovePressCallback(OnNextSuggestion);
-            _nextSuggestionInput.AddPressCallback(OnNextSuggestion);
+            _isNextSuggestionRequested = false;
+            _isPrevSuggestionRequested = false;
+            
+            if (_nextSuggestionInput.Get() is { } nextInput) {
+                nextInput.performed -= OnNextSuggestionInput;
+                nextInput.performed += OnNextSuggestionInput;
+            }
+            
+            if (_prevSuggestionInput.Get() is { } prevInput) {
+                prevInput.performed -= OnPrevSuggestionInput;
+                prevInput.performed += OnPrevSuggestionInput;
+            }
         }
 
         private void OnHideConsole() {
             _isConsoleShown = false;
-            _nextSuggestionInput.RemovePressCallback(OnNextSuggestion);
+            if (_nextSuggestionInput.Get() is { } nextInput) nextInput.performed -= OnNextSuggestionInput;
+            if (_prevSuggestionInput.Get() is { } prevInput) prevInput.performed -= OnPrevSuggestionInput;
+            
+            _isNextSuggestionRequested = false;
+            _isPrevSuggestionRequested = false;
 
             ClearSuggestions();
         }
 
-        private void OnNextSuggestion() {
+        private void OnNextSuggestionInput(InputAction.CallbackContext context) {
+            _isNextSuggestionRequested = true;
+        }
+        
+        private void OnPrevSuggestionInput(InputAction.CallbackContext context) {
+            _isPrevSuggestionRequested = true;
+        }
+
+        private void ProcessSuggestionRequests() {
+            if (!_isNextSuggestionRequested && !_isPrevSuggestionRequested) return;
+            
+            bool previous = _isPrevSuggestionRequested;
+            
+            _isNextSuggestionRequested = false;
+            _isPrevSuggestionRequested = false;
+            
+            SelectSuggestion(previous);
+        }
+        
+        private void SelectSuggestion(bool previous) {
             int count = _suggestions.Count;
             if (count == 0 || _suggestions[0].input == null) return;
-
-            bool previous = _previousSuggestionModifiers != ShortcutModifiers.None &&
-                            _previousSuggestionModifiers.ArePressed();
 
             _selected = previous
                 ? _selected <= 0 ? count - 1 : _selected - 1

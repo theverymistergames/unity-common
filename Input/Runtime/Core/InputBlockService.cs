@@ -521,6 +521,30 @@ namespace MisterGames.Input.Core {
             return count > 0;
         }
         
+        public bool SetInputMapBlockOverride(object source, InputActionMap inputMap, bool blocked, CancellationToken cancellationToken = default) {
+            return _initialized && 
+                   inputMap != null && 
+                   SetInputActionBlockOverrides(source, inputMap.actions, blocked, cancellationToken);
+        }
+
+        public bool SetInputMapBlockOverride(object source, InputMapRef inputMapRef, bool blocked, CancellationToken cancellationToken = default) {
+            return _initialized && 
+                   _inputMapper.GetInputMap(inputMapRef.Guid) is { } inputMap && 
+                   SetInputActionBlockOverrides(source, inputMap.actions, blocked, cancellationToken);
+        }
+
+        public bool RemoveInputMapBlockOverride(object source, InputActionMap inputMap) {
+            return _initialized && 
+                   inputMap != null && 
+                   RemoveInputActionBlockOverrides(source, inputMap.actions);
+        }
+
+        public bool RemoveInputMapBlockOverride(object source, InputMapRef inputMapRef) {
+            return _initialized && 
+                   _inputMapper.GetInputMap(inputMapRef.Guid) is { } inputMap && 
+                   RemoveInputActionBlockOverrides(source, inputMap.actions);
+        }
+        
         public bool ClearAllInputActionBlockOverridesOf(object source) {
             if (!_initialized) return false;
             

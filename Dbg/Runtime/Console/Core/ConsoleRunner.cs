@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using MisterGames.Common.Attributes;
-using MisterGames.Input.Bindings;
+using MisterGames.Input.Actions;
+using MisterGames.Input.Core;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.Pool;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -25,10 +27,10 @@ namespace MisterGames.Dbg.Console.Core {
         [TextArea] [SerializeField] private string _greeting = "MisterGames Debug Console";
 
         [Header("Inputs")]
-        [SerializeField] private KeyBinding[] _activationInputs = { KeyBinding.Backquote, KeyBinding.GamepadSelect };
+        [SerializeField] private InputActionRef _activationInput;
         [Tooltip("Closes console on release, so actions bound to the same key and blocked while console is opened " +
                  "are not triggered by the initial state check when console is closed and they are unblocked.")]
-        [SerializeField] private KeyBinding[] _closeInputs = { KeyBinding.Escape, KeyBinding.GamepadEast };
+        [SerializeField] private InputActionRef _closeInput;
         [SerializeReference] [SubclassSelector] private IConsoleModule[] _consoleModules;
 
         private const string Editor = "editor";  
@@ -77,15 +79,20 @@ namespace MisterGames.Dbg.Console.Core {
         }
 
         private void OnEnable() {
-            for (int i = 0; i < _activationInputs.Length; i++) {
-                _activationInputs[i].AddPressCallback(OnPressActivationInput);
-            }
+            InputServices.Blocks?.SetInputActionBlockOverride(this, _activationInput, blocked: false);
+            InputServices.Blocks?.SetInputActionBlockOverride(this, _closeInput, blocked: false);
+            
+            if (_activationInput.Get() is not { } inputAction) return;
+            
+            inputAction.performed -= OnPressActivationInput;
+            inputAction.performed += OnPressActivationInput;
         }
 
         private void OnDisable() {
-            for (int i = 0; i < _activationInputs.Length; i++) {
-                _activationInputs[i].RemovePressCallback(OnPressActivationInput);
-            }
+            if (_activationInput.Get() is { } inputAction) inputAction.performed -= OnPressActivationInput;
+            
+            InputServices.Blocks?.RemoveInputActionBlockOverride(this, _activationInput);
+            InputServices.Blocks?.RemoveInputActionBlockOverride(this, _closeInput);
             
             ClearConsole();
             HideConsole();
@@ -174,7 +181,7 @@ namespace MisterGames.Dbg.Console.Core {
             }
         }
         
-        private void OnPressActivationInput() {
+        private void OnPressActivationInput(InputAction.CallbackContext context) {
             if (_canvas.activeSelf) HideConsole();
             else ShowConsole();
         }
@@ -192,12 +199,16 @@ namespace MisterGames.Dbg.Console.Core {
             _textInputField.onSubmit.RemoveListener(RunCommand);
             _textInputField.onSubmit.AddListener(RunCommand);
 
-            for (int i = 0; i < _closeInputs.Length; i++) {
-                _closeInputs[i].RemoveReleaseCallback(HideConsole);
-                _closeInputs[i].AddReleaseCallback(HideConsole);
+            if (_closeInput.Get() is { } inputAction) {
+                inputAction.canceled -= OnReleaseCloseInput;
+                inputAction.canceled += OnReleaseCloseInput;
             }
             
             OnShowConsole.Invoke();
+        }
+        
+        private void OnReleaseCloseInput(InputAction.CallbackContext context) {
+            HideConsole();
         }
         
         private void HideConsole() {
@@ -205,9 +216,7 @@ namespace MisterGames.Dbg.Console.Core {
             
             _textInputField.onSubmit.RemoveListener(RunCommand);
             
-            for (int i = 0; i < _closeInputs.Length; i++) {
-                _closeInputs[i].RemoveReleaseCallback(HideConsole);
-            }
+            if (_closeInput.Get() is { } inputAction) inputAction.canceled -= OnReleaseCloseInput;
 
             Cursor.visible = _lastCursorVisibility;
             Cursor.lockState = _lastCursorLockMode;

@@ -33,6 +33,12 @@ namespace MisterGames.Input.Core {
         bool RemoveInputActionBlockOverrides(object source, IReadOnlyList<InputAction> inputActions);
         bool RemoveInputActionBlockOverrides(object source, IReadOnlyList<InputActionRef> inputActionRefs);
 
+        bool SetInputMapBlockOverride(object source, InputActionMap inputMap, bool blocked, CancellationToken cancellationToken = default);
+        bool SetInputMapBlockOverride(object source, InputMapRef inputMapRef, bool blocked, CancellationToken cancellationToken = default);
+
+        bool RemoveInputMapBlockOverride(object source, InputActionMap inputMap);
+        bool RemoveInputMapBlockOverride(object source, InputMapRef inputMapRef);
+
         bool ClearAllInputActionBlockOverridesOf(object source);
         bool ClearAllInputActionBlockOverrides();
 

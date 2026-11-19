@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using MisterGames.Common.Attributes;
 using MisterGames.Dbg.Console.Core;
-using MisterGames.Input.Bindings;
+using MisterGames.Input.Actions;
+using MisterGames.Input.Core;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace MisterGames.Dbg.Console.Plugins {
 
@@ -12,8 +14,8 @@ namespace MisterGames.Dbg.Console.Plugins {
         [SerializeField] private ConsoleRunner _consoleRunner;
 
         [Header("Inputs")]
-        [SerializeField] private KeyBinding _historyUpInput = KeyBinding.ArrowUp;
-        [SerializeField] private KeyBinding _historyDownInput = KeyBinding.ArrowDown;
+        [SerializeField] private InputActionRef _historyUpInput;
+        [SerializeField] private InputActionRef _historyDownInput;
 
         [Header("Commands")]
         [SerializeField] private string _playerPrefsId = "ConsoleCommandsHistory";
@@ -31,14 +33,15 @@ namespace MisterGames.Dbg.Console.Plugins {
         private int _historyPointer;
 
 #if !UNITY_EDITOR && !DEVELOPMENT_BUILD
-
         private void Awake() {
             Destroy(this);
         }
-
 #else
 
         private void OnEnable() {
+            InputServices.Blocks?.SetInputActionBlockOverride(this, _historyUpInput, blocked: false);
+            InputServices.Blocks?.SetInputActionBlockOverride(this, _historyDownInput, blocked: false);
+            
             SubscribeShowHideConsole();
             RestoreHistoryFromPlayerPrefs();
         }
@@ -47,6 +50,9 @@ namespace MisterGames.Dbg.Console.Plugins {
             UnsubscribeShowHideConsole();
             UnsubscribeHistoryInput();
             UnsubscribeConsoleInput();
+            
+            InputServices.Blocks?.RemoveInputActionBlockOverride(this, _historyUpInput);
+            InputServices.Blocks?.RemoveInputActionBlockOverride(this, _historyDownInput);
         }
 
 #endif
@@ -162,13 +168,21 @@ namespace MisterGames.Dbg.Console.Plugins {
         private void SubscribeHistoryInput() {
             UnsubscribeHistoryInput();
             
-            _historyUpInput.AddPressCallback(OnHistoryUp);
-            _historyDownInput.AddPressCallback(OnHistoryDown);
+            if (_historyUpInput.Get() is { } upInput) upInput.performed += OnHistoryUpInput;
+            if (_historyDownInput.Get() is { } downInput) downInput.performed += OnHistoryDownInput;
         }
 
         private void UnsubscribeHistoryInput() {
-            _historyUpInput.RemovePressCallback(OnHistoryUp);
-            _historyDownInput.RemovePressCallback(OnHistoryDown);
+            if (_historyUpInput.Get() is { } upInput) upInput.performed -= OnHistoryUpInput;
+            if (_historyDownInput.Get() is { } downInput) downInput.performed -= OnHistoryDownInput;
+        }
+
+        private void OnHistoryUpInput(InputAction.CallbackContext context) {
+            OnHistoryUp();
+        }
+
+        private void OnHistoryDownInput(InputAction.CallbackContext context) {
+            OnHistoryDown();
         }
     }
 
