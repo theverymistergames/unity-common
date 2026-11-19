@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using MisterGames.Common.Attributes;
+using MisterGames.Common.Inputs;
+using MisterGames.Common.Service;
+using MisterGames.Common.Steam;
 using MisterGames.Input.Actions;
 using MisterGames.Input.Core;
 using TMPro;
@@ -49,6 +52,7 @@ namespace MisterGames.Dbg.Console.Core {
         private readonly StringBuilder _stringBuilder = new();
         private CursorLockMode _lastCursorLockMode;
         private bool _lastCursorVisibility;
+        private bool _isFloatingKeyboardShown;
 
 #if !UNITY_EDITOR && !DEVELOPMENT_BUILD
 
@@ -123,6 +127,10 @@ namespace MisterGames.Dbg.Console.Core {
         public void TypeIn(string input) {
             _textInputField.text = input;
             _textInputField.caretPosition = input?.Length ?? 0;
+        }
+
+        public void MoveCaretToEnd() {
+            _textInputField.caretPosition = _textInputField.text?.Length ?? 0;
         }
 
         public void SetTextFieldFontSize(float size) {
@@ -204,7 +212,36 @@ namespace MisterGames.Dbg.Console.Core {
                 inputAction.canceled += OnReleaseCloseInput;
             }
             
+            if (IsSteamDeckGamepadInput()) ShowFloatingKeyboard();
+            
             OnShowConsole.Invoke();
+        }
+        
+        public bool ShowFloatingKeyboard() {
+            _isFloatingKeyboardShown = SteamExt.ShowFloatingKeyboard(GetInputFieldScreenRect());
+            return _isFloatingKeyboardShown;
+        }
+
+        private static bool IsSteamDeckGamepadInput() {
+            return Services.TryGet(out IDeviceService deviceService) && 
+                   deviceService.CurrentDevice == InputDeviceType.Gamepad && 
+                   deviceService.GamepadType == GamepadType.SteamDeck;
+        }
+
+        private Rect GetInputFieldScreenRect() {
+            Canvas.ForceUpdateCanvases();
+            
+            var rectTransform = (RectTransform) _textInputField.transform;
+            var canvas = _textInputField.GetComponentInParent<Canvas>();
+            var camera = canvas == null || canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+            
+            var corners = new Vector3[4];
+            rectTransform.GetWorldCorners(corners);
+            
+            var min = RectTransformUtility.WorldToScreenPoint(camera, corners[0]);
+            var max = RectTransformUtility.WorldToScreenPoint(camera, corners[2]);
+            
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
         
         private void OnReleaseCloseInput(InputAction.CallbackContext context) {
@@ -213,6 +250,9 @@ namespace MisterGames.Dbg.Console.Core {
         
         private void HideConsole() {
             _canvas.SetActive(false);
+            
+            if (_isFloatingKeyboardShown) SteamExt.DismissFloatingKeyboard();
+            _isFloatingKeyboardShown = false;
             
             _textInputField.onSubmit.RemoveListener(RunCommand);
             

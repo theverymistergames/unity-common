@@ -30,6 +30,7 @@ namespace MisterGames.Dbg.Console.Plugins {
         private JsonDto _dto = new();
         
         private string _historyCurrentInput;
+        private bool _isMoveCaretToEndRequested;
         private int _historyPointer;
 
 #if !UNITY_EDITOR && !DEVELOPMENT_BUILD
@@ -53,6 +54,13 @@ namespace MisterGames.Dbg.Console.Plugins {
             
             InputServices.Blocks?.RemoveInputActionBlockOverride(this, _historyUpInput);
             InputServices.Blocks?.RemoveInputActionBlockOverride(this, _historyDownInput);
+        }
+
+        private void LateUpdate() {
+            if (!_isMoveCaretToEndRequested) return;
+            
+            _isMoveCaretToEndRequested = false;
+            _consoleRunner.MoveCaretToEnd();
         }
 
 #endif
@@ -137,6 +145,7 @@ namespace MisterGames.Dbg.Console.Plugins {
                 : _commandHistory[_historyPointer];
 
             _consoleRunner.TypeIn(text);
+            _isMoveCaretToEndRequested = true;
         }
 
         private void SubscribeConsoleInput() {
