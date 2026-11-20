@@ -15,10 +15,18 @@ namespace MisterGames.SettingsLib.Descs {
     public sealed class KeyBindingSetting : ISettingDesc {
 
         public LocalizationKey name;
-        public InputActionRef inputActionRef;
-        [Min(0f)] public int bindingIndex;
         public InputDeviceType deviceType;
+        public InputActionRef inputActionRef;
+        [Min(0)] public int bindingIndex;
+        public KeyData[] linkedInputs;
+        
         [SerializeReference] [SubclassSelector] public IBindingValidator validator;
+
+        [Serializable]
+        public struct KeyData {
+            public InputActionRef inputActionRef;
+            [Min(0)] public int bindingIndex;
+        }
         
         public delegate void Listener(string id, InputAction action, int bindingIndex, string path);
         
@@ -136,7 +144,14 @@ namespace MisterGames.SettingsLib.Descs {
         }
 
         public void FinishRebinding(bool enableAction) {
-            if (enableAction) inputActionRef.Get().Enable();
+            if (!enableAction) return;
+            
+            inputActionRef.Get().Enable();
+
+            for (int i = 0; i < linkedInputs?.Length; i++) {
+                ref var linkedInput = ref linkedInputs[i];
+                linkedInput.inputActionRef.Get().Enable();
+            }
         }
 
         public void ClearBinding(ISettingsService service, string id) {
@@ -154,8 +169,20 @@ namespace MisterGames.SettingsLib.Descs {
             var action = inputActionRef.Get();
             
             if (action.bindings[index].overridePath != controlPath) {
-                if (controlPath != null) action.ApplyBindingOverride(index, controlPath);
-                else action.RemoveBindingOverride(index);
+                if (controlPath != null) {
+                    action.ApplyBindingOverride(index, controlPath);
+                    for (int i = 0; i < linkedInputs?.Length; i++) {
+                        ref var linkedInput = ref linkedInputs[i];
+                        linkedInput.inputActionRef.Get().ApplyBindingOverride(linkedInput.bindingIndex, controlPath);
+                    }
+                }
+                else {
+                    action.RemoveBindingOverride(index);
+                    for (int i = 0; i < linkedInputs?.Length; i++) {
+                        ref var linkedInput = ref linkedInputs[i];
+                        linkedInput.inputActionRef.Get().RemoveBindingOverride(linkedInput.bindingIndex);
+                    }
+                }
             }
             
             NotifyBindingListeners(id, action, index, controlPath);

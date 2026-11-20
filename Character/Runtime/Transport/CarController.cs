@@ -15,7 +15,7 @@ namespace MisterGames.Character.Transport {
         [Header("Inputs")]
         [SerializeField] private InputActionRef _move;
         [SerializeField] private InputActionRef _brake;
-        [SerializeField] private InputActionRef _nitro;
+        [SerializeField] private InputActionRef[] _nitro;
         [FormerlySerializedAs("_gasGamepad")]
         [SerializeField] private InputActionRef _gas;
         [FormerlySerializedAs("_brakeGamepad")]
@@ -243,6 +243,13 @@ namespace MisterGames.Character.Transport {
             }
         }
 
+        private bool IsNitroPressed() {
+            for (int i = 0; i < _nitro.Length; i++) {
+                if (_nitro[i].Get().IsPressed()) return true;
+            }
+            return false;
+        }
+
         void IUpdate.OnUpdate(float dt) {
             AnimateWheels();
             ReadPedalsInput();
@@ -261,7 +268,7 @@ namespace MisterGames.Character.Transport {
             
             float brake = BrakeInput;
             bool idleBrake = Mathf.Abs(targetInput.y) < _inputThreshold && brake.IsNearlyZero() && Speed < _idleBrakeMaxSpeed;
-            bool nitro = _nitro.Get().IsPressed() && IsIgnitionOn && _input.y >= _inputThreshold;
+            bool nitro = IsIgnitionOn && _input.y >= _inputThreshold && IsNitroPressed();
 
             IsNitroActive = nitro;
             NitroActivation = NitroActivation.SmoothExpNonZero(nitro ? 1f : 0f, _nitroProgressSmoothing, dt);

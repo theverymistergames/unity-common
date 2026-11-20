@@ -13,7 +13,7 @@ namespace MisterGames.Character.Input {
         [SerializeField] private InputActionRef _move;
         [SerializeField] private InputActionRef _crouch;
         [SerializeField] private InputActionRef _crouchToggle;
-        [SerializeField] private InputActionRef _run;
+        [SerializeField] private InputActionRef[] _run;
         [SerializeField] private InputActionRef _jump;
 
         public event Action<Vector2> OnMotionVectorChanged = delegate {  };
@@ -22,7 +22,7 @@ namespace MisterGames.Character.Input {
         public event Action OnCrouchReleased = delegate {  };
         public event Action OnCrouchToggled = delegate {  };
 
-        public bool IsRunPressed => _enabled && _inputEnabled && _run.Get().IsPressed();
+        public bool IsRunPressed => _enabled && _inputEnabled && IsAnyRunPressed();
 
         public event Action JumpPressed = delegate {  };
         public bool IsJumpPressed => _enabled && _inputEnabled && _jump.Get().IsPressed();
@@ -55,6 +55,14 @@ namespace MisterGames.Character.Input {
 
         public Vector2 GetViewInputVector() {
             return _enabled && _viewEnabled ? (_viewAction ??= _view.Get()).ReadValue<Vector2>() : Vector2.zero;
+        }
+
+        private bool IsAnyRunPressed() {
+            for (int i = 0; i < _run.Length; i++) {
+                if (_run[i].Get().IsPressed()) return true;
+            }
+            
+            return false;
         }
 
         private void Subscribe() {

@@ -10,6 +10,7 @@ namespace MisterGames.Common.Steam {
 
         [SerializeField] private uint _appId = 480;
         [SerializeField] private bool _restartAppIfNecessary = true;
+        [SerializeField] private bool _initializeInEditor;
 
         public static bool IsInitialized => _instance != null && _instance._isInitialized;
 
@@ -26,6 +27,13 @@ namespace MisterGames.Common.Steam {
             _instance = this;
 
 #if STEAMWORKS_NET && !DISABLESTEAMWORKS
+#if UNITY_EDITOR
+            if (!_initializeInEditor) {
+                Debug.Log($"SteamBootstrap.Awake: f {Time.frameCount}, Steam API initialization in editor is disabled");
+                return;
+            }
+#endif
+
             if (_restartAppIfNecessary && SteamAPI.RestartAppIfNecessary(new AppId_t(_appId))) {
                 Debug.Log($"SteamBootstrap.Awake: f {Time.frameCount}, game was not launched through Steam, restarting via Steam with app id {_appId}");
                 Application.Quit();
