@@ -8,7 +8,6 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
-
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -101,7 +100,6 @@ namespace MisterGames.Logic.Rendering {
             
             public void Execute(int index) {
                 float currentIntensity = intensityArray[index];
-                
                 float lerp = noise.cnoise((float2) (t + index * indexOffset));
                 float targetIntensity = math.lerp(intensity0, intensity1, lerp);
                 

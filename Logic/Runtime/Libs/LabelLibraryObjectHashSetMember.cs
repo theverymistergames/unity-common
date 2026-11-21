@@ -6,6 +6,7 @@ using Object = UnityEngine.Object;
 
 namespace MisterGames.Logic.Libs {
     
+    [DefaultExecutionOrder(-1000)]
     public sealed class LabelLibraryObjectHashSetMember : MonoBehaviour, IActorComponent {
         
         [SerializeField] private LabelValue<HashSet<Object>> _groupLabel;

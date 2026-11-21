@@ -4,6 +4,7 @@ using Object = UnityEngine.Object;
 
 namespace MisterGames.Logic.Libs {
     
+    [DefaultExecutionOrder(-1000)]
     public sealed class LabelLibraryObjectReference : MonoBehaviour {
         
         [SerializeField] private Object _object;

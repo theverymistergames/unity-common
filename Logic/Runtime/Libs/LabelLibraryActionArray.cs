@@ -11,6 +11,7 @@ using UnityEngine;
 
 namespace MisterGames.Logic.Libs {
     
+    [DefaultExecutionOrder(-1000)]
     public sealed class LabelLibraryActionArray : MonoBehaviour {
 
         [SerializeField] private ActionMode _behaviourOnInvoke;

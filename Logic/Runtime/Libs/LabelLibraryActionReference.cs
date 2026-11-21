@@ -6,6 +6,7 @@ using UnityEngine;
 
 namespace MisterGames.Logic.Libs {
     
+    [DefaultExecutionOrder(-1000)]
     public sealed class LabelLibraryActionReference : MonoBehaviour {
         
         [SerializeField] private LabelValue<IActorAction> _label;

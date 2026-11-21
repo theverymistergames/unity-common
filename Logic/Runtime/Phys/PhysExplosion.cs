@@ -18,6 +18,12 @@ namespace MisterGames.Logic.Phys {
         [SerializeField] private Rigidbody[] _rigidbodies;
         [SerializeField] private bool _kinematicBeforeExplosion = true;
 
+        [Header("Collect In Radius")]
+        [SerializeField] private bool _collectRigidbodiesInRadius = false;
+        [SerializeField] [Min(0f)] private float _collectRadius = 3f;
+        [SerializeField] [Min(1)] private int _collectMaxHits = 32;
+        [SerializeField] private LayerMask _collectLayerMask = 1;
+
         [Header("Explosion")]
         [SerializeField] private Transform _explosionPoint;
         [SerializeField] private float _force = 10f;
@@ -44,6 +50,12 @@ namespace MisterGames.Logic.Phys {
             public Quaternion rotation;
         }
 
+        private struct CollectedBodyData {
+            public Rigidbody rigidbody;
+            public Vector3 position;
+            public Quaternion rotation;
+        }
+
         private struct SpawnedEffect {
             public GameObject instance;
             public Transform parent;
@@ -52,6 +64,9 @@ namespace MisterGames.Logic.Phys {
         public bool IsExploded { get; private set; }
 
         private readonly List<SpawnedEffect> _spawnedEffects = new();
+        private readonly HashSet<Rigidbody> _collectedRigidbodies = new();
+        private readonly List<CollectedBodyData> _collectedBodyData = new();
+        private Collider[] _collectHits;
         private BodyData[] _bodyData;
         private CancellationTokenSource _explodeCts;
         private IActor _actor;
@@ -109,6 +124,10 @@ namespace MisterGames.Logic.Phys {
             for (int i = 0; i < _rigidbodies.Length; i++) {
                 if (_rigidbodies[i] != null) _rigidbodies[i].isKinematic = isKinematic;
             }
+
+            for (int i = 0; i < _collectedBodyData.Count; i++) {
+                if (_collectedBodyData[i].rigidbody != null) _collectedBodyData[i].rigidbody.isKinematic = isKinematic;
+            }
         }
 
         private Transform GetExplosionPoint() {
@@ -117,6 +136,51 @@ namespace MisterGames.Logic.Phys {
 
         private void ApplyExplosionForce(Rigidbody rb, Vector3 center) {
             rb.AddExplosionForce(_force, center, _radius, _upwardsModifier, _forceMode);
+        }
+
+        private void CollectRigidbodiesInRadius(PhysicsScene physicsScene, Vector3 center, List<CollectedBodyData> dest) {
+            if (_collectHits == null || _collectHits.Length != _collectMaxHits) _collectHits = new Collider[_collectMaxHits];
+
+            int count = physicsScene.OverlapSphere(center, _collectRadius, _collectHits, _collectLayerMask, QueryTriggerInteraction.Ignore);
+
+            _collectedRigidbodies.Clear();
+
+            for (int i = 0; i < _rigidbodies.Length; i++) {
+                if (_rigidbodies[i] != null) _collectedRigidbodies.Add(_rigidbodies[i]);
+            }
+
+            for (int i = 0; i < count; i++) {
+                var rb = _collectHits[i].attachedRigidbody;
+                if (rb == null || !_collectedRigidbodies.Add(rb)) continue;
+
+                rb.transform.GetLocalPositionAndRotation(out var position, out var rotation);
+                dest.Add(new CollectedBodyData { rigidbody = rb, position = position, rotation = rotation });
+            }
+
+            _collectedRigidbodies.Clear();
+        }
+
+        private void RestoreCollectedBodyData(List<CollectedBodyData> data) {
+            for (int i = 0; i < data.Count; i++) {
+                var rb = data[i].rigidbody;
+                if (rb == null) continue;
+
+                if (!rb.isKinematic) {
+                    rb.linearVelocity = Vector3.zero;
+                    rb.angularVelocity = Vector3.zero;
+                }
+
+                rb.transform.SetLocalPositionAndRotation(data[i].position, data[i].rotation);
+                rb.position = rb.transform.position;
+                rb.rotation = rb.transform.rotation;
+            }
+        }
+
+        private void ExplodeRigidbody(Rigidbody rb, Vector3 center) {
+            rb.isKinematic = false;
+            ApplyExplosionForce(rb, center);
+
+            SpawnAttachedEffects(rb.transform);
         }
 
         public void Explode() {
@@ -130,10 +194,15 @@ namespace MisterGames.Logic.Phys {
                 var rb = _rigidbodies[i];
                 if (rb == null) continue;
 
-                rb.isKinematic = false;
-                ApplyExplosionForce(rb, center);
+                ExplodeRigidbody(rb, center);
+            }
 
-                SpawnAttachedEffects(rb.transform);
+            if (_collectRigidbodiesInRadius) {
+                CollectRigidbodiesInRadius(gameObject.scene.GetPhysicsScene(), center, _collectedBodyData);
+
+                for (int i = 0; i < _collectedBodyData.Count; i++) {
+                    ExplodeRigidbody(_collectedBodyData[i].rigidbody, center);
+                }
             }
 
             for (int i = 0; i < _explosionEffects?.Length; i++) {
@@ -158,7 +227,10 @@ namespace MisterGames.Logic.Phys {
             ReleaseEffects();
 
             RestoreBodyData(_bodyData);
+            RestoreCollectedBodyData(_collectedBodyData);
             SetKinematic(_kinematicBeforeExplosion);
+
+            _collectedBodyData.Clear();
         }
 
         private void SpawnAttachedEffects(Transform parent) {
@@ -221,6 +293,7 @@ namespace MisterGames.Logic.Phys {
         }
 
         private readonly List<EditorKinematicData> _editorKinematicRestore = new();
+        private readonly List<CollectedBodyData> _editorCollectedBodyData = new();
         private BodyData[] _editorBodyData;
         private PhysicsScene _editorPhysicsScene;
         private SimulationMode _editorPrevSimulationMode;
@@ -236,10 +309,20 @@ namespace MisterGames.Logic.Phys {
             EditorRollback();
 
             _editorBodyData = CaptureBodyData();
+            _editorPhysicsScene = gameObject.scene.GetPhysicsScene();
             var simulated = new HashSet<Rigidbody>();
 
             for (int i = 0; i < _rigidbodies.Length; i++) {
                 if (_rigidbodies[i] != null) simulated.Add(_rigidbodies[i]);
+            }
+
+            if (_collectRigidbodiesInRadius) {
+                Physics.SyncTransforms();
+                CollectRigidbodiesInRadius(_editorPhysicsScene, GetExplosionPoint().position, _editorCollectedBodyData);
+
+                for (int i = 0; i < _editorCollectedBodyData.Count; i++) {
+                    simulated.Add(_editorCollectedBodyData[i].rigidbody);
+                }
             }
 
             var allBodies = UnityEditor.SceneManagement.StageUtility.GetStageHandle(gameObject).FindComponentsOfType<Rigidbody>();
@@ -253,7 +336,6 @@ namespace MisterGames.Logic.Phys {
                 rb.isKinematic = kinematic;
             }
 
-            _editorPhysicsScene = gameObject.scene.GetPhysicsScene();
             _editorSimulationModeChanged = _editorPhysicsScene == Physics.defaultPhysicsScene;
 
             if (_editorSimulationModeChanged) {
@@ -287,6 +369,8 @@ namespace MisterGames.Logic.Phys {
             UnityEditor.EditorApplication.update -= EditorSimulate;
 
             RestoreBodyData(_editorBodyData);
+            RestoreCollectedBodyData(_editorCollectedBodyData);
+            _editorCollectedBodyData.Clear();
 
             for (int i = 0; i < _editorKinematicRestore.Count; i++) {
                 var data = _editorKinematicRestore[i];
@@ -343,6 +427,9 @@ namespace MisterGames.Logic.Phys {
             Gizmos.color = new Color(1f, 0.4f, 0f, 1f);
             Gizmos.DrawWireSphere(center, _radius);
             Gizmos.DrawSphere(center, 0.1f);
+
+            Gizmos.color = new Color(0f, 0.8f, 1f, 1f);
+            Gizmos.DrawWireSphere(center, _collectRadius);
         }
 #endif
     }
