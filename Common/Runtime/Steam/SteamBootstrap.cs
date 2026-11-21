@@ -35,7 +35,7 @@ namespace MisterGames.Common.Steam {
 #endif
 
             if (_restartAppIfNecessary && SteamAPI.RestartAppIfNecessary(new AppId_t(_appId))) {
-                Debug.Log($"SteamBootstrap.Awake: f {Time.frameCount}, game was not launched through Steam, restarting via Steam with app id {_appId}");
+                Debug.Log($"SteamBootstrap.Awake: f {Time.frameCount}, game was not launched through Steam, restarting via Steam with provided app id");
                 Application.Quit();
                 return;
             }
@@ -43,10 +43,10 @@ namespace MisterGames.Common.Steam {
             _isInitialized = SteamAPI.Init();
 
             if (_isInitialized) {
-                Debug.Log($"SteamBootstrap.Awake: f {Time.frameCount}, Steam API initialized, app id {SteamUtils.GetAppID()}");
+                Debug.Log($"SteamBootstrap.Awake: f {Time.frameCount}, Steam API initialized");
             }
             else {
-                Debug.LogError($"SteamBootstrap.Awake: f {Time.frameCount}, SteamAPI.Init failed: Steam is not running, or steam_appid.txt is missing, or app id {_appId} is not owned");
+                Debug.LogError($"SteamBootstrap.Awake: f {Time.frameCount}, SteamAPI.Init failed: Steam is not running, or steam_appid.txt is missing, or app id is incorrect");
             }
 #else
             Debug.LogWarning($"SteamBootstrap.Awake: f {Time.frameCount}, Steamworks.NET is not available or disabled, Steam API is not initialized");
