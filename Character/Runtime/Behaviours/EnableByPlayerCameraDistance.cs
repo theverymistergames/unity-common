@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace MisterGames.Character.Behaviours {
     
-    public sealed class EnableObjectsByDistanceToPlayer : MonoBehaviour, IUpdate {
+    public sealed class EnableByPlayerCameraDistance : MonoBehaviour, IUpdate {
 
         [SerializeField] private Transform _center;
         [SerializeField] private Object[] _objects;
@@ -16,7 +16,9 @@ namespace MisterGames.Character.Behaviours {
         [Header("Range")]
         [SerializeField] private DistanceMode _distanceMode = DistanceMode.EnableInRange;
         [SerializeField] [Min(0f)] private float _maxDistance = 5f;
-        
+        [SerializeField] private Collider[] _inRangeColliders;
+        [SerializeField] [Min(0f)] private float _colliderBlendDistance = 0f;
+
         [Header("Frustum")]
         [SerializeField] private FrustumMode _frustumMode = FrustumMode.Skip;
         [SerializeField] [Min(0f)] private float _objectRadius = 1f;
@@ -31,6 +33,8 @@ namespace MisterGames.Character.Behaviours {
             EnableOnScreen,
             EnableOffScreen,
         }
+
+        public bool IsActivated { get; private set; }
 
         private readonly Plane[] _frustumPlanes = new Plane[6];
         private Camera _camera;
@@ -55,7 +59,9 @@ namespace MisterGames.Character.Behaviours {
 
             if (_camera != null || TryFetchCamera(out _camera)) {
                 var centerPos = _center.position;
-                inRange = Vector3.SqrMagnitude(_camera.transform.position - centerPos) <= _maxDistance * _maxDistance;
+                var cameraPos = _camera.transform.position;
+                inRange = Vector3.SqrMagnitude(cameraPos - centerPos) <= _maxDistance * _maxDistance ||
+                          IsNearAnyCollider(_inRangeColliders, cameraPos, _colliderBlendDistance * _colliderBlendDistance);
 
                 if (_frustumMode != FrustumMode.Skip) {
                     GeometryUtility.CalculateFrustumPlanes(_camera, _frustumPlanes);
@@ -68,6 +74,7 @@ namespace MisterGames.Character.Behaviours {
                             (_frustumMode == FrustumMode.Skip || 
                              (_frustumMode == FrustumMode.EnableOnScreen) == inFrustum);
 
+            IsActivated = isActive;
             _checkTimer = isActive ? _checkPeriodActive : _checkPeriodInactive;
             
             for (int i = 0; i < _objects?.Length; i++) {
@@ -84,6 +91,14 @@ namespace MisterGames.Character.Behaviours {
             }
 
             camera = null;
+            return false;
+        }
+
+        private static bool IsNearAnyCollider(Collider[] colliders, Vector3 position, float sqrDistance) {
+            for (int i = 0; i < colliders?.Length; i++) {
+                if (Vector3.SqrMagnitude(colliders[i].ClosestPoint(position) - position) <= sqrDistance) return true;
+            }
+
             return false;
         }
 
@@ -109,6 +124,13 @@ namespace MisterGames.Character.Behaviours {
             
             DebugExt.DrawSphere(_center.position, _maxDistance, Color.green, gizmo: true);
             if (_frustumMode != FrustumMode.Skip) DebugExt.DrawSphere(_center.position, _objectRadius, Color.yellow, gizmo: true);
+
+            for (int i = 0; i < _inRangeColliders?.Length; i++) {
+                if (_inRangeColliders[i] == null) continue;
+
+                DebugExt.DrawCollider(_inRangeColliders[i], Color.green);
+                if (_colliderBlendDistance > 0f) DebugExt.DrawCollider(_inRangeColliders[i], Color.cyan, expand: _colliderBlendDistance);
+            }
         }
 #endif        
     }
