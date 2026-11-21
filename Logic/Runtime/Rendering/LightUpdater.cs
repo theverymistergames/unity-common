@@ -20,14 +20,12 @@ namespace MisterGames.Logic.Rendering {
         }
 
         private float _timer;
-        
-        private void Awake() {
+
+        private void OnEnable() {
             for (int i = 0; i < _lights.Length; i++) {
                 _lights[i].shadowUpdateMode = ShadowUpdateMode.OnDemand;
             }
-        }
-
-        private void OnEnable() {
+            
             UpdateLights();
             SetupUpdates();
         }
