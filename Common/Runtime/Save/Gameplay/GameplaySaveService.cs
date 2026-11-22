@@ -20,6 +20,7 @@ namespace MisterGames.Common.Save {
         private readonly Dictionary<string, ISaveStorage<SaveKey>> _storageMap = new();
         private readonly Dictionary<string, float> _unsavedChangesInProfiles = new();
         private readonly HashSet<string> _savedProfiles = new();
+        private readonly HashSet<string> _savedProfileKeys = new();
         private readonly HashSet<string> _dirtyBuffer = new();
 
         private ISaveSystem _saveSystem;
@@ -35,6 +36,20 @@ namespace MisterGames.Common.Save {
             PlayerLoopStage.LateUpdate.Subscribe(this);
 
             LoadOrCreateSharedProfile().Forget();
+            LoadSavedProfiles();
+        }
+
+        private void LoadSavedProfiles() {
+            string sharedProfileKey = GetSharedProfileKey();
+
+            var profileKeys = new string[_savedProfileKeys.Count];
+            _savedProfileKeys.CopyTo(profileKeys);
+
+            for (int i = 0; i < profileKeys.Length; i++) {
+                if (profileKeys[i] == sharedProfileKey) continue;
+
+                LoadOrCreateProfile(profileKeys[i], makeCurrent: false).Forget();
+            }
         }
 
         private async UniTaskVoid LoadOrCreateSharedProfile() {
@@ -134,13 +149,21 @@ namespace MisterGames.Common.Save {
         public bool IsProfileLoaded(string profileKey) {
             return _storageMap.ContainsKey(profileKey);
         }
-
         private void FetchProfiles() {
             _savedProfiles.Clear();
+            _savedProfileKeys.Clear();
+
             var storageFiles = _saveSystem.GetStorageFiles();
             for (int i = 0; i < storageFiles.Count; i++) {
-                _savedProfiles.Add(storageFiles[i].storageId);
+                string storageId = storageFiles[i].storageId;
+
+                _savedProfiles.Add(storageId);
+                if (_settings.IsProfileName(storageId)) _savedProfileKeys.Add(storageId);
             }
+        }
+
+        public IReadOnlyCollection<string> GetSavedProfileKeys() {
+            return _savedProfileKeys;
         }
         
         public bool TryGet<T>(string profileKey, string key, int index, out T data) {

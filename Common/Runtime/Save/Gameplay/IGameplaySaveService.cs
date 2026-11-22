@@ -1,4 +1,5 @@
-﻿using Cysharp.Threading.Tasks;
+﻿using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 
 namespace MisterGames.Common.Save {
     
@@ -21,7 +22,7 @@ namespace MisterGames.Common.Save {
         void DeleteProfile(string profileKey);
         bool HasSavedProfile(string profileKey);
         bool IsProfileLoaded(string profileKey);
-        
+        IReadOnlyCollection<string> GetSavedProfileKeys();        
         bool TryGet<T>(string profileKey, string key, int index, out T data);
         bool Set<T>(string profileKey, string key, int index, T data);
         bool Remove<T>(string profileKey, string key, int index);

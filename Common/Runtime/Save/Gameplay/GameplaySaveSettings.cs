@@ -24,6 +24,10 @@ namespace MisterGames.Common.Save {
         public string CreateProfileName(int index) {
             return $"{_defaultProfileName}_{index}";
         }
+
+        public bool IsProfileName(string storageId) {
+            return storageId == _sharedProfileName || storageId.StartsWith($"{_defaultProfileName}_");
+        }
     }
     
 }
