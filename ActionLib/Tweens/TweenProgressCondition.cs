@@ -23,8 +23,8 @@ namespace MisterGames.ActionLib.Tweens {
         public bool IsMatch(IActor context) {
             float p = tweenRunner.TweenPlayer.Progress;
             return mode switch {
-                Mode.InRange => p.InRange(progress),
-                Mode.OutOfRange => !p.InRange(progress),
+                Mode.InRange => p >= progress.x && p <= progress.y,
+                Mode.OutOfRange => p < progress.x || p > progress.y,
                 _ => throw new ArgumentOutOfRangeException()
             };
         }

@@ -255,17 +255,21 @@ namespace MisterGames.Logic.Water {
         }
 
         public void TriggerExit(Collider collider, IWaterZoneVolume volume) {
-            if (collider == null) return;
-            
-            int id = collider.GetHashCode();
-            if (collider == null || !_colliderToRbIdMap.Remove(id, out int rbId)) return;
+            if (collider is null || !_colliderToRbIdMap.Remove(collider.GetHashCode(), out int rbId)) return;
 
-            var pos = collider.transform.position;
-            volume.SampleSurface(pos, out var surfacePoint, out var surfaceNormal);
-            var closestPoint = volume.GetClosestPoint(collider.transform.position);
-            
-            OnColliderExit.Invoke(collider, closestPoint, surfacePoint, surfaceNormal);
-            
+            bool isColliderAlive = collider != null;
+            Vector3 closestPoint = default;
+            Vector3 surfacePoint = default;
+            Vector3 surfaceNormal = default;
+
+            if (isColliderAlive) {
+                var pos = collider.transform.position;
+                volume.SampleSurface(pos, out surfacePoint, out surfaceNormal);
+                closestPoint = volume.GetClosestPoint(pos);
+
+                OnColliderExit.Invoke(collider, closestPoint, surfacePoint, surfaceNormal);
+            }
+
             int newCount = _rbIdToColliderCountMap.GetValueOrDefault(rbId) - 1;
             if (newCount > 0) {
                 _rbIdToColliderCountMap[rbId] = newCount;
@@ -273,7 +277,7 @@ namespace MisterGames.Logic.Water {
             }
 
             _rbIdToColliderCountMap.Remove(rbId);
-            TriggerExitRigidbody(rbId, closestPoint, surfacePoint, surfaceNormal);
+            TriggerExitRigidbody(rbId, notify: isColliderAlive, closestPoint, surfacePoint, surfaceNormal);
         }
 
         private void TriggerEnterRigidbody(Rigidbody rigidbody, Vector3 position, Vector3 surfacePoint, Vector3 surfaceNormal) {
@@ -301,7 +305,7 @@ namespace MisterGames.Logic.Water {
             PlayerLoopStage.FixedUpdate.Subscribe(this);
         }
 
-        private void TriggerExitRigidbody(int rbId, Vector3 position, Vector3 surfacePoint, Vector3 surfaceNormal) {
+        private void TriggerExitRigidbody(int rbId, bool notify, Vector3 position, Vector3 surfacePoint, Vector3 surfaceNormal) {
             int volumesLeft = _rbIdToVolumeCountMap[rbId] - 1;
 
             if (volumesLeft > 0) _rbIdToVolumeCountMap[rbId] = volumesLeft;
@@ -318,8 +322,8 @@ namespace MisterGames.Logic.Water {
             else {
                 _floatingPointsCount--;
             }
-            
-            OnRigidbodyExit.Invoke(rb, position, surfacePoint, surfaceNormal);
+
+            if (notify) OnRigidbodyExit.Invoke(rb, position, surfacePoint, surfaceNormal);
         }
 
         void IUpdate.OnUpdate(float dt) {

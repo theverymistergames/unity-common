@@ -12,7 +12,7 @@ namespace MisterGames.Collisions.Rigidbodies {
         public abstract event TriggerCallback TriggerEnter;
         public abstract event TriggerCallback TriggerExit;
 
-        public abstract IReadOnlyCollection<Collider> EnteredColliders { get; } 
+        public abstract IReadOnlyCollection<Collider> GetEnteredColliders();
         
         public void Subscribe(TriggerEventType evt, TriggerCallback callback) {
             switch (evt) {

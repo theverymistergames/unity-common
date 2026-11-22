@@ -58,16 +58,16 @@ namespace MisterGames.Logic.Water {
 
         private void ApplyEnterForEnteredColliders() {
             if (_waterZone == null) return;
-            
-            foreach (var collider in _triggerEmitter.EnteredColliders) {
+
+            foreach (var collider in _triggerEmitter.GetEnteredColliders()) {
                 if (collider != null) _waterZone.TriggerEnter(collider, this);
             }
         }
         
         private void ApplyExitForEnteredColliders() {
             if (_waterZone == null) return;
-            
-            foreach (var collider in _triggerEmitter.EnteredColliders) {
+
+            foreach (var collider in _triggerEmitter.GetEnteredColliders()) {
                 _waterZone.TriggerExit(collider, this);
             }
         }

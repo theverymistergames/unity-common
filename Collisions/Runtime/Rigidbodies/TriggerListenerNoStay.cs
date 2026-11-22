@@ -1,7 +1,5 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Common.Layers;
-using MisterGames.Common.Maths;
-using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Collisions.Rigidbodies {
@@ -15,7 +13,6 @@ namespace MisterGames.Collisions.Rigidbodies {
         public override event TriggerCallback TriggerEnter = delegate { };
         public override event TriggerCallback TriggerExit = delegate { };
 
-        public override IReadOnlyCollection<Collider> EnteredColliders => _colliderSet;
         private readonly HashSet<Collider> _colliderSet = new();
     
         private void OnDisable() {
@@ -26,6 +23,11 @@ namespace MisterGames.Collisions.Rigidbodies {
             }
 
             _colliderSet.Clear();
+        }
+        
+        public override IReadOnlyCollection<Collider> GetEnteredColliders() {
+            _colliderSet.RemoveWhere(c => c == null || !c.enabled || c.gameObject is not { activeSelf: true, activeInHierarchy: true });
+            return _colliderSet;
         }
 
         private void OnTriggerEnter(Collider collider) {
@@ -44,8 +46,8 @@ namespace MisterGames.Collisions.Rigidbodies {
 
         private bool CanCollide(Collider collider) {
             return enabled &&
-                   _layerMask.Contains(collider.gameObject.layer) &&
-                   (_collideWithTriggers || !collider.isTrigger);
+                   (_collideWithTriggers || !collider.isTrigger) &&
+                   _layerMask.Contains(collider.gameObject.layer);
         }
     }
 

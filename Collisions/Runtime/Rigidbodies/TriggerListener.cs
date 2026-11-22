@@ -15,19 +15,22 @@ namespace MisterGames.Collisions.Rigidbodies {
         public override event TriggerCallback TriggerEnter = delegate { };
         public override event TriggerCallback TriggerExit = delegate { };
 
-        public override IReadOnlyCollection<Collider> EnteredColliders => _colliderSet;
-
         private readonly HashSet<Collider> _colliderSet = new();
         private readonly Dictionary<int, Collider> _hashToColliderMap = new();
         private readonly Dictionary<int, int> _colliderHashToStayFrameMap = new();
         private readonly List<int> _exitBuffer = new();
         private int _frameCount;
+        private bool _enabled;
 
         private void OnEnable() {
+            _enabled = true;
+            
             if (_colliderSet.Count > 0) PlayerLoopStage.FixedUpdate.Subscribe(this);
         }
 
         private void OnDisable() {
+            _enabled = false;
+            
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
 
             if (!_clearCollidersOnDisable) return;
@@ -40,7 +43,12 @@ namespace MisterGames.Collisions.Rigidbodies {
             _hashToColliderMap.Clear();
             _colliderHashToStayFrameMap.Clear();
         }
-
+        
+        public override IReadOnlyCollection<Collider> GetEnteredColliders() {
+            _colliderSet.RemoveWhere(c => c == null || !c.enabled || c.gameObject is not { activeSelf: true, activeInHierarchy: true });
+            return _colliderSet;
+        }
+        
         void IUpdate.OnUpdate(float dt) {
             int frameCount = _frameCount.ReturnThenIncrementUncheckedRef();
 
@@ -101,9 +109,9 @@ namespace MisterGames.Collisions.Rigidbodies {
         }
 
         private bool CanCollide(Collider collider) {
-            return enabled &&
-                   _layerMask.Contains(collider.gameObject.layer) &&
-                   (_collideWithTriggers || !collider.isTrigger);
+            return _enabled &&
+                   (_collideWithTriggers || !collider.isTrigger) &&
+                   _layerMask.Contains(collider.gameObject.layer);
         }
     }
 

@@ -54,7 +54,7 @@ namespace MisterGames.Collisions.Rigidbodies {
             _triggerEmitter.TriggerEnter += TriggerEntered;
             _triggerEmitter.TriggerExit += TriggerExited;
 
-            foreach (var collider in _triggerEmitter.EnteredColliders) {
+            foreach (var collider in _triggerEmitter.GetEnteredColliders()) {
                 if (collider != null) TriggerEntered(collider);
             }
         }
