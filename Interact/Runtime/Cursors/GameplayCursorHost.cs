@@ -90,6 +90,8 @@ namespace MisterGames.Interact.Cursors {
         }
 
         private void OnSaveProfileUpdated(string profileKey) {
+            if (profileKey != _saveService.GetSharedProfileKey()) return;
+
             FetchLearnData();
 
             if (_settings.enableCursorOverride) RefreshCursorIcon();
@@ -99,7 +101,7 @@ namespace MisterGames.Interact.Cursors {
         private void FetchLearnData() {
             if (string.IsNullOrWhiteSpace(_learnDataKey)) return;
             
-            if (!_saveService.TryGet(_learnDataKey, 0, out _learnData)) {
+            if (!_saveService.TryGet(_saveService.GetSharedProfileKey(), _learnDataKey, 0, out _learnData)) {
                 _learnData = new LearnData { items = new List<LearnDataItem>() };
             }
 
@@ -302,7 +304,7 @@ namespace MisterGames.Interact.Cursors {
                 _learnData.items[i] = item;
             }
 
-            _saveService.Set(_learnDataKey, 0, _learnData);
+            _saveService.Set(_saveService.GetSharedProfileKey(), _learnDataKey, 0, _learnData);
         }
 
 #if UNITY_EDITOR

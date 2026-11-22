@@ -1,12 +1,15 @@
 ﻿using MisterGames.Common.Data;
+using MisterGames.Common.GameObjects;
 using MisterGames.Scenario.Events;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace MisterGames.Scenario.Components {
     
-    public sealed class EnableGameObjectsOnEvent : MonoBehaviour, IEventListener {
+    public sealed class EnableObjectsOnEvent : MonoBehaviour, IEventListener {
 
-        [SerializeField] private GameObject[] _gameObjects;
+        [FormerlySerializedAs("_gameObjects")] 
+        [SerializeField] private Object[] _objects;
         
         [Header("Event")]
         [SerializeField] private EventReference _eventReference;
@@ -37,8 +40,8 @@ namespace MisterGames.Scenario.Components {
         public void OnEventRaised(EventReference e) {
             bool isMatch = IsMatch(e.GetCount());
 
-            for (int i = 0; i < _gameObjects.Length; i++) {
-                _gameObjects[i].SetActive(isMatch);
+            for (int i = 0; i < _objects.Length; i++) {
+                _objects[i].SetEnabled(isMatch);
             }
             
             if (isMatch && _unsubscribeAfterMatch) _eventReference.Unsubscribe(this);
@@ -58,7 +61,7 @@ namespace MisterGames.Scenario.Components {
 
 #if UNITY_EDITOR
         private void Reset() {
-            _gameObjects = new[] { gameObject };
+            _objects = new[] { gameObject };
         }
 #endif
     }

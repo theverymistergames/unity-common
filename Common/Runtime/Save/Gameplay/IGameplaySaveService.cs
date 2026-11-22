@@ -13,8 +13,9 @@ namespace MisterGames.Common.Save {
 
         bool HasUnsavedChanges { get; }
         
-        string GetCurrentProfileKey();
+        string GetCurrentProfileKey(bool fallbackToSharedProfile);
         string GetProfileKey(int index);
+        string GetSharedProfileKey();
         UniTask LoadOrCreateProfile(string profileKey, bool makeCurrent);
         UniTask SaveProfile(string profileKey);
         void DeleteProfile(string profileKey);

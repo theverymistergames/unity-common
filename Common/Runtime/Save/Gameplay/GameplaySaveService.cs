@@ -31,8 +31,18 @@ namespace MisterGames.Common.Save {
             _saveSystem = saveSystem;
             
             FetchProfiles();
-            
+
             PlayerLoopStage.LateUpdate.Subscribe(this);
+
+            LoadOrCreateSharedProfile().Forget();
+        }
+
+        private async UniTaskVoid LoadOrCreateSharedProfile() {
+            string profileKey = GetSharedProfileKey();
+
+            await LoadOrCreateProfile(profileKey, makeCurrent: false);
+
+            if (!HasSavedProfile(profileKey)) await SaveProfile(profileKey);
         }
 
         public void Dispose() {
@@ -56,12 +66,18 @@ namespace MisterGames.Common.Save {
             }
         }
 
-        public string GetCurrentProfileKey() {
-            return _currentProfileKey;
+        public string GetCurrentProfileKey(bool fallbackToSharedProfile) {
+            return fallbackToSharedProfile && string.IsNullOrWhiteSpace(_currentProfileKey)
+                ? GetSharedProfileKey()
+                : _currentProfileKey;
         }
 
         public string GetProfileKey(int index) {
             return _settings.CreateProfileName(index);
+        }
+
+        public string GetSharedProfileKey() {
+            return _settings.SharedProfileName;
         }
 
         public async UniTask LoadOrCreateProfile(string profileKey, bool makeCurrent) {

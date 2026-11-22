@@ -8,11 +8,13 @@ namespace MisterGames.Common.Save {
         [SerializeField] private string _versionKey = "_gameplay_save_version";
         [SerializeField] private string _version = "1";
         [SerializeField] private string _defaultProfileName = "profile";
+        [SerializeField] private string _sharedProfileName = "shared";
         [SerializeField] private bool _autoSave = true;
         [SerializeField] [Min(0f)] private float _autoSaveDelay = 1f;
 
         public string Version => _version;
         public string VersionKey => _versionKey;
+        public string SharedProfileName => _sharedProfileName;
 
         public bool IsAutoSaveEnabled(out float delay) {
             delay = _autoSaveDelay;
