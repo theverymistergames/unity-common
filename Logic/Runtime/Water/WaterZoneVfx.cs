@@ -55,10 +55,10 @@ namespace MisterGames.Logic.Water {
             float scaleMul = GetScaleMul(size, sqrSpeed) * data.scaleMul;
 
             var rot = Quaternion.LookRotation(RandomExtensions.OnUnitCircle(surfaceNormal), surfaceNormal);
-            
+
             Spawn(data.prefab, position, rot, scaleMul);
         }
-        
+
         private void OnColliderExit(Collider collider, Vector3 position, Vector3 surfacePoint, Vector3 surfaceNormal) {
             if (collider == null) return;
             

@@ -41,7 +41,13 @@ namespace MisterGames.Logic.Water {
         [SerializeField] private float _randomTorque = 0f;
         [SerializeField] private float _randomForceSpeed = 0f;
         [SerializeField] private float _randomTorqueSpeed = 0f;
-        
+
+        [Header("Sleep")]
+        [SerializeField] [Min(0f)] private float _sleepLinearSpeed = 0.05f;
+        [SerializeField] [Min(0f)] private float _sleepAngularSpeed = 0.1f;
+        [SerializeField] [Min(0f)] private float _sleepDelay = 1f;
+        [SerializeField] [Min(0f)] private float _wakeForceThreshold = 0.5f;
+
         private enum ForceSource {
             Constant,
             UseGravityMagnitude,
@@ -77,12 +83,27 @@ namespace MisterGames.Logic.Water {
 
         private readonly struct FloatingPointsPerRbData {
 
+            public readonly int rbId;
             public readonly int firstFloatingPointIndex;
             public readonly int floatingPointCount;
-            
-            public FloatingPointsPerRbData(int firstFloatingPointIndex, int floatingPointCount) {
+
+            public FloatingPointsPerRbData(int rbId, int firstFloatingPointIndex, int floatingPointCount) {
+                this.rbId = rbId;
                 this.firstFloatingPointIndex = firstFloatingPointIndex;
                 this.floatingPointCount = floatingPointCount;
+            }
+        }
+
+        private readonly struct SleepData {
+
+            public readonly float restTime;
+            public readonly bool isAsleep;
+            public readonly float3 force;
+
+            public SleepData(float restTime, bool isAsleep, float3 force) {
+                this.restTime = restTime;
+                this.isAsleep = isAsleep;
+                this.force = force;
             }
         }
 
@@ -123,13 +144,14 @@ namespace MisterGames.Logic.Water {
             public readonly int rbIndex;
             public readonly float3 point;
             public readonly float3 force;
+            public readonly float3 baseForce;
             public readonly float3 torque;
 #if UNITY_EDITOR
             public readonly float3 surfacePoint;
             public readonly bool drawGizmos;
 #endif
-            
-            public ForceData(int rbId, int rbIndex, float3 point, float3 force, float3 torque
+
+            public ForceData(int rbId, int rbIndex, float3 point, float3 force, float3 baseForce, float3 torque
 #if UNITY_EDITOR
                 , float3 surfacePoint
                 , bool drawGizmos
@@ -139,6 +161,7 @@ namespace MisterGames.Logic.Water {
                 this.rbIndex = rbIndex;
                 this.point = point;
                 this.force = force;
+                this.baseForce = baseForce;
                 this.torque = torque;
 #if UNITY_EDITOR
                 this.surfacePoint = surfacePoint;
@@ -166,6 +189,7 @@ namespace MisterGames.Logic.Water {
         private readonly Dictionary<int, int> _rbIdToIndexMap = new();
         private readonly Dictionary<int, WaterClientData> _rbIdToWaterClientDataMap = new();
         private readonly Dictionary<int, int> _rbIdToVolumeCountMap = new();
+        private readonly Dictionary<int, SleepData> _rbIdToSleepDataMap = new();
 
         private NativeArray<VolumeData> _volumeDataArray;
         private int _floatingPointsCount;
@@ -182,7 +206,9 @@ namespace MisterGames.Logic.Water {
 
         private void OnDisable() {
             PlayerLoopStage.FixedUpdate.Unsubscribe(this);
-            
+
+            WakeUpSleepingRigidbodies();
+
             for (int i = 0; i < _predefinedVolumes.Length; i++) {
                 RemoveVolume(_predefinedVolumes[i]);
             }
@@ -195,6 +221,7 @@ namespace MisterGames.Logic.Water {
         }
 
         private void OnDestroy() {
+            _rbIdToSleepDataMap.Clear();
             _rbIdToWaterClientDataMap.Clear();
             _rbIdToIndexMap.Clear();
             _rbList.Clear();
@@ -315,7 +342,11 @@ namespace MisterGames.Logic.Water {
             
             var rb = _rbList[index].rb;
             _rbList[index] = default;
-            
+
+            if (_rbIdToSleepDataMap.Remove(rbId, out var sleepData) && sleepData.isAsleep && rb != null) {
+                rb.WakeUp();
+            }
+
             if (_rbIdToWaterClientDataMap.Remove(rbId, out var data)) {
                 _floatingPointsCount -= data.waterClient.FloatingPointCount;
             }
@@ -332,6 +363,7 @@ namespace MisterGames.Logic.Water {
 
             var forceDataArray = new NativeArray<ForceData>(floatingPointsCount, Allocator.TempJob);
             var forceMulArray = new NativeArray<float>(rbCount, Allocator.TempJob);
+            var baseForceArray = new NativeArray<float3>(rbCount, Allocator.TempJob);
 
             float time = TimeSources.scaledTime;
             
@@ -355,14 +387,25 @@ namespace MisterGames.Logic.Water {
                 rbDataArray = rbDataArray,
                 forceDataArray = forceDataArray,
                 forceMulArray = forceMulArray,
+                baseForceArray = baseForceArray,
             };
-            
+
             var calculateForceJobHandle = calculateForceJob.Schedule(floatingPointsCount, JobExt.BatchFor(floatingPointsCount));
             calculateValidFloatingPointsCountJob.Schedule(rbCount, JobExt.BatchFor(rbCount), calculateForceJobHandle).Complete();
 
+            var applyForceArray = new NativeArray<bool>(rbCount, Allocator.Temp);
+
+            for (int i = 0; i < rbCount; i++) {
+                var rbData = rbDataArray[i];
+                if (rbData.rbId == 0) continue;
+
+                var rb = _rbList[_rbIdToIndexMap[rbData.rbId]].rb;
+                applyForceArray[i] = UpdateSleepState(rbData.rbId, rb, baseForceArray[i], dt);
+            }
+
             for (int i = 0; i < forceDataArray.Length; i++) {
                 var forceData = forceDataArray[i];
-                if (forceData.rbId == 0) continue;
+                if (forceData.rbId == 0 || !applyForceArray[forceData.rbIndex]) continue;
                 
                 var rb = _rbList[_rbIdToIndexMap[forceData.rbId]].rb;
                 float mul = forceMulArray[forceData.rbIndex];
@@ -382,9 +425,51 @@ namespace MisterGames.Logic.Water {
             volumeDataArray.Dispose();
             floatingDataArray.Dispose();
             forceMulArray.Dispose();
+            baseForceArray.Dispose();
+            applyForceArray.Dispose();
             forceDataArray.Dispose();
-            
+
             if (_rbList.Count == 0) PlayerLoopStage.FixedUpdate.Unsubscribe(this);
+        }
+
+        private bool UpdateSleepState(int rbId, Rigidbody rb, float3 baseForce, float dt) {
+            var sleepData = _rbIdToSleepDataMap.GetValueOrDefault(rbId);
+
+            if (sleepData.isAsleep) {
+                if (rb.IsSleeping() && math.distancesq(baseForce, sleepData.force) <= _wakeForceThreshold * _wakeForceThreshold) {
+                    return false;
+                }
+
+                rb.WakeUp();
+                _rbIdToSleepDataMap.Remove(rbId);
+                return true;
+            }
+
+            bool isResting = rb.linearVelocity.sqrMagnitude <= _sleepLinearSpeed * _sleepLinearSpeed &&
+                             rb.angularVelocity.sqrMagnitude <= _sleepAngularSpeed * _sleepAngularSpeed;
+
+            float restTime = isResting ? sleepData.restTime + dt : 0f;
+
+            if (restTime < _sleepDelay) {
+                _rbIdToSleepDataMap[rbId] = new SleepData(restTime, isAsleep: false, default);
+                return true;
+            }
+
+            rb.Sleep();
+            _rbIdToSleepDataMap[rbId] = new SleepData(restTime, isAsleep: true, baseForce);
+            return false;
+        }
+
+        private void WakeUpSleepingRigidbodies() {
+            for (int i = 0; i < _rbList.Count; i++) {
+                (int id, var rb) = _rbList[i];
+
+                if (rb != null && _rbIdToSleepDataMap.TryGetValue(id, out var sleepData) && sleepData.isAsleep) {
+                    rb.WakeUp();
+                }
+            }
+
+            _rbIdToSleepDataMap.Clear();
         }
 
         private void CreateVolumeDataArray(out NativeArray<VolumeData> volumeDataArray, out int count) {
@@ -460,7 +545,7 @@ namespace MisterGames.Logic.Water {
                             );
                         }
                         
-                        rbDataArray[rbIndex] = new FloatingPointsPerRbData(firstPointIndex, fpCount);
+                        rbDataArray[rbIndex] = new FloatingPointsPerRbData(id, firstPointIndex, fpCount);
                         continue;
                     }
                     
@@ -477,11 +562,13 @@ namespace MisterGames.Logic.Water {
 #endif
                     );
                     
-                    rbDataArray[rbIndex] = new FloatingPointsPerRbData(firstPointIndex, 1);
+                    rbDataArray[rbIndex] = new FloatingPointsPerRbData(id, firstPointIndex, 1);
                     continue;
                 }
 
                 if (_rbIdToIndexMap.Remove(id)) {
+                    _rbIdToSleepDataMap.Remove(id);
+
                     if (_rbIdToWaterClientDataMap.Remove(id, out var data)) {
                         _floatingPointsCount -= data.waterClient.FloatingPointCount;
                     }
@@ -587,7 +674,9 @@ namespace MisterGames.Logic.Water {
                     buoyancy = buoyancyScaleNegative * math.min(0f, buoyancy + noise.cnoise((float2) randomSeed) * buoyancyRandom);
                 }
                 
-                force = (1f + buoyancy) * force / validProxyCount
+                var baseForce = (1f + buoyancy) * force / validProxyCount;
+
+                force = baseForce
                         - floatingData.deceleration * floatingData.velocity
                         + GetNoiseVector(randomForceT, NoiseOffset * randomSeed) * randomForce;
 
@@ -599,7 +688,8 @@ namespace MisterGames.Logic.Water {
                     floatingData.rbIndex,
                     floatingData.point,
                     force,
-                    torque 
+                    baseForce,
+                    torque
 #if UNITY_EDITOR
                     , surfacePoint / validProxyCount
                     , floatingData.drawGizmos
@@ -615,16 +705,25 @@ namespace MisterGames.Logic.Water {
             [ReadOnly] public NativeArray<ForceData> forceDataArray;
 
             [WriteOnly] public NativeArray<float> forceMulArray;
-            
+            [WriteOnly] public NativeArray<float3> baseForceArray;
+
             public void Execute(int index) {
                 var data = rbDataArray[index];
                 int validFloatingPointsCount = 0;
-                
+                float3 baseForce = default;
+
                 for (int i = 0; i < data.floatingPointCount; i++) {
-                    if (forceDataArray[i + data.firstFloatingPointIndex].rbId != 0) validFloatingPointsCount++;
+                    var forceData = forceDataArray[i + data.firstFloatingPointIndex];
+                    if (forceData.rbId == 0) continue;
+
+                    validFloatingPointsCount++;
+                    baseForce += forceData.baseForce;
                 }
-                
-                forceMulArray[index] = validFloatingPointsCount > 0 ? 1f / validFloatingPointsCount : 0f;
+
+                float mul = validFloatingPointsCount > 0 ? 1f / validFloatingPointsCount : 0f;
+
+                forceMulArray[index] = mul;
+                baseForceArray[index] = mul * baseForce;
             }
         }
         
