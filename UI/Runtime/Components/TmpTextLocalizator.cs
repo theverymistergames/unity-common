@@ -1,4 +1,5 @@
-﻿using MisterGames.Common.Attributes;
+﻿using System.Collections.Generic;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Localization;
 using MisterGames.Common.Service;
 using TMPro;
@@ -17,6 +18,8 @@ namespace MisterGames.UI.Components {
         
         private ILocalizationService _service;
         
+        private readonly HashSet<IArgumentResolver> _formatters = new();
+        
         private void Awake() {
             _service = Services.Get<ILocalizationService>();
         }
@@ -31,6 +34,18 @@ namespace MisterGames.UI.Components {
             _service.OnLocaleChanged -= OnLocaleChanged;
         }
 
+        public void AddFormatter(IArgumentResolver formatter) {
+            _formatters.Add(formatter);
+        }
+
+        public void RemoveFormatter(IArgumentResolver formatter) {
+            _formatters.Remove(formatter);
+        }
+        
+        public void ForceUpdateValue() {
+            SetupValue();
+        }
+
         private void OnLocaleChanged(Locale locale) {
             SetupValue();
         }
@@ -42,6 +57,11 @@ namespace MisterGames.UI.Components {
         private string GetResultText(Locale locale) {
             string value = _key.GetValue(locale);
             _formatter?.Resolve(_key, locale, ref value);
+            
+            foreach (var f in _formatters) {
+                f.Resolve(_key, locale, ref value);
+            }
+            
             return value;
         }
 
