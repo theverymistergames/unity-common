@@ -6,7 +6,7 @@ namespace MisterGames.Common.Audio {
     public sealed class AudioBankBinder : MonoBehaviour {
 
         [SerializeField] private Mode _mode;
-        [SerializeField] private AudioBankReference[] _banks;
+        [SerializeField] private AudioBank[] _banks;
         
         private enum Mode {
             AwakeDestroy,
