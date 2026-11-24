@@ -2,13 +2,16 @@
 using UnityEngine;
 
 namespace MisterGames.Common.Audio {
-    
+
     [DefaultExecutionOrder(-100_000)]
     public sealed class AudioBankServiceLauncher : MonoBehaviour {
-        
-        private readonly AudioBankService _service = new();
-        
+
+        [SerializeField] private AudioBanksSettings _settings;
+
+        private AudioBankService _service;
+
         private void Awake() {
+            _service = new AudioBankService(_settings);
             Services.Register<IAudioBankService>(_service);
         }
 
@@ -17,5 +20,5 @@ namespace MisterGames.Common.Audio {
             _service.Dispose();
         }
     }
-    
+
 }
