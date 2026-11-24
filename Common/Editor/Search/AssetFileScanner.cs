@@ -38,6 +38,7 @@ namespace MisterGames.Common.Editor.Search {
             public readonly List<(string assetPath, string kind)> files = new();
             public readonly HashSet<string> fieldNames = new();
             public readonly HashSet<string> referencedGuids = new();
+            public readonly HashSet<int> classIds = new();
 
             public void AddFiles(string[] searchFolders, bool assets, bool prefabs, bool scenes) {
                 var added = new HashSet<string>();
@@ -109,13 +110,39 @@ namespace MisterGames.Common.Editor.Search {
             public readonly int layer;
             public readonly string scriptGuid;
             public readonly IReadOnlyList<Field> fields;
+            public readonly int classId;
+            public readonly int gameObjectLayer;
 
-            public ScannedObject(string path, bool isGameObject, int layer, string scriptGuid, IReadOnlyList<Field> fields) {
+            public ScannedObject(
+                string path,
+                bool isGameObject,
+                int layer,
+                string scriptGuid,
+                IReadOnlyList<Field> fields,
+                int classId = 0,
+                int gameObjectLayer = 0
+            ) {
                 this.path = path;
                 this.isGameObject = isGameObject;
                 this.layer = layer;
                 this.scriptGuid = scriptGuid;
                 this.fields = fields;
+                this.classId = classId;
+                this.gameObjectLayer = gameObjectLayer;
+            }
+
+            public bool TryGetField(string fieldPath, out Field field) {
+                if (fields != null) {
+                    for (int i = 0; i < fields.Count; i++) {
+                        if (fields[i].path != fieldPath) continue;
+
+                        field = fields[i];
+                        return true;
+                    }
+                }
+
+                field = default;
+                return false;
             }
         }
 
@@ -182,6 +209,7 @@ namespace MisterGames.Common.Editor.Search {
         private readonly List<(string assetPath, string kind)> _targets;
         private readonly HashSet<string> _fieldNames;
         private readonly HashSet<string> _referencedGuids;
+        private readonly HashSet<int> _classIds;
         private readonly Dictionary<string, string> _prefabPathByGuid;
         private readonly Dictionary<string, string> _guidByPath;
         private readonly string _projectFolder;
@@ -202,6 +230,7 @@ namespace MisterGames.Common.Editor.Search {
             _targets = new List<(string, string)>(request.files);
             _fieldNames = new HashSet<string>(request.fieldNames);
             _referencedGuids = new HashSet<string>(request.referencedGuids);
+            _classIds = new HashSet<int>(request.classIds);
             _projectFolder = Directory.GetParent(Application.dataPath)!.FullName;
             _prefabPathByGuid = new Dictionary<string, string>();
             _guidByPath = new Dictionary<string, string>();
@@ -428,7 +457,7 @@ namespace MisterGames.Common.Editor.Search {
 
             try {
                 string text = File.ReadAllText(Path.Combine(_projectFolder, assetPath));
-                if (text.StartsWith(YamlHeader, StringComparison.Ordinal)) file = Parse(text, _fieldNames, _referencedGuids, _guidByPath.GetValueOrDefault(assetPath));
+                if (text.StartsWith(YamlHeader, StringComparison.Ordinal)) file = Parse(text, _fieldNames, _referencedGuids, _classIds, _guidByPath.GetValueOrDefault(assetPath));
             }
             catch (Exception) {
                 file = null;
@@ -465,7 +494,11 @@ namespace MisterGames.Common.Editor.Search {
                 if (kind == KindAsset && (obj.isGameObject || (obj.hideFlags & (int) HideFlags.HideInHierarchy) != 0)) continue;
 
                 string path = kind == KindAsset ? obj.name : string.Join("/", obj.segments);
-                file.objects.Add(new ScannedObject(path, obj.isGameObject, obj.layer, obj.scriptGuid, obj.fields));
+                int gameObjectLayer = obj.isGameObject
+                    ? obj.layer
+                    : resolved.objectById.TryGetValue(obj.gameObjectId, out var gameObject) ? gameObject.layer : 0;
+
+                file.objects.Add(new ScannedObject(path, obj.isGameObject, obj.layer, obj.scriptGuid, obj.fields, obj.classId, gameObjectLayer));
             }
 
             for (int i = 0; i < resolved.instances.Count; i++) {
@@ -532,6 +565,7 @@ namespace MisterGames.Common.Editor.Search {
 
         private sealed class ResolvedObject {
             public long id;
+            public int classId;
             public bool isGameObject;
             public long transformId;
             public long gameObjectId;
@@ -577,6 +611,7 @@ namespace MisterGames.Common.Editor.Search {
                         long transform = raw.transformByGameObject.GetValueOrDefault(doc.id);
                         AddObject(resolved, new ResolvedObject {
                             id = doc.id,
+                            classId = doc.classId,
                             isGameObject = true,
                             transformId = transform,
                             gameObjectId = doc.id,
@@ -588,16 +623,11 @@ namespace MisterGames.Common.Editor.Search {
                     }
 
                     case ClassIdMonoBehaviour:
-                        AddObject(resolved, new ResolvedObject {
-                            id = doc.id,
-                            gameObjectId = doc.gameObject,
-                            segments = doc.gameObject == 0 ? new[] { doc.name } : GetGameObjectPath(ctx, doc.gameObject),
-                            name = doc.name,
-                            hideFlags = doc.hideFlags,
-                            scriptGuid = doc.scriptGuid,
-                            fields = doc.fields,
-                            refs = doc.refs,
-                        });
+                        AddComponentObject(ctx, doc);
+                        break;
+
+                    default:
+                        if (_classIds.Contains(doc.classId)) AddComponentObject(ctx, doc);
                         break;
                 }
             }
@@ -619,6 +649,20 @@ namespace MisterGames.Common.Editor.Search {
             _resolvedFiles[assetPath] = resolved;
 
             return resolved;
+        }
+
+        private void AddComponentObject(ResolveContext ctx, RawDoc doc) {
+            AddObject(ctx.result, new ResolvedObject {
+                id = doc.id,
+                classId = doc.classId,
+                gameObjectId = doc.gameObject,
+                segments = doc.gameObject == 0 ? new[] { doc.name } : GetGameObjectPath(ctx, doc.gameObject),
+                name = doc.name,
+                hideFlags = doc.hideFlags,
+                scriptGuid = doc.scriptGuid,
+                fields = doc.fields,
+                refs = doc.refs,
+            });
         }
 
         private static void AddObject(ResolvedFile file, ResolvedObject obj) {
@@ -654,6 +698,7 @@ namespace MisterGames.Common.Editor.Search {
 
                 var obj = new ResolvedObject {
                     id = CombineId(src.id, instanceId),
+                    classId = src.classId,
                     isGameObject = src.isGameObject,
                     transformId = src.transformId == 0 ? 0 : CombineId(src.transformId, instanceId),
                     gameObjectId = src.gameObjectId == 0 ? 0 : CombineId(src.gameObjectId, instanceId),
@@ -831,7 +876,7 @@ namespace MisterGames.Common.Editor.Search {
             return (sourceId ^ instanceId) & long.MaxValue;
         }
 
-        private static RawFile Parse(string text, HashSet<string> fieldNames, HashSet<string> referencedGuids, string fileGuid) {
+        private static RawFile Parse(string text, HashSet<string> fieldNames, HashSet<string> referencedGuids, HashSet<int> classIds, string fileGuid) {
             var file = new RawFile();
             bool parseFields = fieldNames.Count > 0 || referencedGuids.Count > 0;
             bool trackAllModifications = referencedGuids.Count > 0;
@@ -857,7 +902,9 @@ namespace MisterGames.Common.Editor.Search {
                     file.docs[doc.id] = doc;
 
                     if (doc.classId == ClassIdPrefabInstance) file.instances.Add(doc);
-                    if (doc.classId == ClassIdMonoBehaviour && !doc.stripped && parseFields) fieldParser = new FieldParser(fieldNames, referencedGuids, fileGuid, doc);
+                    if (!doc.stripped && (doc.classId == ClassIdMonoBehaviour && parseFields || classIds.Contains(doc.classId))) {
+                        fieldParser = new FieldParser(fieldNames, referencedGuids, fileGuid, doc);
+                    }
                     continue;
                 }
 

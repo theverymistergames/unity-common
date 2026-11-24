@@ -60,6 +60,8 @@ namespace MisterGames.Common.Editor.Search {
         [SerializeField] private List<SearchTab> _tabs = new();
         [SerializeField] private int _activeTabIndex = -1;
 
+        private ResultRow _selectedRow;
+
         private SearchState _state;
         private SerializedObject _serializedState;
         private SerializedProperty _searchFoldersProperty;
@@ -300,9 +302,14 @@ namespace MisterGames.Common.Editor.Search {
                 ? new GUIContent(label, AssetPreview.GetMiniThumbnail(asset), $"{row.Kind}\n{row.AssetPath}\n{row.ObjectPath}")
                 : new GUIContent(label, $"{row.Kind}\n{row.AssetPath}\n{row.ObjectPath}");
 
-            if (GUI.Button(objectRect, content, EditorStyles.objectField)) OnRowClicked(row, asset);
+            if (GUI.Button(objectRect, content, EditorStyles.objectField)) {
+                _selectedRow = row;
+                OnRowClicked(row, asset);
+            }
 
             EditorGUI.SelectableLabel(infoRect, row.Info, EditorStyles.miniLabel);
+
+            if (_selectedRow == row) SearchResultHighlight.Draw(rect);
         }
 
         private void OnRowClicked(ResultRow row, Object asset) {

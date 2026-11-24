@@ -21,7 +21,7 @@ namespace MisterGames.Common.Tick {
         private const int InitialCapacity = 32;
         
         private readonly Dictionary<IUpdate, Entry> _indexMap = new(InitialCapacity);
-        private readonly List<IUpdate>[] _updateListMap = { new(), new(), new(), new(), new(), };
+        private readonly List<IUpdate>[] _updateListMap = { new(), new(), new(), new(), new(), new(), };
         private bool _discardNextFrameDt;
 
         private readonly struct Entry {
@@ -92,13 +92,14 @@ namespace MisterGames.Common.Tick {
 
         public void TickLateUpdate(float dtScaled, float dtUnscaled) {
             Tick((int) PlayerLoopStage.LateUpdate, DeltaTime);
+            Tick((int) PlayerLoopStage.LastLateUpdate, DeltaTime);
         }
 
         public void TickFixedUpdate(float dtScaled, float dtUnscaled) {
             FixedDeltaTime = dtScaled;
             FixedUnscaledDeltaTime = dtUnscaled;
 
-            Tick((int) PlayerLoopStage.FixedUpdate , FixedDeltaTime);
+            Tick((int) PlayerLoopStage.FixedUpdate, FixedDeltaTime);
         }
 
         private void Tick(int stage, float dt) {

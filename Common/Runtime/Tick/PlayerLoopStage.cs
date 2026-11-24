@@ -6,6 +6,7 @@
         UnscaledUpdate = 2,
         LateUpdate = 3,
         FixedUpdate = 4,
+        LastLateUpdate = 5,
     }
 
 }

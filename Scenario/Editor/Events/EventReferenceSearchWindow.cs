@@ -58,6 +58,7 @@ namespace MisterGames.Scenario.Editor.Events {
             public readonly List<SerializedProperty> GroupDomainProperties = new();
             public readonly List<SerializedReferenceUsageFinder.Usage> Results = new();
             public Vector2 Scroll;
+            public int SelectedIndex = -1;
             public readonly Dictionary<string, Object> ResultObjectCache = new();
 
             public TabTargetsState TargetsState;
@@ -333,7 +334,7 @@ namespace MisterGames.Scenario.Editor.Events {
                 var group = tab.Groups[g];
                 DrawGroupHeader(rt, g);
                 for (int i = group.ResultStartIndex; i < group.ResultStartIndex + group.ResultCount; i++) {
-                    DrawResultRow(rt, rt.Results[i], i - group.ResultStartIndex);
+                    DrawResultRow(rt, rt.Results[i], i - group.ResultStartIndex, i);
                 }
             }
 
@@ -437,7 +438,8 @@ namespace MisterGames.Scenario.Editor.Events {
         private void DrawResultRow(
             TabRuntime tabRuntime,
             SerializedReferenceUsageFinder.Usage usage,
-            int index) {
+            int index,
+            int resultIndex) {
             var rect = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight + 2f);
 
             if (index % 2 == 0)
@@ -461,7 +463,7 @@ namespace MisterGames.Scenario.Editor.Events {
             string assetTooltip =
                 $"{usage.Kind}\n{usage.AssetPath}\n{usage.ObjectPath}";
 
-            DrawPingableObjectCell(
+            bool clicked = DrawPingableObjectCell(
                 assetRect,
                 resultObject,
                 pingObject,
@@ -472,7 +474,7 @@ namespace MisterGames.Scenario.Editor.Events {
                 ? ownerScript.name
                 : GetShortTypeName(usage.OwnerType);
 
-            DrawPingableObjectCell(
+            clicked |= DrawPingableObjectCell(
                 scriptRect,
                 ownerScript,
                 ownerScript,
@@ -483,6 +485,9 @@ namespace MisterGames.Scenario.Editor.Events {
                 propertyRect,
                 FormatPropertyPath(usage.PropertyPath),
                 EditorStyles.miniLabel);
+
+            if (clicked) tabRuntime.SelectedIndex = resultIndex;
+            if (tabRuntime.SelectedIndex == resultIndex) SearchResultHighlight.Draw(rect);
         }
 
         private void GetColumnRects(Rect rect, out Rect assetRect, out Rect div0, out Rect scriptRect, out Rect div1, out Rect propertyRect) {
@@ -708,7 +713,7 @@ namespace MisterGames.Scenario.Editor.Events {
             return fullTypeName.Substring(lastDot + 1);
         }
 
-        private static void DrawPingableObjectCell(
+        private static bool DrawPingableObjectCell(
             Rect rect,
             Object iconObj,
             Object pingObj,
@@ -721,13 +726,15 @@ namespace MisterGames.Scenario.Editor.Events {
             bool clicked = GUI.Button(rect, content, EditorStyles.objectField);
 
             if (!clicked || pingObj == null)
-                return;
+                return clicked;
 
             Selection.activeObject = pingObj;
             EditorGUIUtility.PingObject(pingObj);
 
             if (Event.current.clickCount >= 2 && AssetDatabase.Contains(pingObj))
                 AssetDatabase.OpenAsset(pingObj);
+
+            return true;
         }
 
         private void Search() {
@@ -867,6 +874,7 @@ namespace MisterGames.Scenario.Editor.Events {
             activeRt.GroupHeaderProperties.Clear();
             activeRt.GroupDomainProperties.Clear();
             activeRt.Results.Clear();
+            activeRt.SelectedIndex = -1;
             activeRt.ResultObjectCache.Clear();
             activeRt.Scroll = Vector2.zero;
 
