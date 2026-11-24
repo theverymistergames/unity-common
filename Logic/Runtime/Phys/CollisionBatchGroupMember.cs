@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using MisterGames.Collisions.Core;
+using MisterGames.Common.Attributes;
 using MisterGames.Common.Labels;
 using MisterGames.Common.Service;
 using UnityEngine;
@@ -40,7 +41,11 @@ namespace MisterGames.Logic.Phys {
 
         private IEnumerator ResetNextFrame() {
             yield return null;
-            
+            CollectElements();
+        }
+
+        [Button(mode: ButtonAttribute.Mode.Editor)]
+        private void CollectElements() {
             _rigidbody = GetComponent<Rigidbody>();
             _colliders = GetComponentsInChildren<Collider>();
             _surfaceMaterial = GetComponent<SurfaceMaterial>();
