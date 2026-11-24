@@ -7,8 +7,9 @@ namespace MisterGames.Input.Core {
     [DefaultExecutionOrder(-100_000)]
     public sealed class InputLauncher : MonoBehaviour {
 
-        [SerializeField] private InputBlockService _inputBlockService;
+        [SerializeField] private InputLauncherSettings _inputLauncherSettings;
         
+        private readonly InputBlockService _inputBlockService = new();
         private readonly InputMapper _inputMapper = new();
         private readonly InputBindingHelper _inputBindingHelper = new();
         private readonly InputUpdater _inputUpdater = new();
@@ -21,7 +22,7 @@ namespace MisterGames.Input.Core {
             
             _inputBindingHelper.Initialize();
             _inputMapper.Initialize(InputSystem.actions);
-            _inputBlockService.Initialize(_inputMapper);
+            _inputBlockService.Initialize(_inputMapper, _inputLauncherSettings);
             
             InputServices.Mapper = _inputMapper;
             InputServices.Blocks = _inputBlockService;

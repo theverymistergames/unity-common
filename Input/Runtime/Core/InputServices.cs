@@ -14,7 +14,6 @@ namespace MisterGames.Input.Core {
 
 #if UNITY_EDITOR
         private const string RunPlayerUpdatesInEditModeFeature = "RUN_PLAYER_UPDATES_IN_EDIT_MODE";
-        
         private static readonly HashSet<int> _enabledPlayerUpdatesInEditModeSources = new();
 
         internal static void EnableInputInEditModeForSource(object source, bool enable) {
@@ -65,7 +64,7 @@ namespace MisterGames.Input.Core {
 
         private static IInputBlockService CreateInputBlockService(IInputMapper mapper) {
             var blocks = new InputBlockService();
-            blocks.Initialize(mapper);
+            blocks.Initialize(mapper, null);
             return blocks;
         }
 

@@ -51,6 +51,7 @@ namespace MisterGames.UI.Components {
         }
 
         private void SetupValue() {
+            if (_service == null) return;
             _textField.SetText(GetResultText(_service.Locale));
         }
 

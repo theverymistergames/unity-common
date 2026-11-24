@@ -142,16 +142,16 @@ namespace MisterGames.SettingsLib.Descs {
             _displayPosition = displayInfo.workArea.position;
             _supportedResolutions.Clear();
 
+            var nativeRes = GetNativeResolution();
             var set = new NativeHashSet<long>(resolutions.Length + 1, Allocator.Temp);
 
             for (int i = 0; i < resolutions.Length; i++) {
                 var res = new Res(resolutions[i]);
-                if (!set.Add(res.ToLong())) continue;
+                if (res.width > nativeRes.width || res.height > nativeRes.height || !set.Add(res.ToLong())) continue;
 
                 _supportedResolutions.Add(res);
             }
 
-            var nativeRes = GetNativeResolution();
             bool addedNativeRes = set.Add(nativeRes.ToLong());
             if (addedNativeRes) _supportedResolutions.Add(nativeRes);
 
@@ -172,6 +172,8 @@ namespace MisterGames.SettingsLib.Descs {
         private static Res GetNativeResolution() {
             var displayInfo = Screen.mainWindowDisplayInfo;
             var nativeRes = new Res(displayInfo.width, displayInfo.height);
+            if (nativeRes.width > 0 && nativeRes.height > 0) return nativeRes;
+
             var resolutions = Screen.resolutions;
 
             for (int i = 0; i < resolutions.Length; i++) {

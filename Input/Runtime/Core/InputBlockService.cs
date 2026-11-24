@@ -15,8 +15,6 @@ namespace MisterGames.Input.Core {
     [Serializable]
     public sealed class InputBlockService : IInputBlockService, IDisposable, IUpdate {
 
-        [SerializeField] private bool _enableLogs;
-        
         private readonly struct BlockKey : IEquatable<BlockKey> {
             
             public readonly int hash;
@@ -53,21 +51,31 @@ namespace MisterGames.Input.Core {
         private readonly MultiValueDictionary<Guid, int> _inputMapToSourceHashBlocks = new();
         private readonly Dictionary<BlockKey, BlockData> _inputMapBlocks = new();
         
+        private readonly HashSet<Guid> _ignoreInitialStateCheckSet = new();
+        
         private IInputMapper _inputMapper;
+        private InputLauncherSettings _settings;
         private bool _initialized;
         
-        public void Initialize(IInputMapper inputMapper) {
+        public void Initialize(IInputMapper inputMapper, InputLauncherSettings settings) {
             _initialized = true;
             _inputMapper = inputMapper;
+
+            if (_settings != null) _settings.OnValidated -= OnSettingsValidated;
+            _settings = settings;
+            if (_settings != null) _settings.OnValidated += OnSettingsValidated;
+            
+            FetchIgnoreInitialStateCheckSet();
             
             PlayerLoopStage.LateUpdate.Subscribe(this);
         }
-        
+
         public void Dispose() {
             if (!_initialized) return;
 
             _initialized = false;
-            
+            if (_settings != null) _settings.OnValidated -= OnSettingsValidated;
+
             PlayerLoopStage.LateUpdate.Unsubscribe(this);
             
             _sourceHashToInputActionBlocks.Clear();
@@ -137,12 +145,28 @@ namespace MisterGames.Input.Core {
                 UpdateInputActionBlockState(inputAction);
             }
 
-            if (_enableLogs && (changedInputActions.Count > 0 || changedInputMaps.Count > 0)) {
-                LogInfo($"cleared canceled blocks for maps [{JoinMapsToString(changedInputMaps)}] and inputs [{JoinActionsToString(changedInputActions)}], state:\n{GetInputsStateString()}");
+            if (_settings != null && _settings.enableLogs && (changedInputActions.Count > 0 || changedInputMaps.Count > 0)) {
+                LogInfo($"cleared canceled blocks for maps [{JoinMapsToString(changedInputMaps)}] and " +
+                        $"inputs [{JoinActionsToString(changedInputActions)}], state:\n{GetInputsStateString()}");
             }
             
             changedInputActions.Dispose();
             changedInputMaps.Dispose();
+        }
+        
+        private void OnSettingsValidated() {
+            FetchIgnoreInitialStateCheckSet();
+        }
+
+        private void FetchIgnoreInitialStateCheckSet() {
+            _ignoreInitialStateCheckSet.Clear();
+            
+            if (_settings == null) return;
+            
+            for (int i = 0; i < _settings.ignoreInitialStateCheckForInputs?.Length; i++) {
+                ref var input = ref _settings.ignoreInitialStateCheckForInputs[i];
+                _ignoreInitialStateCheckSet.Add(input.Guid);
+            }
         }
 
         public bool IsInputActionEnabled(InputAction inputAction) {
@@ -158,7 +182,7 @@ namespace MisterGames.Input.Core {
         public bool BlockInputMap(object source, InputActionMap inputMap, CancellationToken cancellationToken = default) {
             if (_initialized && SetInputMapBlockInternal(source, inputMap, blocked: true, cancellationToken)) {
                 UpdateInputMapBlockState(inputMap);
-                if (_enableLogs) LogInfo($"map [{inputMap.name}] blocked by [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"map [{inputMap.name}] blocked by [{source}], state:\n{GetInputsStateString()}");
                 return true;
             }
             
@@ -170,7 +194,7 @@ namespace MisterGames.Input.Core {
                 SetInputMapBlockInternal(source, inputMap, blocked: true, cancellationToken)) 
             {
                 UpdateInputMapBlockState(inputMap);
-                if (_enableLogs) LogInfo($"map [{inputMap.name}] blocked by [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"map [{inputMap.name}] blocked by [{source}], state:\n{GetInputsStateString()}");
                 return true;
             }
             
@@ -193,7 +217,7 @@ namespace MisterGames.Input.Core {
             int count = changedList.Length;
             if (count > 0) {
                 UpdateInputMapsBlockState(changedList);
-                if (_enableLogs) LogInfo($"maps [{JoinMapsToString(inputMaps)}] blocked by [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"maps [{JoinMapsToString(inputMaps)}] blocked by [{source}], state:\n{GetInputsStateString()}");
             }
             
             changedList.Dispose();
@@ -217,7 +241,7 @@ namespace MisterGames.Input.Core {
             int count = changedList.Length;
             if (count > 0) {
                 UpdateInputMapsBlockState(changedList);
-                if (_enableLogs) LogInfo($"maps [{JoinMapsToString(inputMapRefs)}] blocked by [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"maps [{JoinMapsToString(inputMapRefs)}] blocked by [{source}], state:\n{GetInputsStateString()}");
             }
             
             changedList.Dispose();
@@ -228,7 +252,7 @@ namespace MisterGames.Input.Core {
         public bool UnblockInputMap(object source, InputActionMap inputMap) {
             if (_initialized && SetInputMapBlockInternal(source, inputMap, blocked: false)) {
                 UpdateInputMapBlockState(inputMap);
-                if (_enableLogs) LogInfo($"map [{inputMap.name}] unblocked by [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"map [{inputMap.name}] unblocked by [{source}], state:\n{GetInputsStateString()}");
                 return true;
             }
             
@@ -241,7 +265,7 @@ namespace MisterGames.Input.Core {
                 SetInputMapBlockInternal(source, inputMap, blocked: false)) 
             {
                 UpdateInputMapBlockState(inputMap);
-                if (_enableLogs) LogInfo($"map [{inputMap.name}] unblocked by [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"map [{inputMap.name}] unblocked by [{source}], state:\n{GetInputsStateString()}");
                 return true;
             }
             
@@ -264,7 +288,7 @@ namespace MisterGames.Input.Core {
             int count = changedList.Length;
             if (count > 0) {
                 UpdateInputMapsBlockState(changedList);
-                if (_enableLogs) LogInfo($"maps [{JoinMapsToString(inputMaps)}] unblocked by [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"maps [{JoinMapsToString(inputMaps)}] unblocked by [{source}], state:\n{GetInputsStateString()}");
             }
             
             changedList.Dispose();
@@ -288,7 +312,7 @@ namespace MisterGames.Input.Core {
             int count = changedList.Length;
             if (count > 0) {
                 UpdateInputMapsBlockState(changedList);
-                if (_enableLogs) LogInfo($"maps [{JoinMapsToString(inputMapRefs)}] unblocked by [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"maps [{JoinMapsToString(inputMapRefs)}] unblocked by [{source}], state:\n{GetInputsStateString()}");
             }
             
             changedList.Dispose();
@@ -319,7 +343,7 @@ namespace MisterGames.Input.Core {
             int changedCount = changedList.Length;
             if (changedCount > 0) {
                 UpdateInputMapsBlockState(changedList);
-                if (_enableLogs) LogInfo($"cleared all {changedCount} map blocks of [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"cleared all {changedCount} map blocks of [{source}], state:\n{GetInputsStateString()}");
             }
             
             changedList.Dispose();
@@ -343,7 +367,7 @@ namespace MisterGames.Input.Core {
 
             if (changedCount > 0) {
                 UpdateInputMapsBlockState(changedList);
-                if (_enableLogs) LogInfo($"cleared all {changedCount} map blocks of all sources, state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"cleared all {changedCount} map blocks of all sources, state:\n{GetInputsStateString()}");
             }
             
             changedList.Dispose();
@@ -383,7 +407,7 @@ namespace MisterGames.Input.Core {
         public bool SetInputActionBlockOverride(object source, InputAction inputAction, bool blocked, CancellationToken cancellationToken = default) {
             if (_initialized && SetInputActionBlockOverrideInternal(source, inputAction, blocked, cancellationToken)) {
                 UpdateInputActionBlockState(inputAction);
-                if (_enableLogs) LogInfo($"input [{inputAction.name}] set overriden state {(blocked ? "blocked" : "unblocked")} by [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"input [{inputAction.name}] set overriden state {(blocked ? "blocked" : "unblocked")} by [{source}], state:\n{GetInputsStateString()}");
                 return true;
             }
             
@@ -396,7 +420,7 @@ namespace MisterGames.Input.Core {
                 SetInputActionBlockOverrideInternal(source, inputAction, blocked, cancellationToken)) 
             {
                 UpdateInputActionBlockState(inputAction);
-                if (_enableLogs) LogInfo($"input [{inputAction.name}] set overriden state {(blocked ? "blocked" : "unblocked")} by [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"input [{inputAction.name}] set overriden state {(blocked ? "blocked" : "unblocked")} by [{source}], state:\n{GetInputsStateString()}");
                 return true;
             }
             
@@ -419,7 +443,7 @@ namespace MisterGames.Input.Core {
             int count = changedList.Length;
             if (count > 0) {
                 UpdateInputActionsBlockState(changedList);
-                if (_enableLogs) LogInfo($"inputs [{JoinActionsToString(inputActions)}] set overriden state {(blocked ? "blocked" : "unblocked")} by [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"inputs [{JoinActionsToString(inputActions)}] set overriden state {(blocked ? "blocked" : "unblocked")} by [{source}], state:\n{GetInputsStateString()}");
             }
             
             changedList.Dispose();
@@ -443,7 +467,7 @@ namespace MisterGames.Input.Core {
             int count = changedList.Length;
             if (count > 0) {
                 UpdateInputActionsBlockState(changedList);
-                if (_enableLogs) LogInfo($"inputs [{JoinActionsToString(inputActionRefs)}] set overriden state {(blocked ? "blocked" : "unblocked")} by [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"inputs [{JoinActionsToString(inputActionRefs)}] set overriden state {(blocked ? "blocked" : "unblocked")} by [{source}], state:\n{GetInputsStateString()}");
             }
             
             changedList.Dispose();
@@ -454,7 +478,7 @@ namespace MisterGames.Input.Core {
         public bool RemoveInputActionBlockOverride(object source, InputAction inputAction) {
             if (_initialized && RemoveInputActionBlockOverrideInternal(source, inputAction)) {
                 UpdateInputActionBlockState(inputAction);
-                if (_enableLogs) LogInfo($"input [{inputAction.name}] removed overriden state by [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"input [{inputAction.name}] removed overriden state by [{source}], state:\n{GetInputsStateString()}");
                 return true;
             }
             
@@ -466,7 +490,7 @@ namespace MisterGames.Input.Core {
             
             if (_initialized && RemoveInputActionBlockOverrideInternal(source, inputAction)) {
                 UpdateInputActionBlockState(inputAction);
-                if (_enableLogs) LogInfo($"input [{inputAction.name}] removed overriden state by [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"input [{inputAction.name}] removed overriden state by [{source}], state:\n{GetInputsStateString()}");
                 return true;
             }
             
@@ -489,7 +513,7 @@ namespace MisterGames.Input.Core {
             int count = changedList.Length;
             if (count > 0) {
                 UpdateInputActionsBlockState(changedList);
-                if (_enableLogs) LogInfo($"inputs [{JoinActionsToString(inputActions)}] removed overriden state by [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"inputs [{JoinActionsToString(inputActions)}] removed overriden state by [{source}], state:\n{GetInputsStateString()}");
             }
             
             changedList.Dispose();
@@ -513,7 +537,7 @@ namespace MisterGames.Input.Core {
             int count = changedList.Length;
             if (count > 0) {
                 UpdateInputActionsBlockState(changedList);
-                if (_enableLogs) LogInfo($"inputs [{JoinActionsToString(inputActionRefs)}] removed overriden state by [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"inputs [{JoinActionsToString(inputActionRefs)}] removed overriden state by [{source}], state:\n{GetInputsStateString()}");
             }
             
             changedList.Dispose();
@@ -568,7 +592,7 @@ namespace MisterGames.Input.Core {
             int changedCount = changedList.Length;
             if (changedCount > 0) {
                 UpdateInputActionsBlockState(changedList);
-                if (_enableLogs) LogInfo($"cleared all {changedCount} input overriden states of [{source}], state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"cleared all {changedCount} input overriden states of [{source}], state:\n{GetInputsStateString()}");
             }
             
             changedList.Dispose();
@@ -592,7 +616,7 @@ namespace MisterGames.Input.Core {
 
             if (changedCount > 0) {
                 UpdateInputActionsBlockState(changedList);
-                if (_enableLogs) LogInfo($"cleared all {changedCount} input overriden states of all sources, state:\n{GetInputsStateString()}");
+                if (_settings != null && _settings.enableLogs) LogInfo($"cleared all {changedCount} input overriden states of all sources, state:\n{GetInputsStateString()}");
             }
             
             changedList.Dispose();
@@ -657,7 +681,7 @@ namespace MisterGames.Input.Core {
                 var inputActions = inputMap.actions;
                 for (int j = 0; j < inputActions.Count; j++) {
                     var inputAction = inputMap.actions[j];
-                    inputAction.wantsInitialStateCheck = true;
+                    inputAction.wantsInitialStateCheck = !_ignoreInitialStateCheckSet.Contains(inputAction.id);
                     inputAction.Enable();
                 }
             }
@@ -702,7 +726,7 @@ namespace MisterGames.Input.Core {
             }
 
             if (enableInputAction) {
-                inputAction.wantsInitialStateCheck = true;
+                inputAction.wantsInitialStateCheck = !_ignoreInitialStateCheckSet.Contains(inputAction.id);
                 inputAction.Enable();
                 return;
             }
