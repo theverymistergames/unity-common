@@ -122,7 +122,12 @@ namespace MisterGames.Common.Save {
             OnProfileUpdated.Invoke(profileKey);
             if (makeCurrent) OnCurrentProfileChanged.Invoke(profileKey);
         }
-        
+
+        public void ResetCurrentProfile() {
+            _currentProfileKey = null;
+            OnCurrentProfileChanged.Invoke(GetSharedProfileKey());
+        }
+
         public async UniTask SaveProfile(string profileKey) {
             _unsavedChangesInProfiles.Remove(profileKey);
             
