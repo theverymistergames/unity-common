@@ -35,6 +35,7 @@ namespace MisterGames.Tweens {
 
         private void OnDestroy() {
             _tweenPlayer.OnProgressUpdate -= OnProgressUpdate;
+            _tweenPlayer.Stop();
         }
 
         private void OnEnable() {
