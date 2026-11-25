@@ -92,7 +92,7 @@ namespace MisterGames.Common.Localization {
             }
 #endif
             
-            return Services.Get<ILocalizationService>().GetLocalizedString(key, locale);
+            return Services.Get<ILocalizationService>()?.GetLocalizedString(key, locale);
         }
         
         public static Disposable<T> GetValue<T>(this LocalizationKey<T> key, Locale locale) {
