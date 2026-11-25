@@ -116,7 +116,7 @@ namespace MisterGames.Common.Audio {
         
         private readonly Dictionary<AttachKey, int> _attachKeyToHandleIdMap = new();
         private readonly Dictionary<int, AttachKey> _handleIdToAttachKeyMap = new();
-        private readonly Dictionary<int, PendingAttachData> _pendingAttachMap = new();
+        private readonly Dictionary<int, AttachedData> _attachedMap = new();
         private readonly Dictionary<int, IAudioElement> _handleIdToAudioElementMap = new();
         private int _lastHandleId;
         
@@ -201,7 +201,7 @@ namespace MisterGames.Common.Audio {
             
             _attachKeyToHandleIdMap.Clear();
             _handleIdToAttachKeyMap.Clear();
-            _pendingAttachMap.Clear();
+            _attachedMap.Clear();
             _handleIdToAudioElementMap.Clear();
             
             _elements.Clear();
@@ -454,18 +454,16 @@ namespace MisterGames.Common.Audio {
             }
 
             int id = GetNextHandleId();
-            var audioElement = GetAudioElementAttached(attachTo, localPosition);
+            var audioElement = GetAudioElementAtWorldPosition(attachTo.TransformPoint(localPosition));
 
             if (audioElement == null) {
 #if UNITY_EDITOR
-                Debug.LogWarning($"{nameof(AudioPool)}: cannot create audio element, prefab pool is disposed.");          
-#endif          
+                Debug.LogWarning($"{nameof(AudioPool)}: cannot create audio element, prefab pool is disposed.");
+#endif
                 return AudioHandle.Invalid;
             }
-            
-            if (audioElement.Transform.parent != attachTo) {
-                _pendingAttachMap[id] = new PendingAttachData(attachTo, localPosition);
-            }
+
+            _attachedMap[id] = new AttachedData(attachTo, localPosition);
 
             var attachKey = new AttachKey(attachTo.GetEntityId(), attachId);
 
@@ -529,12 +527,14 @@ namespace MisterGames.Common.Audio {
             // After the source restart, so that computed pitch is not overwritten by the raw one.
             ProcessSoundImmediate(audioElement);
 
+            ProcessAttachedSound(id);
+
             var handle = new AudioHandle(this, id);
             OnSoundStarted.Invoke(handle, mixerGroup);
-            
+
             return handle;
         }
-        
+
         private void AddAudioElement(int id, IAudioElement e) {
             _handleIdToAudioElementMap[id] = e;
             _handleIdToIndexMap[id] = _elements.Count;
@@ -595,6 +595,7 @@ namespace MisterGames.Common.Audio {
 
             audioElement.IsPaused = false;
             audioElement.IsPausedExplicitly = false;
+            audioElement.IsPausedByParent = false;
 
             // Play calls made while the engine is down are lost, so a sound born there waits for it
             // together with the sounds the suspend caught, instead of being counted as finished.
@@ -628,10 +629,6 @@ namespace MisterGames.Common.Audio {
             return PrefabPool.Main.Get(_prefab, position, Quaternion.identity, _transform);
         }
 
-        private IAudioElement GetAudioElementAttached(Transform parent, Vector3 localPosition = default) {
-            return PrefabPool.Main?.Get(_prefab, parent.TransformPoint(localPosition), Quaternion.identity, parent);
-        }
-        
         private static void RestartAudioSource(
             AudioSource source,
             AudioClip clip,
@@ -746,7 +743,6 @@ namespace MisterGames.Common.Audio {
                 _attachKeyToHandleIdMap.Remove(attachKey);
             }
 
-            _pendingAttachMap.Remove(handleId);
             _fadeInDataMap.Remove(handleId);
 
             bool isNull = e.Source == null;
@@ -790,6 +786,35 @@ namespace MisterGames.Common.Audio {
             e.Source.volume = volume;
         }
 
+        void IAudioPool.SetAudioHandlePosition(int handleId, Vector3 position) {
+            if (!_handleIdToAudioElementMap.TryGetValue(handleId, out var e)) return;
+
+            e.Transform.position = position;
+
+            if (_attachedMap.TryGetValue(handleId, out var data) && data.parent != null) {
+                _attachedMap[handleId] = data.WithLocalPosition(data.parent.InverseTransformPoint(position));
+            }
+        }
+
+        Vector3 IAudioPool.GetAudioHandleLocalPosition(int handleId) {
+            if (!_handleIdToAudioElementMap.TryGetValue(handleId, out var e)) return default;
+
+            return _attachedMap.TryGetValue(handleId, out var data) ? data.localPosition : e.Transform.localPosition;
+        }
+
+        void IAudioPool.SetAudioHandleLocalPosition(int handleId, Vector3 localPosition) {
+            if (!_handleIdToAudioElementMap.TryGetValue(handleId, out var e)) return;
+
+            if (!_attachedMap.TryGetValue(handleId, out var data)) {
+                e.Transform.localPosition = localPosition;
+                return;
+            }
+
+            _attachedMap[handleId] = data.WithLocalPosition(localPosition);
+
+            if (data.parent != null) e.Transform.position = data.parent.TransformPoint(localPosition);
+        }
+
         bool IAudioPool.TryGetAudioElement(int handleId, out IAudioElement audioElement) {
             return _handleIdToAudioElementMap.TryGetValue(handleId, out audioElement);
         }
@@ -798,45 +823,81 @@ namespace MisterGames.Common.Audio {
             ProcessAudioEngineState();
             ProcessInternalTime(out float dtScaled, out float dtUnscaled);
             ProcessClipShuffles();
-            ProcessPendingAttach();
+            ProcessAttachedSounds();
             ProcessFadeIn();
             ProcessFadeOutAndRelease();
             ProcessSounds(dtScaled, dtUnscaled);
             ProcessReverb(dtScaled);
         }
 
-        private void ProcessPendingAttach() {
-            int count = _pendingAttachMap.Count;
+        private void ProcessAttachedSounds() {
+            int count = _attachedMap.Count;
             if (count == 0) return;
 
             var handleIds = new NativeArray<int>(count, Allocator.Temp);
             int index = 0;
 
-            foreach (int handleId in _pendingAttachMap.Keys) {
+            foreach (int handleId in _attachedMap.Keys) {
                 handleIds[index++] = handleId;
             }
 
             for (int i = 0; i < count; i++) {
-                int handleId = handleIds[i];
-                if (!_pendingAttachMap.Remove(handleId, out var data) ||
-                    !_handleIdToAudioElementMap.TryGetValue(handleId, out var e))
-                {
-                    continue;
-                }
-
-                if (data.parent == null) {
-                    ReleaseSound(handleId, immediate: true);
-                    continue;
-                }
-
-                var t = e.Transform;
-                t.SetParent(data.parent, worldPositionStays: true);
-                t.position = data.parent.TransformPoint(data.localPosition);
-
-                if (t.parent != data.parent) _pendingAttachMap[handleId] = data;
+                ProcessAttachedSound(handleIds[i]);
             }
 
             handleIds.Dispose();
+        }
+
+        private void ProcessAttachedSound(int handleId) {
+            if (!_attachedMap.TryGetValue(handleId, out var data)) return;
+
+            bool releasing = !_handleIdToAudioElementMap.TryGetValue(handleId, out var e);
+
+            if (releasing && !_releaseElementsMap.TryGetValue(handleId, out e) || e.Source == null) {
+                _attachedMap.Remove(handleId);
+                return;
+            }
+
+            bool parentActive = data.parent != null && data.gameObject.activeInHierarchy;
+            bool canPause = !releasing && data.parent != null && (e.AudioOptions & AudioOptions.Loop) != 0;
+
+            if (!parentActive && !canPause) {
+                _attachedMap.Remove(handleId);
+
+                if (releasing) StopFadeOutAndRelease(handleId);
+                else ReleaseSound(handleId, immediate: true);
+
+                return;
+            }
+
+            if (!parentActive) {
+                PauseByParent(e);
+                return;
+            }
+
+            e.Transform.position = data.parent.TransformPoint(data.localPosition);
+
+            if (e.IsPausedByParent) ResumeByParent(e);
+        }
+
+        private static void PauseByParent(IAudioElement e) {
+            if (e.IsPausedByParent) return;
+
+            e.IsPausedByParent = true;
+            e.Source.Pause();
+        }
+
+        private void ResumeByParent(IAudioElement e) {
+            e.IsPausedByParent = false;
+
+            if (_audioEngineSuspended) {
+                e.IsPausedByFocus = true;
+                return;
+            }
+
+            if (e.IsPaused || e.IsPausedExplicitly) return;
+
+            e.Source.UnPause();
         }
 
         private void ProcessInternalTime(out float dtScaled, out float dtUnscaled) {
@@ -1431,7 +1492,7 @@ namespace MisterGames.Common.Audio {
 
         private static void SuspendSound(IAudioElement e) {
             // A paused sound keeps a state of its own and is not the engine to bring back.
-            if (e.Source == null || e.IsPaused || e.IsPausedExplicitly) return;
+            if (e.Source == null || e.IsPaused || e.IsPausedExplicitly || e.IsPausedByParent) return;
 
             // A source that is still playing carries a fresher position than the last frame tracked.
             if (e.Source.isPlaying) {
@@ -1476,7 +1537,7 @@ namespace MisterGames.Common.Audio {
 
             // Nothing to bring back: a sound paused by the pool on zero timescale or from the outside
             // stays paused, and a source without a clip can never report playing to begin with.
-            if (e.Source == null || e.Source.clip == null || e.IsPaused || e.IsPausedExplicitly) {
+            if (e.Source == null || e.Source.clip == null || e.IsPaused || e.IsPausedExplicitly || e.IsPausedByParent) {
                 e.IsPausedByFocus = false;
                 return true;
             }
@@ -1544,8 +1605,8 @@ namespace MisterGames.Common.Audio {
 
         private static void CheckPause(IAudioElement e, float timescale) {
             // A sound paused from the outside stays paused until it is resumed from the outside.
-            if (e.IsPausedExplicitly) return;
-            
+            if (e.IsPausedExplicitly || e.IsPausedByParent) return;
+
             if (timescale <= 0f && e.Source.isPlaying) {
                 e.IsPaused = true;
                 e.Source.Pause();
@@ -2014,14 +2075,26 @@ namespace MisterGames.Common.Audio {
             }
         }
 
-        private readonly struct PendingAttachData {
+        private readonly struct AttachedData {
 
             public readonly Transform parent;
+            public readonly GameObject gameObject;
             public readonly Vector3 localPosition;
 
-            public PendingAttachData(Transform parent, Vector3 localPosition) {
+            public AttachedData(Transform parent, Vector3 localPosition) {
                 this.parent = parent;
+                gameObject = parent.gameObject;
                 this.localPosition = localPosition;
+            }
+
+            private AttachedData(Transform parent, GameObject gameObject, Vector3 localPosition) {
+                this.parent = parent;
+                this.gameObject = gameObject;
+                this.localPosition = localPosition;
+            }
+
+            public AttachedData WithLocalPosition(Vector3 localPosition) {
+                return new AttachedData(parent, gameObject, localPosition);
             }
         }
 

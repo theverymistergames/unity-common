@@ -67,6 +67,9 @@ namespace MisterGames.Common.Audio {
         internal void ReleaseAudioHandle(int handleId, bool immediate = false);
         internal bool TryGetAudioElement(int handleId, out IAudioElement audioElement);
         internal void SetAudioHandleVolume(int handleId, float volume);
+        internal void SetAudioHandlePosition(int handleId, Vector3 position);
+        internal Vector3 GetAudioHandleLocalPosition(int handleId);
+        internal void SetAudioHandleLocalPosition(int handleId, Vector3 localPosition);
 
 #if UNITY_EDITOR
         internal bool ShowGizmo { get; }  

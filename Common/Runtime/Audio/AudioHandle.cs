@@ -55,12 +55,12 @@ namespace MisterGames.Common.Audio {
 
         public Vector3 Position {
             get => IsValid(out var e) ? e.Transform.position : default;
-            set { if (IsValid(out var e)) e.Transform.position = value; }
+            set => _pool?.SetAudioHandlePosition(_id, value);
         }
 
         public Vector3 LocalPosition {
-            get => IsValid(out var e) ? e.Transform.localPosition : default;
-            set { if (IsValid(out var e)) e.Transform.localPosition = value; }
+            get => _pool?.GetAudioHandleLocalPosition(_id) ?? default;
+            set => _pool?.SetAudioHandleLocalPosition(_id, value);
         }
 
         private readonly IAudioPool _pool;
@@ -81,6 +81,8 @@ namespace MisterGames.Common.Audio {
             if (!IsValid(out var e)) return;
             
             e.IsPausedExplicitly = false;
+            if (e.IsPausedByParent) return;
+
             e.Source.UnPause();
             
             // The source was stopped instead of being paused, or has not been started yet.
