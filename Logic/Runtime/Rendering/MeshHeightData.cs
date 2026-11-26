@@ -1,16 +1,14 @@
 ﻿using System.Collections.Generic;
 using MisterGames.Common;
 using MisterGames.Common.Maths;
-using MisterGames.Common.Tick;
 using UnityEngine;
 
 namespace MisterGames.Logic.Rendering {
     
-    public sealed class MeshHeightData : MonoBehaviour, IUpdate {
+    public sealed class MeshHeightData : MonoBehaviour {
         
         [SerializeField] private MeshFilter _meshFilter;
         [SerializeField] private MeshRenderer _meshRenderer;
-        [SerializeField] [Min(0f)] private float _updateVerticesPeriod = 0.5f;
         [SerializeField] [Min(1)] private int _gridSizeX = 10;
         [SerializeField] [Min(1)] private int _gridSizeZ = 10;
 
@@ -25,28 +23,10 @@ namespace MisterGames.Logic.Rendering {
 
         private Transform _transform;
         private Bounds _localBounds;
-        private float _lastUpdateTime;
         
         private void Awake() {
             FetchVertices();
             CreateGrid();
-        }
-
-        private void OnEnable() {
-            _lastUpdateTime = -_updateVerticesPeriod;
-            PlayerLoopStage.LateUpdate.Subscribe(this);
-        }
-
-        private void OnDisable() {
-            PlayerLoopStage.LateUpdate.Unsubscribe(this);
-        }
-
-        void IUpdate.OnUpdate(float dt) {
-            float time = TimeSources.unscaledTime;
-            if (time < _lastUpdateTime + _updateVerticesPeriod) return;
-            
-            _lastUpdateTime = time;
-            FetchVertices();
         }
 
         public bool TrySamplePosition(ref Vector3 point) {
@@ -120,7 +100,7 @@ namespace MisterGames.Logic.Rendering {
         }
 
         private void FetchVertices() {
-            _meshFilter.mesh.GetVertices(_vertices);
+            _meshFilter.sharedMesh.GetVertices(_vertices);
         }
         
         private int LocalPositionToCell(Vector3 localPosition) {

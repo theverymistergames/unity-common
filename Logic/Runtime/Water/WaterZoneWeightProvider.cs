@@ -13,18 +13,21 @@ namespace MisterGames.Logic.Water {
     public sealed class WaterZoneWeightProvider : PositionWeightProvider {
 
         [SerializeField] private WaterZone _waterZone;
+        [SerializeField] [Min(0f)] private float _depthFade = 0.5f;
 
         private readonly struct VolumeData {
 
             public readonly float3 position;
             public readonly quaternion rotation;
             public readonly float3 size;
+            public readonly float surfaceOffset;
             public readonly int volumeId;
 
-            public VolumeData(float3 position, quaternion rotation, float3 size, int volumeId) {
+            public VolumeData(float3 position, quaternion rotation, float3 size, float surfaceOffset, int volumeId) {
                 this.position = position;
                 this.rotation = rotation;
                 this.size = size;
+                this.surfaceOffset = surfaceOffset;
                 this.volumeId = volumeId;
             }
         }
@@ -40,14 +43,19 @@ namespace MisterGames.Logic.Water {
         public override WeightData GetWeight(Vector3 position) {
             UpdateVolumeDataArray();
 
-            // Weight is binary here, and a point inside a volume has zero distance to it,
-            // so the first containing volume is the result. No jobs needed for a single position.
+            float maxWeight = 0f;
+            int volumeId = GetHashCode();
+
             for (int i = 0; i < _volumeCount; i++) {
                 var volumeData = _volumeDataArray[i];
-                if (Contains(volumeData, position)) return new WeightData(1f, volumeData.volumeId, position);
+                float weight = CalculateWeight(volumeData, position, _depthFade);
+                if (weight <= maxWeight) continue;
+
+                maxWeight = weight;
+                volumeId = volumeData.volumeId;
             }
 
-            return new WeightData(0f, GetHashCode(), position);
+            return new WeightData(maxWeight, volumeId, position);
         }
 
         public override JobHandle GetWeight(NativeArray<float3> positions, NativeArray<WeightSample> results, int count, JobHandle dependency = default) {
@@ -71,6 +79,7 @@ namespace MisterGames.Logic.Water {
 
             var calculateWeightJob = new CalculateWeightJob {
                 volumeDataArray = _volumeDataArray,
+                depthFade = _depthFade,
                 positions = positions,
                 weightArray = weightArray,
             };
@@ -90,13 +99,17 @@ namespace MisterGames.Logic.Water {
             return resultJobHandle;
         }
 
-        private static bool Contains(VolumeData volumeData, float3 position) {
+        private static float CalculateWeight(VolumeData volumeData, float3 position, float depthFade) {
             var localPoint = math.mul(math.inverse(volumeData.rotation), position - volumeData.position);
             var halfSize = volumeData.size * 0.5f;
 
-            return localPoint.x >= -halfSize.x && localPoint.x <= halfSize.x &&
-                   localPoint.y >= -halfSize.y && localPoint.y <= halfSize.y &&
-                   localPoint.z >= -halfSize.z && localPoint.z <= halfSize.z;
+            bool inside = localPoint.x >= -halfSize.x && localPoint.x <= halfSize.x &&
+                          localPoint.y >= -halfSize.y && localPoint.y <= halfSize.y &&
+                          localPoint.z >= -halfSize.z && localPoint.z <= halfSize.z;
+
+            return inside
+                ? depthFade > 0f ? math.saturate((halfSize.y + volumeData.surfaceOffset - localPoint.y) / depthFade) : 1f
+                : 0f;
         }
 
         private void UpdateVolumeDataArray() {
@@ -116,7 +129,7 @@ namespace MisterGames.Logic.Water {
 
             foreach (var volume in volumes) {
                 volume.GetBox(out var position, out var rotation, out var size);
-                _volumeDataArray[index++] = new VolumeData(position, rotation, size, _waterZone.GetVolumeId(volume));
+                _volumeDataArray[index++] = new VolumeData(position, rotation, size, volume.SurfaceOffset, _waterZone.GetVolumeId(volume));
             }
         }
 
@@ -141,6 +154,7 @@ namespace MisterGames.Logic.Water {
 
             [ReadOnly] public NativeArray<VolumeData> volumeDataArray;
             [ReadOnly] public NativeArray<float3> positions;
+            [ReadOnly] public float depthFade;
             [WriteOnly] public NativeArray<WeightSample> weightArray;
 
             public void Execute(int startIndex, int count) {
@@ -148,15 +162,7 @@ namespace MisterGames.Logic.Water {
 
                 for (int i = 0; i < count; i++) {
                     var volumeData = volumeDataArray[i];
-
-                    var localPoint = math.mul(math.inverse(volumeData.rotation), position - volumeData.position);
-                    var halfSize = volumeData.size * 0.5f;
-
-                    bool inside = localPoint.x >= -halfSize.x && localPoint.x <= halfSize.x &&
-                                  localPoint.y >= -halfSize.y && localPoint.y <= halfSize.y &&
-                                  localPoint.z >= -halfSize.z && localPoint.z <= halfSize.z;
-
-                    weightArray[startIndex + i] = new WeightSample(inside ? 1f : 0f, volumeData.volumeId);
+                    weightArray[startIndex + i] = new WeightSample(CalculateWeight(volumeData, position, depthFade), volumeData.volumeId);
                 }
             }
         }
@@ -177,17 +183,14 @@ namespace MisterGames.Logic.Water {
                 int from = index * volumeCount;
                 int to = from + volumeCount;
 
-                // Weight is binary and a contained point has zero distance to its volume,
-                // so the first volume with non zero weight is the closest one.
+                var result = new WeightSample(0f, defaultVolumeId);
+
                 for (int i = from; i < to; i++) {
                     var data = weightArray[i];
-                    if (data.weight <= 0f) continue;
-
-                    results[index] = data;
-                    return;
+                    if (data.weight > result.weight) result = data;
                 }
 
-                results[index] = new WeightSample(0f, defaultVolumeId);
+                results[index] = result;
             }
         }
 

@@ -11,8 +11,20 @@ namespace MisterGames.Logic.Rendering {
         [SerializeField] [Min(0)] private int[] _enableInTiers;
         
         private void Awake() {
-            bool enable = _enableInTiers.Contains(QualitySettings.GetQualityLevel());
-            _objects.SetEnabled(enable);
+            QualitySettings.activeQualityLevelChanged += OnQualityLevelChanged;
+            Apply(QualitySettings.GetQualityLevel());
+        }
+
+        private void OnDestroy() {
+            QualitySettings.activeQualityLevelChanged -= OnQualityLevelChanged;
+        }
+
+        private void OnQualityLevelChanged(int previousLevel, int currentLevel) {
+            Apply(currentLevel);
+        }
+
+        private void Apply(int qualityLevel) {
+            _objects.SetEnabled(_enableInTiers.Contains(qualityLevel));
         }
     }
     
