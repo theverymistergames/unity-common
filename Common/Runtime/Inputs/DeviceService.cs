@@ -59,6 +59,7 @@ namespace MisterGames.Common.Inputs {
         private void CheckDeviceType() {
             bool keyboardMousePressed = IsAnyKeyboardMouseControlPressed();
             bool mouseOrScrollMoved = IsMouseOrScrollMoved();
+            bool touchscreenActive = IsTouchscreenActive();
             IsAnyGamepadControlPressed(out bool gamepadPressed, out bool gamepadSticksMoved);
             
             AnyKeyPressedThisFrame = keyboardMousePressed || gamepadPressed;
@@ -68,7 +69,7 @@ namespace MisterGames.Common.Inputs {
             var lastGamepad = GamepadType;
             
             CurrentDevice = gamepadPressed || gamepadSticksMoved ? InputDeviceType.Gamepad 
-                : keyboardMousePressed || mouseOrScrollMoved ? InputDeviceType.KeyboardMouse
+                : !touchscreenActive && (keyboardMousePressed || mouseOrScrollMoved) ? InputDeviceType.KeyboardMouse
                 : CurrentDevice;
 
             GamepadType = CurrentDevice is InputDeviceType.Gamepad ? Gamepad.current.GetGamepadType() : GamepadType.Default;
@@ -94,6 +95,13 @@ namespace MisterGames.Common.Inputs {
                     || Mouse.current.delta.ReadValue() != default);
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsTouchscreenActive() {
+            return Touchscreen.current != null &&
+                   (Touchscreen.current.primaryTouch.press.isPressed
+                    || Touchscreen.current.primaryTouch.press.wasReleasedThisFrame);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void IsAnyGamepadControlPressed(out bool keysPressed, out bool sticksMoved) {
             keysPressed = false;

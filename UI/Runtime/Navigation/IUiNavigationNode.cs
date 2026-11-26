@@ -20,6 +20,8 @@ namespace MisterGames.UI.Navigation {
         
         void SetCurrentSelectable(Selectable selectable);
         bool IsBoundSelectable(Selectable selectable);
+        Selectable FindClosestSelectable(Vector3 position);
+        Selectable FindFirstSelectable();
     }
     
 }

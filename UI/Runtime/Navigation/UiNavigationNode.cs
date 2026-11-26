@@ -129,6 +129,14 @@ namespace MisterGames.UI.Navigation {
             return selectable != null && _helper.IsBound(selectable.gameObject);
         }
 
+        public Selectable FindClosestSelectable(Vector3 position) {
+            return _helper.FindClosestSelectable(transform, position, _cell);
+        }
+
+        public Selectable FindFirstSelectable() {
+            return _helper.FindFirstSelectable(transform, _mode, _cell);
+        }
+
         private void OnSelectedGameObjectChanged(Selectable selected, IUiWindow parent) {
             if (IsBoundSelectable(selected)) {
                 CurrentSelectable = selected;

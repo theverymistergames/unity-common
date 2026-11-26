@@ -46,6 +46,61 @@ namespace MisterGames.UI.Navigation {
         public bool IsBound(GameObject gameObject) {
             return _gameObjectIdToSelectableMap.ContainsKey(gameObject.GetHashCode());
         }
+
+        public Selectable FindFirstSelectable(Transform root, UiNavigationMode mode, float2 cell) {
+            bool horizontal = mode == UiNavigationMode.Horizontal;
+            var orderedCell = horizontal ? cell : cell.yx;
+
+            Selectable first = null;
+            var minCells = new int2(int.MaxValue, int.MaxValue);
+            var minPos = new float2(float.MaxValue, float.MaxValue);
+
+            foreach (var selectable in _gameObjectIdToSelectableMap.Values) {
+                if (selectable == null || !selectable.gameObject.activeInHierarchy) continue;
+
+                var pos = root.InverseTransformPoint(selectable.transform.position).ToFloat2XY();
+                var orderedPos = horizontal ? new float2(pos.x, -pos.y) : new float2(-pos.y, pos.x);
+                var cells = (int2) math.floor(orderedPos / orderedCell);
+
+                if (cells.x > minCells.x ||
+                    cells.x == minCells.x &&
+                    (cells.y > minCells.y || cells.y == minCells.y &&
+                     (orderedPos.x > minPos.x || orderedPos.x == minPos.x && orderedPos.y >= minPos.y)))
+                {
+                    continue;
+                }
+
+                minCells = cells;
+                minPos = orderedPos;
+                first = selectable;
+            }
+
+            return first;
+        }
+
+        public Selectable FindClosestSelectable(Transform root, Vector3 position, float2 cell) {
+            var origin = root.InverseTransformPoint(position).ToFloat2XY();
+
+            Selectable closest = null;
+            int minCells = int.MaxValue;
+            float minSqr = float.MaxValue;
+
+            foreach (var selectable in _gameObjectIdToSelectableMap.Values) {
+                if (selectable == null || !selectable.gameObject.activeInHierarchy) continue;
+
+                var absDistance2 = math.abs(root.InverseTransformPoint(selectable.transform.position).ToFloat2XY() - origin);
+                int cells = (int) math.floor(absDistance2.x / cell.x) + (int) math.floor(absDistance2.y / cell.y);
+                float sqr = math.lengthsq(absDistance2);
+
+                if (cells > minCells || cells == minCells && sqr >= minSqr) continue;
+
+                minCells = cells;
+                minSqr = sqr;
+                closest = selectable;
+            }
+
+            return closest;
+        }
         
         public void NavigateOut(
             IUiNavigationNode node,
@@ -101,7 +156,7 @@ namespace MisterGames.UI.Navigation {
                 ? nextParentNode.CurrentSelectable
                 : nextParentNode?.DefaultSelectable;
             
-            var nextOptions = nextHistoryTarget == null 
+            var nextOptions = nextHistoryTarget == null || !nextHistoryTarget.gameObject.activeInHierarchy
                 ? UiIncomingOuterNavigationOptions.SelectClosestElement
                 : nextParentNode.IncomingOuterNavigation;
             

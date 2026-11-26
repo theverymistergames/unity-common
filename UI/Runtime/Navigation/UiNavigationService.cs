@@ -121,8 +121,8 @@ namespace MisterGames.UI.Navigation {
                 
                 if (candidate == null || candidate is not { gameObject: { activeSelf: true, activeInHierarchy: true }}) {
                     var node = _uiWindowService.GetFrontOpenedWindow()?.Node;
-                    candidate = node?.CurrentSelectable != null && node.CurrentSelectable is { gameObject: { activeSelf: true, activeInHierarchy: true }} 
-                        ? node.CurrentSelectable 
+                    candidate = node?.CurrentSelectable != null && node.CurrentSelectable is { gameObject: { activeSelf: true, activeInHierarchy: true }}
+                        ? node.CurrentSelectable
                         : node?.DefaultSelectable;
                 }
 
@@ -305,7 +305,11 @@ namespace MisterGames.UI.Navigation {
         }
 
         public void SetCurrentSelectable(Selectable selectable) {
-            EventSystem.current.SetSelectedGameObject(selectable.gameObject);
+            var target = selectable.gameObject.activeInHierarchy
+                ? selectable
+                : FindClosestParentNavigationNode(selectable.gameObject)?.FindFirstSelectable();
+
+            EventSystem.current.SetSelectedGameObject(target != null ? target.gameObject : selectable.gameObject);
         }
 
         public UiNavigationOptions GetSelectableOptions(Selectable selectable) {
@@ -431,10 +435,18 @@ namespace MisterGames.UI.Navigation {
         public void UnbindNavigation(Selectable selectable) {
             int hash = selectable.GetHashCode();
             _selectableDataMap.Remove(hash);
-            
+
+            var parentNode = GetParentNavigationNode(selectable);
+
             if (!_selectableMap.Remove(hash)) return;
-            
+
             UnbindNavigationNodeSelectable(selectable);
+
+            var eventSystem = EventSystem.current;
+            if (eventSystem == null || eventSystem.currentSelectedGameObject != selectable.gameObject) return;
+
+            var replacement = parentNode?.FindClosestSelectable(selectable.transform.position);
+            if (replacement != null) SetCurrentSelectable(replacement);
         }
 
         private void BindNavigationNode(IUiNavigationNode node) {

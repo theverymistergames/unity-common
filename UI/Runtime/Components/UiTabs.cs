@@ -120,8 +120,11 @@ namespace MisterGames.UI.Components {
                 if (tab.button != button) continue;
 
                 if (_openedTab == i) {
-                    if (tab.window.Node?.DefaultSelectable != null) {
-                        _navigationService.SetCurrentSelectable(tab.window.Node.DefaultSelectable);
+                    var node = tab.window.Node;
+                    var target = node?.CurrentSelectable != null ? node.CurrentSelectable : node?.DefaultSelectable;
+
+                    if (target != null) {
+                        _navigationService.SetCurrentSelectable(target);
                     }
                     return;
                 }
