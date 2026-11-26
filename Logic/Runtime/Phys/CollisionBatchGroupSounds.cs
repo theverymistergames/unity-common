@@ -27,6 +27,7 @@ namespace MisterGames.Logic.Phys {
         
         [Header("Sound Settings")]
         [SerializeField] [Min(0f)] private float _soundCooldown = 0.25f;
+        [SerializeField] [Min(0)] private int _maxSoundsPerFrame = 16;
         [SerializeField] [Min(0f)] private float _volumeMulMin = 0.1f;
         [SerializeField] [Min(0f)] private float _volumeMulMax = 1f;
         [SerializeField] private EasingType _volumeEasing = EasingType.Linear;
@@ -83,7 +84,9 @@ namespace MisterGames.Logic.Phys {
         private readonly List<MaterialInfo> _materialList = new();
 
         private bool _hasMaterialDetector;
-        
+        private int _soundsFrame = -1;
+        private int _soundsCount;
+
         private void Awake() {
             FetchMaterialIdToIndexMap();
             _hasMaterialDetector = _materialDetector != null;
@@ -99,7 +102,7 @@ namespace MisterGames.Logic.Phys {
         }
         
         private void OnContact(TriggerEventType evt, EntityId rigidbodyId, int rbMaterial, EntityId colliderId, Vector3 point, Vector3 normal, Vector3 impulse) {
-            if (evt == TriggerEventType.Exit || impulse.sqrMagnitude < _impulseMin * _impulseMin) return;
+            if (evt == TriggerEventType.Exit || impulse.sqrMagnitude < _impulseMin * _impulseMin || IsSoundLimitReached()) return;
 
             bool hasData = _lastRbDataMap.TryGetValue(rigidbodyId, out var data);
 
@@ -176,13 +179,27 @@ namespace MisterGames.Logic.Phys {
             return false;
         }
         
+        private bool IsSoundLimitReached() {
+            int frame = Time.frameCount;
+
+            if (frame != _soundsFrame) {
+                _soundsFrame = frame;
+                _soundsCount = 0;
+            }
+
+            return _soundsCount >= _maxSoundsPerFrame;
+        }
+
         private void PlaySound(Vector3 point, int rbMaterial, int surfaceMaterial, float volumeMul = 1f) {
-            if (!_materialPairToIndexMap.TryGetValue((rbMaterial, surfaceMaterial), out var address) &&
+            if (IsSoundLimitReached() ||
+                !_materialPairToIndexMap.TryGetValue((rbMaterial, surfaceMaterial), out var address) &&
                 !_materialPairToIndexMap.TryGetValue((0, surfaceMaterial), out address) &&
-                !_materialPairToIndexMap.TryGetValue((rbMaterial, 0), out address)) 
+                !_materialPairToIndexMap.TryGetValue((rbMaterial, 0), out address))
             {
                 return;
             }
+
+            _soundsCount++;
 
             ref var group = ref _materialGroups[address.group];
             ref var data = ref group.surfaces[address.item];

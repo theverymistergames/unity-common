@@ -29,9 +29,7 @@ namespace MisterGames.Logic.Phys {
         }
 
         private void ProvideContacts(bool provide) {
-            for (int i = 0; i < _colliders.Length; i++) {
-                _colliders[i].providesContacts = provide;
-            }
+            if (_colliders.Length > 0) _colliders[0].providesContacts = provide;
         }
         
 #if UNITY_EDITOR

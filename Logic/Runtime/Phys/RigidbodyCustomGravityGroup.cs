@@ -28,6 +28,9 @@ namespace MisterGames.Logic.Phys {
         [SerializeField] [Min(0f)] private float _torqueMin = 0f;
         [SerializeField] [Min(0f)] private float _torqueMax = 60f;
 
+        [Header("Activation")]
+        [SerializeField] [Min(1)] private int _activationsPerStep = 16;
+
         [Header("Sleep")]
         [SerializeField] [Min(0f)] private float _sleepDelay = 0.5f;
         [SerializeField] [Min(1)] private int _sleepBatchPeriod = 5;
@@ -69,6 +72,7 @@ namespace MisterGames.Logic.Phys {
             public readonly float angularEnergyFactor;
             public float restTime;
             public bool isSleeping;
+            public bool isPendingActivation;
             public int sleepVerifySteps;
 
             public Member(Rigidbody rigidbody, RigidbodyData data) {
@@ -94,6 +98,7 @@ namespace MisterGames.Logic.Phys {
 
         private readonly List<Member> _members = new();
         private readonly Dictionary<Rigidbody, int> _memberIndexMap = new();
+        private readonly Queue<Member> _activationQueue = new();
 
         private Vector3 _lastGravity = Vector3.down * GravityMagnitudeDefault;
         private bool _isCustomGravityActive;
@@ -103,6 +108,7 @@ namespace MisterGames.Logic.Phys {
         private void OnDestroy() {
             _members.Clear();
             _memberIndexMap.Clear();
+            _activationQueue.Clear();
         }
 
         private void OnEnable() {
@@ -113,7 +119,7 @@ namespace MisterGames.Logic.Phys {
             _isCustomGravityActive = true;
 
             for (int i = 0; i < _members.Count; i++) {
-                SetupRigidbodyActiveState(_members[i], strict: true);
+                EnqueueActivation(_members[i]);
             }
         }
 
@@ -133,7 +139,7 @@ namespace MisterGames.Logic.Phys {
             _memberIndexMap[rigidbody] = _members.Count;
             _members.Add(member);
 
-            if (_isCustomGravityActive) SetupRigidbodyActiveState(member, strict: true);
+            if (_isCustomGravityActive) EnqueueActivation(member);
             else SetupRigidbodyInitialState(member);
         }
 
@@ -161,9 +167,28 @@ namespace MisterGames.Logic.Phys {
         public void ResetAllMembers() {
             _isCustomGravityActive = false;
             _lastGravity = Vector3.down * GravityMagnitudeDefault;
+            _activationQueue.Clear();
 
             for (int i = 0; i < _members.Count; i++) {
                 SetupRigidbodyInitialState(_members[i]);
+            }
+        }
+
+        private void EnqueueActivation(Member member) {
+            if (member.isPendingActivation) return;
+
+            member.isPendingActivation = true;
+            _activationQueue.Enqueue(member);
+        }
+
+        private void ProcessActivationQueue() {
+            int count = 0;
+
+            while (count < _activationsPerStep && _activationQueue.TryDequeue(out var member)) {
+                if (!member.isPendingActivation) continue;
+
+                SetupRigidbodyActiveState(member, strict: true);
+                count++;
             }
         }
 
@@ -179,6 +204,7 @@ namespace MisterGames.Logic.Phys {
 
             member.restTime = 0f;
             member.isSleeping = false;
+            member.isPendingActivation = false;
             member.sleepVerifySteps = 0;
 
             rigidbody.isKinematic = false;
@@ -193,6 +219,8 @@ namespace MisterGames.Logic.Phys {
         }
 
         private static void SetupRigidbodyInitialState(Member member) {
+            member.isPendingActivation = false;
+
             var rigidbody = member.rigidbody;
             if (rigidbody == null) return;
 
@@ -227,9 +255,11 @@ namespace MisterGames.Logic.Phys {
                 _isCustomGravityActive = true;
 
                 for (int i = 0; i < _members.Count; i++) {
-                    SetupRigidbodyActiveState(_members[i], strict: true);
+                    EnqueueActivation(_members[i]);
                 }
             }
+
+            ProcessActivationQueue();
 
             if (changed && Vector3.Dot(gravity, lastGravity) < 0f) {
                 for (int i = 0; i < _members.Count; i++) {
@@ -243,6 +273,8 @@ namespace MisterGames.Logic.Phys {
 
             for (int i = 0; i < _members.Count; i++) {
                 var member = _members[i];
+                if (member.isPendingActivation) continue;
+
                 member.rigidbody.useGravity = useGravity;
 
                 bool isVerifyingSleep = member.sleepVerifySteps > 0;
