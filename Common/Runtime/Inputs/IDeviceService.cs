@@ -15,8 +15,10 @@ namespace MisterGames.Common.Inputs {
         IGamepadHidColors GamepadHidColors { get; }
         IDualSenseAdapter DualSenseAdapter { get; }
         bool AnyKeyPressedThisFrame { get; }
-        
+        bool IsDefaultGamepadTypeForced { get; }
+
         bool TryGetGamepad(out Gamepad gamepad);
+        void ForceDefaultGamepadType(bool force);
     }
     
 }

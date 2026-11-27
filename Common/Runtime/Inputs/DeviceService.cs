@@ -14,10 +14,10 @@ namespace MisterGames.Common.Inputs {
         public InputDeviceType CurrentDevice { get; private set; }
         public GamepadType GamepadType { get; private set; }
         public int LastPointerDeviceId { get; private set; }
-        
         public bool AnyKeyPressedThisFrame { get; private set; }
         public bool AnyInputActivatedThisFrame { get; private set; }
-        
+        public bool IsDefaultGamepadTypeForced { get; private set; }
+
         public IGamepadVibration GamepadVibration { get; private set; }
         public IGamepadHidColors GamepadHidColors { get; private set; }
         public IDualSenseAdapter DualSenseAdapter { get; private set; }
@@ -47,6 +47,10 @@ namespace MisterGames.Common.Inputs {
             return gamepad != null;
         }
 
+        public void ForceDefaultGamepadType(bool force) {
+            IsDefaultGamepadTypeForced = force;
+        }
+
         void IUpdate.OnUpdate(float dt) {
             FetchPointerDeviceId();
             CheckDeviceType();
@@ -72,11 +76,17 @@ namespace MisterGames.Common.Inputs {
                 : !touchscreenActive && (keyboardMousePressed || mouseOrScrollMoved) ? InputDeviceType.KeyboardMouse
                 : CurrentDevice;
 
-            GamepadType = CurrentDevice is InputDeviceType.Gamepad ? Gamepad.current.GetGamepadType() : GamepadType.Default;
+            GamepadType = GetGamepadType(CurrentDevice);
 
             if (lastDevice == CurrentDevice && lastGamepad == GamepadType) return;
 
             OnDeviceChanged.Invoke(CurrentDevice);
+        }
+
+        private GamepadType GetGamepadType(InputDeviceType device) {
+            return device is InputDeviceType.Gamepad && !IsDefaultGamepadTypeForced
+                ? Gamepad.current.GetGamepadType()
+                : GamepadType.Default;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
