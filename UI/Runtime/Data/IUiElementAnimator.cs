@@ -8,8 +8,8 @@ namespace MisterGames.UI.Data {
         UiElementState CurrentState { get; }
         
         void AnimateState(UiElementState state);
-        void SetForceMinState(UiElementState state);
-        void ResetForceMinState();
+        void SetMinState(UiElementState state);
+        void ResetMinState();
         void SetBlockedState(bool blocked);
     }
     

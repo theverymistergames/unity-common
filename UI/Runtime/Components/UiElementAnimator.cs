@@ -175,14 +175,14 @@ namespace MisterGames.UI.Components {
             ApplyState(GetAutoState());
         }
 
-        void IUiElementAnimator.SetForceMinState(UiElementState state) {
+        void IUiElementAnimator.SetMinState(UiElementState state) {
             _hasForceMinState = true;
             _minState = state;
             
             ApplyState(GetAutoState());
         }
 
-        void IUiElementAnimator.ResetForceMinState() {
+        void IUiElementAnimator.ResetMinState() {
             _hasForceMinState = false;
             
             ApplyState(GetAutoState());
