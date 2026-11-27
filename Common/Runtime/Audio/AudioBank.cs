@@ -1,4 +1,5 @@
 ﻿using MisterGames.Common.Attributes;
+using MisterGames.Common.Data;
 using UnityEngine;
 using System;
 using System.Collections.Generic;
@@ -85,17 +86,36 @@ namespace MisterGames.Common.Audio {
         /// </para>
         /// </summary>
         /// <returns>Number of clips the data was unloaded for.</returns>
-        public int UnloadAudioData() {
+        public int UnloadAudioData(ISet<AudioClip> keepClips = null) {
             int count = 0;
 
             for (int i = 0; i < _preloadClips?.Length; i++) {
                 var clip = _preloadClips[i];
 
-                if (clip == null) continue;
+                if (clip == null || keepClips != null && keepClips.Contains(clip)) continue;
                 if (TryUnloadAudioData(clip)) count++;
             }
 
             return count;
+        }
+
+        public bool HasLoadingClips() {
+            for (int i = 0; i < _preloadClips?.Length; i++) {
+                var clip = _preloadClips[i];
+
+                if (clip != null && clip.loadType != AudioClipLoadType.Streaming && clip.loadState == AudioDataLoadState.Loading) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public void CollectClips(ISet<AudioClip> clips) {
+            for (int i = 0; i < _preloadClips?.Length; i++) {
+                var clip = _preloadClips[i];
+                if (clip != null) clips.Add(clip);
+            }
         }
 
         private bool TryUnloadAudioData(AudioClip clip) {
@@ -133,6 +153,7 @@ namespace MisterGames.Common.Audio {
             public AudioCompressionFormat compressionFormat;
             public LoadTime loadTime;
             public bool loadInBackground;
+            public Optional<float> quality;
 
             /// <summary>
             /// Only <see cref="LoadTime.AssetPreload"/> keeps the preload option of the clip on:
@@ -281,6 +302,24 @@ namespace MisterGames.Common.Audio {
 
             Debug.Log($"{nameof(AudioBank)} '{name}': reimported {count} of {clipPaths.Count} audio clips, " +
                       $"{_preloadClips.Length} of them are preloaded, {_preloadClipsSize}.", this);
+        }
+
+        [MenuItem("MisterGames/Tools/Rebuild audiobanks")]
+        private static void ReimportAllBanks() {
+            InvalidateBankCache();
+
+            var banks = GetBanks();
+            int count = 0;
+
+            for (int i = 0; i < banks.Length; i++) {
+                var bank = banks[i];
+                if (bank == null) continue;
+
+                bank.Reimport();
+                count++;
+            }
+
+            Debug.Log($"{nameof(AudioBank)}: reimported {count} audio banks.");
         }
 
         /// <summary>
@@ -530,7 +569,8 @@ namespace MisterGames.Common.Audio {
             return sampleSettings.loadType != preset.loadType ||
                    sampleSettings.compressionFormat != preset.compressionFormat ||
                    sampleSettings.preloadAudioData != preset.PreloadAudioData ||
-                   importer.loadInBackground != preset.loadInBackground;
+                   importer.loadInBackground != preset.loadInBackground ||
+                   preset.quality.HasValue && !Mathf.Approximately(sampleSettings.quality, preset.quality.Value);
         }
 
         private static void ApplyPreset(AudioImporter importer, in Preset preset) {
@@ -539,6 +579,7 @@ namespace MisterGames.Common.Audio {
             sampleSettings.loadType = preset.loadType;
             sampleSettings.compressionFormat = preset.compressionFormat;
             sampleSettings.preloadAudioData = preset.PreloadAudioData;
+            if (preset.quality.HasValue) sampleSettings.quality = Mathf.Clamp01(preset.quality.Value);
 
             importer.defaultSampleSettings = sampleSettings;
             importer.loadInBackground = preset.loadInBackground;

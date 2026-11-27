@@ -190,6 +190,15 @@ namespace MisterGames.Logic.ShadersWarmup {
         }
 
         private async UniTask LoadForDevelopmentBuild(CancellationToken cancellationToken) {
+            if (_settings.EnableTracingInDevBuild) {
+                await TraceForDevelopmentBuild(cancellationToken);
+                if (cancellationToken.IsCancellationRequested) return;
+            }
+
+            await StartWarmup(LoadReleaseCollection(), _settings.VisualEffectAssets, cancellationToken);
+        }
+
+        private async UniTask TraceForDevelopmentBuild(CancellationToken cancellationToken) {
             _graphicsStateCollection = CreateCollectionForCurrentDevice();
             SaveToLocalFile(_graphicsStateCollection); // clear before tracing
             BeginTracing();
@@ -224,8 +233,6 @@ namespace MisterGames.Logic.ShadersWarmup {
             }
 
             EndTracingAndSaveToLocalFile();
-
-            await StartWarmup(LoadReleaseCollection(), _settings.VisualEffectAssets, cancellationToken);
         }
 
         private void UnloadForDevelopmentBuild() {

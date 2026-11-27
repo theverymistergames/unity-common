@@ -1452,6 +1452,7 @@ namespace MisterGames.Common.Audio {
             // This clock stops with the engine and keeps running while the game loop is away,
             // unlike any of the frame clocks.
             bool dspProgress = dspTime > _lastDspTime;
+            float dspElapsed = (float) (dspTime - _lastDspTime);
 
             _lastDspTime = dspTime;
             if (dspProgress) _lastDspProgressTime = time;
@@ -1460,7 +1461,7 @@ namespace MisterGames.Common.Audio {
                 // The clock read on this frame tells about the time the app was away, not about the
                 // engine right now, so progress that proves the engine runs is measured from here on.
                 _lastDspProgressTime = time;
-                SuspendSounds();
+                SuspendSounds(dspElapsed);
                 return;
             }
 
@@ -1474,31 +1475,36 @@ namespace MisterGames.Common.Audio {
             if (_audioEngineSuspended) RestoreSounds();
         }
 
-        private void SuspendSounds() {
+        private void SuspendSounds(float dspElapsed = 0f) {
             if (_audioEngineSuspended) return;
 
             _audioEngineSuspended = true;
 
             for (int i = 0; i < _elements.Count; i++) {
-                SuspendSound(_elements[i]);
+                SuspendSound(_elements[i], dspElapsed);
             }
 
             foreach (var e in _releaseElementsMap.Values) {
-                SuspendSound(e);
+                SuspendSound(e, dspElapsed);
             }
 
             if (_logFocusEvents) LogAudioEngineSuspended();
         }
 
-        private static void SuspendSound(IAudioElement e) {
+        private static void SuspendSound(IAudioElement e, float dspElapsed) {
             // A paused sound keeps a state of its own and is not the engine to bring back.
             if (e.Source == null || e.IsPaused || e.IsPausedExplicitly || e.IsPausedByParent) return;
 
+            bool loop = (e.AudioOptions & AudioOptions.Loop) != 0;
+
             // A source that is still playing carries a fresher position than the last frame tracked.
             if (e.Source.isPlaying) {
-                e.ClipTime = (e.AudioOptions & AudioOptions.Loop) != 0
+                e.ClipTime = loop
                     ? e.Source.time
                     : math.max(e.ClipTime, e.Source.time);
+            }
+            else if (!loop) {
+                e.ClipTime = math.min(e.ClipTime + math.max(dspElapsed, 0f) * math.abs(e.Source.pitch), e.ClipLength);
             }
 
             // A silent source proves nothing: the engine can be down before it reports the suspend, and
@@ -1535,9 +1541,13 @@ namespace MisterGames.Common.Audio {
         private static bool RestoreSound(IAudioElement e) {
             if (!e.IsPausedByFocus) return true;
 
+            bool loop = (e.AudioOptions & AudioOptions.Loop) != 0;
+
             // Nothing to bring back: a sound paused by the pool on zero timescale or from the outside
             // stays paused, and a source without a clip can never report playing to begin with.
-            if (e.Source == null || e.Source.clip == null || e.IsPaused || e.IsPausedExplicitly || e.IsPausedByParent) {
+            if (e.Source == null || e.Source.clip == null || e.IsPaused || e.IsPausedExplicitly || e.IsPausedByParent ||
+                !loop && e.ClipTime >= e.ClipLength)
+            {
                 e.IsPausedByFocus = false;
                 return true;
             }
@@ -1549,15 +1559,18 @@ namespace MisterGames.Common.Audio {
             if (!e.Source.isPlaying) {
                 // The source was stopped instead of being suspended, or was started while the engine was
                 // down and the call was lost, so it is restarted from the clip time it was cut off at.
-                bool loop = (e.AudioOptions & AudioOptions.Loop) != 0;
+                float time = math.clamp(e.ClipTime, 0f, math.max(e.ClipLength - ClipRestartOffset, 0f));
+                bool streaming = e.Source.clip.loadType == AudioClipLoadType.Streaming;
 
-                if (!loop && e.ClipTime >= e.ClipLength) {
+                LogSoundRestart(e, time, streaming);
+
+                e.Source.time = time;
+                e.Source.Play();
+
+                if (streaming) {
                     e.IsPausedByFocus = false;
                     return true;
                 }
-
-                e.Source.time = math.clamp(e.ClipTime, 0f, math.max(e.ClipLength - ClipRestartOffset, 0f));
-                e.Source.Play();
             }
 
             // A source with a clip that refuses to play means the engine is not running yet, so the
@@ -1566,6 +1579,12 @@ namespace MisterGames.Common.Audio {
 
             e.IsPausedByFocus = false;
             return true;
+        }
+
+        private static void LogSoundRestart(IAudioElement e, float time, bool streaming) {
+            Debug.Log($"{nameof(AudioPool)}.RestoreSound: f {Time.frameCount}, " +
+                      $"restart sound #{e.Id} [{e.Source.clip.name}], {(streaming ? "streaming, single attempt" : "retry until playing")}, " +
+                      $"time {time:0.###} of {e.ClipLength:0.###} s, loop {(e.AudioOptions & AudioOptions.Loop) != 0}.");
         }
 
         private void LogAudioEngineSuspended() {

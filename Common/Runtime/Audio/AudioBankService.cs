@@ -15,6 +15,7 @@ namespace MisterGames.Common.Audio {
         private readonly Dictionary<AudioBank, HashSet<int>> _bankSourcesMap = new();
         private readonly Dictionary<AudioBank, float> _pendingUnloadMap = new();
         private readonly List<AudioBank> _unloadBuffer = new();
+        private readonly HashSet<AudioClip> _keepClipsBuffer = new();
 
         public AudioBankService(AudioBanksSettings settings) {
             _settings = settings;
@@ -79,7 +80,7 @@ namespace MisterGames.Common.Audio {
 
             float delay = GetUnloadDelay();
 
-            if (delay <= 0f) {
+            if (delay <= 0f && !bank.HasLoadingClips()) {
                 UnloadBank(bank);
                 return;
             }
@@ -94,7 +95,7 @@ namespace MisterGames.Common.Audio {
             float time = Time.unscaledTime;
 
             foreach (var (bank, unloadTime) in _pendingUnloadMap) {
-                if (bank == null || time >= unloadTime) _unloadBuffer.Add(bank);
+                if (bank == null || time >= unloadTime && !bank.HasLoadingClips()) _unloadBuffer.Add(bank);
             }
 
             for (int i = 0; i < _unloadBuffer.Count; i++) {
@@ -113,8 +114,15 @@ namespace MisterGames.Common.Audio {
             return _settings != null ? _settings.unloadDelay : 0f;
         }
 
-        private static void UnloadBank(AudioBank bank) {
-            int count = bank.UnloadAudioData();
+        private void UnloadBank(AudioBank bank) {
+            _keepClipsBuffer.Clear();
+
+            foreach (var boundBank in _bankSourcesMap.Keys) {
+                if (boundBank != null && boundBank != bank) boundBank.CollectClips(_keepClipsBuffer);
+            }
+
+            int count = bank.UnloadAudioData(_keepClipsBuffer);
+            _keepClipsBuffer.Clear();
 
             LogInfo($"audio bank [{bank.name}] is unloaded, unloaded audio data of {count} clips.");
         }
