@@ -30,7 +30,8 @@ namespace MisterGames.Common.Audio {
         [SerializeField] [Min(0f)] private float _attenuationDistance = 50f;
         [SerializeField] [Min(0f)] private float _audioParametersSmoothing = 3f;
         [SerializeField] [Min(0f)] private float _shuffleClipsOrderLifetime = 60f;
-        
+        [SerializeField] [Min(0)] private int _maxInstancesPerClip = 4;
+
         [Header("Mixers")]
         [SerializeField] private AudioMixerGroup _defaultMixerGroup;
         [SerializeField] private AudioMixerGroup[] _includeMixerGroupsForVolumes;
@@ -91,6 +92,11 @@ namespace MisterGames.Common.Audio {
         private const float ClipRestartOffset = 0.01f;
         private const float DspStallTimeout = 0.25f;
         private const float FrozenFrameTimeout = 0.5f;
+
+        private const float PitchTolerance = 0.001f;
+        private const float AttenuationTolerance = 0.01f;
+        private const float CutoffTolerance = 0.01f;
+        private const float InaudibleCullMaxClipLength = 5f;
         
         private const string ReverbParamRoom = "Room";
         private const string ReverbParamRoomHf = "RoomHF";
@@ -113,6 +119,10 @@ namespace MisterGames.Common.Audio {
         
         private readonly Dictionary<int, IndexData> _clipsHashToLastIndexMap = new();
         private float _lastClipShufflesCheckTime;
+
+        private readonly Dictionary<int, int> _clipToShuffleGroupMap = new();
+        private readonly Dictionary<int, List<int>> _instanceKeyToHandleIdsMap = new();
+        private readonly Dictionary<int, int> _handleIdToInstanceKeyMap = new();
         
         private readonly Dictionary<AttachKey, int> _attachKeyToHandleIdMap = new();
         private readonly Dictionary<int, AttachKey> _handleIdToAttachKeyMap = new();
@@ -198,7 +208,10 @@ namespace MisterGames.Common.Audio {
             AudioSettings.OnAudioConfigurationChanged -= OnAudioConfigurationChanged;
 
             _clipsHashToLastIndexMap.Clear();
-            
+            _clipToShuffleGroupMap.Clear();
+            _instanceKeyToHandleIdsMap.Clear();
+            _handleIdToInstanceKeyMap.Clear();
+
             _attachKeyToHandleIdMap.Clear();
             _handleIdToAttachKeyMap.Clear();
             _attachedMap.Clear();
@@ -363,16 +376,22 @@ namespace MisterGames.Common.Audio {
 #endif
                 return AudioHandle.Invalid;
             }
-            
-            int id = GetNextHandleId();
-            var audioElement = GetAudioElementAtWorldPosition(position);
-            
-            if (audioElement == null) {
-#if UNITY_EDITOR
-                Debug.LogWarning($"{nameof(AudioPool)}: cannot create audio element, prefab pool is disposed.");          
-#endif          
+
+            if (IsInaudibleOnStart(clip, position, spatialBlend, attenuationMul, mixerGroup, options)) {
                 return AudioHandle.Invalid;
             }
+
+            int id = GetNextHandleId();
+            var audioElement = GetAudioElementAtWorldPosition(position);
+
+            if (audioElement == null) {
+#if UNITY_EDITOR
+                Debug.LogWarning($"{nameof(AudioPool)}: cannot create audio element, prefab pool is disposed.");
+#endif
+                return AudioHandle.Invalid;
+            }
+
+            LimitInstances(id, clip, options);
 
 #if UNITY_EDITOR
             CreateDebugColor(id, clip);
@@ -453,8 +472,14 @@ namespace MisterGames.Common.Audio {
                 return AudioHandle.Invalid;
             }
 
+            var position = attachTo.TransformPoint(localPosition);
+
+            if (IsInaudibleOnStart(clip, position, spatialBlend, attenuationMul, mixerGroup, options)) {
+                return AudioHandle.Invalid;
+            }
+
             int id = GetNextHandleId();
-            var audioElement = GetAudioElementAtWorldPosition(attachTo.TransformPoint(localPosition));
+            var audioElement = GetAudioElementAtWorldPosition(position);
 
             if (audioElement == null) {
 #if UNITY_EDITOR
@@ -486,7 +511,9 @@ namespace MisterGames.Common.Audio {
                 _attachKeyToHandleIdMap[attachKey] = id;
                 _handleIdToAttachKeyMap[id] = attachKey;
             }
-            
+
+            LimitInstances(id, clip, options);
+
             InitializeAudioElement(
                 audioElement,
                 id,
@@ -533,6 +560,65 @@ namespace MisterGames.Common.Audio {
             OnSoundStarted.Invoke(handle, mixerGroup);
 
             return handle;
+        }
+
+        private bool IsInaudibleOnStart(
+            AudioClip clip,
+            Vector3 position,
+            float spatialBlend,
+            float attenuationMul,
+            AudioMixerGroup mixerGroup,
+            AudioOptions options)
+        {
+            return (options & AudioOptions.Loop) == 0 &&
+                   spatialBlend >= 1f &&
+                   clip.length <= InaudibleCullMaxClipLength &&
+                   _audioListenersMap.Count > 0 &&
+                   _listenerTransform != null &&
+                   IsBeyondAttenuationDistance(position, attenuationMul, mixerGroup, options);
+        }
+
+        private bool IsBeyondAttenuationDistance(Vector3 position, float attenuationMul, AudioMixerGroup mixerGroup, AudioOptions options) {
+            var group = mixerGroup == null ? _defaultMixerGroup : mixerGroup;
+            var groupId = group == null ? EntityId.None : group.GetEntityId();
+
+            if (groupId != EntityId.None && !_includeMixerGroupsForVolumesSet.Contains(groupId)) {
+                options &= ~AudioOptions.AffectedByVolumes;
+            }
+
+            float3 listenerPos = _listenerTransform.position;
+            float3 soundPos = position;
+            float attenuation = attenuationMul * CalculateVolumeResultImmediate(listenerPos, soundPos, options).attenuation;
+
+            return math.lengthsq(soundPos - listenerPos) > attenuation * attenuation;
+        }
+
+        private void LimitInstances(int id, AudioClip clip, AudioOptions options) {
+            if (_maxInstancesPerClip <= 0 || (options & AudioOptions.Loop) != 0) return;
+
+            int clipHash = clip.GetHashCode();
+            int key = _clipToShuffleGroupMap.TryGetValue(clipHash, out int groupHash) ? groupHash : clipHash;
+
+            if (!_instanceKeyToHandleIdsMap.TryGetValue(key, out var ids)) {
+                ids = new List<int>(_maxInstancesPerClip + 1);
+                _instanceKeyToHandleIdsMap[key] = ids;
+            }
+
+            while (ids.Count >= _maxInstancesPerClip) {
+                int oldestId = ids[0];
+                ids.RemoveAt(0);
+                _handleIdToInstanceKeyMap.Remove(oldestId);
+                ReleaseSound(oldestId, immediate: false);
+            }
+
+            ids.Add(id);
+            _handleIdToInstanceKeyMap[id] = key;
+        }
+
+        private void UnregisterInstance(int id) {
+            if (_handleIdToInstanceKeyMap.Remove(id, out int key) && _instanceKeyToHandleIdsMap.TryGetValue(key, out var ids)) {
+                ids.Remove(id);
+            }
         }
 
         private void AddAudioElement(int id, IAudioElement e) {
@@ -643,7 +729,7 @@ namespace MisterGames.Common.Audio {
             source.Stop();
 
             source.clip = clip;
-            source.time = clipTime;
+            if (clipTime > 0f) source.time = clipTime;
             source.volume = fadeIn > 0f ? 0f : volume;
             source.pitch = pitch;
             source.loop = loop;
@@ -671,7 +757,10 @@ namespace MisterGames.Common.Audio {
                 }
             }
 
-            return clips![NextClipIndex(hash, count)];
+            var clip = clips![NextClipIndex(hash, count)];
+            if (clip != null) _clipToShuffleGroupMap[clip.GetHashCode()] = hash;
+
+            return clip;
         }
         
         private int NextClipIndex(int hash, int count) {
@@ -734,6 +823,8 @@ namespace MisterGames.Common.Audio {
         }
 
         private void ReleaseSound(int handleId, bool immediate) {
+            UnregisterInstance(handleId);
+
             if (!RemoveAudioElement(handleId, out var e)) {
                 if (immediate) StopFadeOutAndRelease(handleId);
                 return;
@@ -1154,11 +1245,13 @@ namespace MisterGames.Common.Audio {
                 LogSoundDebugInfo(e, occlusionResultArray[i], volumeResources.created ? volumeResultArray[i] : default, resultData);
 #endif
 
-                e.Source.pitch = resultData.pitch;
-                e.Source.maxDistance = resultData.attenuationDistance;
+                float lpCutoff = NumberExtensions.LerpLog(HpCutoffLowerBound, math.clamp(resultData.lpCutoff, HpCutoffLowerBound, LpCutoffUpperBound), e.LpCutoffLerp);
+                float hpCutoff = NumberExtensions.LerpLog(LpCutoffUpperBound, math.clamp(resultData.hpCutoff, HpCutoffLowerBound, LpCutoffUpperBound), e.HpCutoffLerp);
 
-                e.LowPass.cutoffFrequency = NumberExtensions.LerpLog(HpCutoffLowerBound, math.clamp(resultData.lpCutoff, HpCutoffLowerBound, LpCutoffUpperBound), e.LpCutoffLerp);
-                e.HighPass.cutoffFrequency = NumberExtensions.LerpLog(LpCutoffUpperBound, math.clamp(resultData.hpCutoff, HpCutoffLowerBound, LpCutoffUpperBound), e.HpCutoffLerp);
+                if (IsChanged(e.Source.pitch, resultData.pitch, PitchTolerance)) e.Source.pitch = resultData.pitch;
+                if (IsChanged(e.Source.maxDistance, resultData.attenuationDistance, AttenuationTolerance)) e.Source.maxDistance = resultData.attenuationDistance;
+                if (IsChanged(e.LowPass.cutoffFrequency, lpCutoff, CutoffTolerance)) e.LowPass.cutoffFrequency = lpCutoff;
+                if (IsChanged(e.HighPass.cutoffFrequency, hpCutoff, CutoffTolerance)) e.HighPass.cutoffFrequency = hpCutoff;
 
                 e.LpCutoff = resultData.lpCutoff;
                 e.HpCutoff = resultData.hpCutoff;
@@ -1180,6 +1273,11 @@ namespace MisterGames.Common.Audio {
             resultSoundArray.Dispose();
 
             _globalOcclusionWeight = 1f;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsChanged(float current, float value, float relativeTolerance) {
+            return math.abs(value - current) > math.abs(current) * relativeTolerance;
         }
 
         /// <summary>
