@@ -626,7 +626,7 @@ namespace MisterGames.Common.Audio {
         }
         
         private IAudioElement GetAudioElementAtWorldPosition(Vector3 position) {
-            return PrefabPool.Main.Get(_prefab, position, Quaternion.identity, _transform);
+            return PrefabPool.Main?.Get(_prefab, position, Quaternion.identity, _transform);
         }
 
         private static void RestartAudioSource(
