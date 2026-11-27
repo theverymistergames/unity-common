@@ -124,7 +124,12 @@ namespace MisterGames.Character.View {
         private Vector2 GetViewCenter(Vector3 position, Quaternion rotationOffset, float dt) {
             Vector2 viewCenter;
             float smoothing = _viewCenterOffsetMul * _lookTargetSmoothing;
-            
+
+            if (_lookMode is LookMode.Transform or LookMode.TransformOriented && _lookTarget == null) {
+                _lookMode = LookMode.Free;
+                _viewCenterStatic = _lookOrientationSmoothed.ToEulerAngles180();
+            }
+
             switch (_lookMode) {
                 case LookMode.Free: {
                     viewCenter = _viewCenterStatic;
