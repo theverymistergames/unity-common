@@ -28,6 +28,7 @@ namespace MisterGames.Logic.Phys {
         [Header("Sound Settings")]
         [SerializeField] [Min(0f)] private float _soundCooldown = 0.25f;
         [SerializeField] [Min(0)] private int _maxSoundsPerFrame = 16;
+        [SerializeField] [Min(0f)] private float _maxSoundsPerSecond = 0f;
         [SerializeField] [Min(0f)] private float _volumeMulMin = 0.1f;
         [SerializeField] [Min(0f)] private float _volumeMulMax = 1f;
         [SerializeField] private EasingType _volumeEasing = EasingType.Linear;
@@ -86,6 +87,8 @@ namespace MisterGames.Logic.Phys {
         private bool _hasMaterialDetector;
         private int _soundsFrame = -1;
         private int _soundsCount;
+        private float _soundTokens;
+        private float _soundTokensTime;
 
         private void Awake() {
             FetchMaterialIdToIndexMap();
@@ -115,7 +118,8 @@ namespace MisterGames.Logic.Phys {
             }
 
             _lastRbDataMap[rigidbodyId] = new RbData(TimeSources.scaledTime, rb.position);
-            
+            _collisionBatchGroup.SetContactCooldown(rigidbodyId, _soundCooldown);
+
             float volumeMul = _impulseMax - _impulseMin > 0f
                 ? Mathf.Lerp(_volumeMulMin, _volumeMulMax, _volumeEasing.Evaluate(impulse.magnitude - _impulseMin) / (_impulseMax - _impulseMin)) 
                 : _volumeMulMax;
@@ -183,11 +187,15 @@ namespace MisterGames.Logic.Phys {
             int frame = Time.frameCount;
 
             if (frame != _soundsFrame) {
+                float time = TimeSources.scaledTime;
+
                 _soundsFrame = frame;
                 _soundsCount = 0;
+                _soundTokens = Mathf.Clamp(_soundTokens + (time - _soundTokensTime) * _maxSoundsPerSecond, 0f, _maxSoundsPerSecond);
+                _soundTokensTime = time;
             }
 
-            return _soundsCount >= _maxSoundsPerFrame;
+            return _soundsCount >= _maxSoundsPerFrame || _maxSoundsPerSecond > 0f && _soundTokens < 1f;
         }
 
         private void PlaySound(Vector3 point, int rbMaterial, int surfaceMaterial, float volumeMul = 1f) {
@@ -200,6 +208,7 @@ namespace MisterGames.Logic.Phys {
             }
 
             _soundsCount++;
+            _soundTokens--;
 
             ref var group = ref _materialGroups[address.group];
             ref var data = ref group.surfaces[address.item];

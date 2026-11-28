@@ -2,6 +2,7 @@
 using MisterGames.Collisions.Core;
 using MisterGames.Collisions.Utils;
 using MisterGames.Common.Layers;
+using MisterGames.Common.Tick;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
@@ -13,6 +14,8 @@ namespace MisterGames.Logic.Phys {
     public sealed class CollisionBatchGroup : MonoBehaviour {
 
         [SerializeField] private LayerMask _layerMask;
+        [SerializeField] private bool _reportExit = true;
+        [SerializeField] [Min(0f)] private float _minImpulse = 0f;
 
         public event ContactEvent OnContact = delegate { };
         public delegate void ContactEvent(TriggerEventType evt, EntityId rigidbodyId, int rbMaterial, EntityId colliderId, Vector3 point, Vector3 normal, Vector3 impulse);
@@ -40,7 +43,13 @@ namespace MisterGames.Logic.Phys {
         }
 
         public void Register(Rigidbody rigidbody, int surfaceMaterial = 0) {
-            _bodyIdToDataMap[rigidbody.GetEntityId()] = new BodyData(surfaceMaterial, _layerMask.Contains(rigidbody.gameObject.layer));
+            _bodyIdToDataMap[rigidbody.GetEntityId()] = new BodyData(surfaceMaterial, _layerMask.Contains(rigidbody.gameObject.layer), cooldownEndTime: 0f);
+        }
+
+        public void SetContactCooldown(EntityId rigidbodyId, float duration) {
+            if (!_bodyIdToDataMap.TryGetValue(rigidbodyId, out var data)) return;
+
+            _bodyIdToDataMap[rigidbodyId] = new BodyData(data.material, data.isValidLayer, TimeSources.scaledTime + duration);
         }
 
         public void Unregister(Rigidbody rigidbody) {
@@ -54,6 +63,9 @@ namespace MisterGames.Logic.Phys {
                 headers = headers,
                 bodyIdToDataMap = _bodyIdToDataMap,
                 contacts = _contacts,
+                time = TimeSources.scaledTime,
+                reportExit = _reportExit,
+                minSqrImpulse = _minImpulse * _minImpulse,
             }.Run();
 
             for (int i = 0; i < _contacts.Length; i++) {
@@ -79,10 +91,12 @@ namespace MisterGames.Logic.Phys {
 
             public readonly int material;
             public readonly bool isValidLayer;
+            public readonly float cooldownEndTime;
 
-            public BodyData(int material, bool isValidLayer) {
+            public BodyData(int material, bool isValidLayer, float cooldownEndTime) {
                 this.material = material;
                 this.isValidLayer = isValidLayer;
+                this.cooldownEndTime = cooldownEndTime;
             }
         }
 
@@ -143,6 +157,9 @@ namespace MisterGames.Logic.Phys {
             [ReadOnly] public NativeArray<ContactPairHeader>.ReadOnly headers;
             [ReadOnly] public NativeHashMap<EntityId, BodyData> bodyIdToDataMap;
             public NativeList<ContactData> contacts;
+            public float time;
+            public bool reportExit;
+            public float minSqrImpulse;
 
             public void Execute() {
                 for (int i = 0; i < headers.Length; i++) {
@@ -172,7 +189,7 @@ namespace MisterGames.Logic.Phys {
 
                 if (enter.contactCount > 0) Write(TriggerEventType.Enter, in enter, in header, hasThisBody, in thisBody, hasOtherBody, in otherBody);
                 if (stay.contactCount > 0) Write(TriggerEventType.Stay, in stay, in header, hasThisBody, in thisBody, hasOtherBody, in otherBody);
-                if (exit.hasPair) Write(TriggerEventType.Exit, in exit, in header, hasThisBody, in thisBody, hasOtherBody, in otherBody);
+                if (exit.hasPair && reportExit) Write(TriggerEventType.Exit, in exit, in header, hasThisBody, in thisBody, hasOtherBody, in otherBody);
             }
 
             private void Write(
@@ -184,11 +201,13 @@ namespace MisterGames.Logic.Phys {
                 var normal = sum.normal / count;
                 var impulse = sum.impulse / count;
 
-                if (hasThisBody && sum.otherColliderId != EntityId.None && (!hasOtherBody || otherBody.isValidLayer)) {
+                if (evt != TriggerEventType.Exit && math.lengthsq(impulse) < minSqrImpulse) return;
+
+                if (hasThisBody && time >= thisBody.cooldownEndTime && sum.otherColliderId != EntityId.None && (!hasOtherBody || otherBody.isValidLayer)) {
                     contacts.Add(new ContactData(evt, header.bodyEntityId, thisBody.material, sum.otherColliderId, !hasOtherBody, point, normal, impulse));
                 }
 
-                if (hasOtherBody && sum.colliderId != EntityId.None && (!hasThisBody || thisBody.isValidLayer)) {
+                if (hasOtherBody && time >= otherBody.cooldownEndTime && sum.colliderId != EntityId.None && (!hasThisBody || thisBody.isValidLayer)) {
                     contacts.Add(new ContactData(evt, header.otherBodyEntityId, otherBody.material, sum.colliderId, !hasThisBody, point, normal, impulse));
                 }
             }
