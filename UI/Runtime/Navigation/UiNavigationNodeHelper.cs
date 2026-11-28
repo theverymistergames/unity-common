@@ -138,9 +138,15 @@ namespace MisterGames.UI.Navigation {
                 }
             
                 var pos = root.InverseTransformPoint(selectable.transform.position).ToFloat2XY();
-                
+                var absDistance2 = math.abs(pos - origin);
+                var cells2 = new int2((int) math.floor(absDistance2.x / cell.x), (int) math.floor(absDistance2.y / cell.y));
+                bool isVertical = direction is UiNavigationDirection.Up or UiNavigationDirection.Down;
+
                 if (!pos.IsInDirection(origin, direction) ||
-                    !UiNavigationUtils.IsCloserAlongDirection(pos, relativeTo: origin, cell, direction, ref minSqr, ref minOrthProjCells)) 
+                    (isVertical
+                        ? cells2.y < cells2.x || cells2.y == cells2.x && absDistance2.y < absDistance2.x
+                        : cells2.x < cells2.y || cells2.x == cells2.y && absDistance2.x <= absDistance2.y) ||
+                    !UiNavigationUtils.IsCloserAlongDirection(math.lengthsq(absDistance2), isVertical ? cells2.xy : cells2.yx, ref minSqr, ref minOrthProjCells))
                 {
                     continue;
                 }
