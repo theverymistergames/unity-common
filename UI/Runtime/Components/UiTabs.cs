@@ -23,8 +23,8 @@ namespace MisterGames.UI.Components {
         [SerializeField] private Tab[] _tabs;
         
         [Header("Focus")]
-        [SerializeField] private FocusMode _focusMode = FocusMode.TabsOrTabContentWithRelativeButton;
-        [VisibleIf(nameof(_focusMode), 1)]
+        [SerializeField] private FocusMode _focusMode = FocusMode.ButtonsOrOpenedTabWithButton;
+        [VisibleIf(nameof(_focusMode), 0, CompareMode.Greater)]
         [SerializeField] [Range(0f, 1f)] private float _alpha = 0.25f;
         
         [Header("Tab Selection")]
@@ -41,8 +41,10 @@ namespace MisterGames.UI.Components {
 
         private enum FocusMode {
             None,
-            TabsOrTabContent,
-            TabsOrTabContentWithRelativeButton,    
+            ButtonsOrOpenedTab,
+            ButtonsOrOpenedTabWithButton,
+            ButtonsAndOpenedTab,
+            OpenedTabWithButton,
         }
         
         private IUiNavigationService _navigationService;
@@ -165,10 +167,14 @@ namespace MisterGames.UI.Components {
             for (int i = 0; i < _tabs?.Length; i++) {
                 ref var tab = ref _tabs[i];
 
-                bool focusedTabButton = focusedButtonIndex >= 0 || 
-                                        _openedTab == i && _focusMode == FocusMode.TabsOrTabContentWithRelativeButton;
-                
-                bool focusedTabContent = focusedButtonIndex < 0 &&
+                bool focusedTabButton = _focusMode is FocusMode.ButtonsAndOpenedTab || 
+                                        _focusMode is FocusMode.ButtonsOrOpenedTab && focusedButtonIndex >= 0 ||
+                                        _focusMode is FocusMode.ButtonsOrOpenedTabWithButton && (focusedButtonIndex >= 0 || i == _openedTab) ||
+                                        i == _openedTab;
+
+                bool focusedTabContent = _focusMode is FocusMode.OpenedTabWithButton or FocusMode.ButtonsAndOpenedTab && i == _openedTab ||
+                                         _focusMode is FocusMode.ButtonsOrOpenedTab or FocusMode.ButtonsOrOpenedTabWithButton && 
+                                         focusedButtonIndex < 0 && i == _openedTab && 
                                          ReferenceEquals(_navigationService.GetParentWindow(currentSelected), tab.window);
                 
                 SetFocusedState(_canvasGroupTabButtons[i], focusedTabButton);
