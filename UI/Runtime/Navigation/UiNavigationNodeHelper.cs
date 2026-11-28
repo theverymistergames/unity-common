@@ -126,6 +126,8 @@ namespace MisterGames.UI.Navigation {
             Selectable closestSelectable = null;
             float minSqr = float.MaxValue;
             var minOrthProjCells = new int2(int.MaxValue, int.MaxValue);
+            bool isVertical = direction is UiNavigationDirection.Up or UiNavigationDirection.Down;
+            bool hasMainDirectionCandidate = false;
 
             foreach (var selectable in selectables) {
                 if (IsBound(selectable.gameObject) || 
@@ -140,14 +142,21 @@ namespace MisterGames.UI.Navigation {
                 var pos = root.InverseTransformPoint(selectable.transform.position).ToFloat2XY();
                 var absDistance2 = math.abs(pos - origin);
                 var cells2 = new int2((int) math.floor(absDistance2.x / cell.x), (int) math.floor(absDistance2.y / cell.y));
-                bool isVertical = direction is UiNavigationDirection.Up or UiNavigationDirection.Down;
+                bool isMainDirection = isVertical
+                    ? cells2.y > cells2.x || cells2.y == cells2.x && absDistance2.y >= absDistance2.x
+                    : cells2.x > cells2.y || cells2.x == cells2.y && absDistance2.x > absDistance2.y;
 
-                if (!pos.IsInDirection(origin, direction) ||
-                    (isVertical
-                        ? cells2.y < cells2.x || cells2.y == cells2.x && absDistance2.y < absDistance2.x
-                        : cells2.x < cells2.y || cells2.x == cells2.y && absDistance2.x <= absDistance2.y) ||
-                    !UiNavigationUtils.IsCloserAlongDirection(math.lengthsq(absDistance2), isVertical ? cells2.xy : cells2.yx, ref minSqr, ref minOrthProjCells))
-                {
+                if (!pos.IsInDirection(origin, direction) || hasMainDirectionCandidate && !isMainDirection) {
+                    continue;
+                }
+
+                if (isMainDirection && !hasMainDirectionCandidate) {
+                    hasMainDirectionCandidate = true;
+                    minSqr = float.MaxValue;
+                    minOrthProjCells = new int2(int.MaxValue, int.MaxValue);
+                }
+
+                if (!UiNavigationUtils.IsCloserAlongDirection(math.lengthsq(absDistance2), isVertical ? cells2.xy : cells2.yx, ref minSqr, ref minOrthProjCells)) {
                     continue;
                 }
                 
